@@ -3,3 +3,6 @@ cmake-*
 .vscode
 .vs
 deps/*
+./cact-parser/grammar/*.tokens
+./cact-parser/grammar/*.interp
+./cact-rie/tests/*
