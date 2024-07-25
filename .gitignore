@@ -1,0 +1,5 @@
+cmake-*
+.idea
+.vscode
+.vs
+deps/*
