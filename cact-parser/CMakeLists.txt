@@ -1,7 +1,7 @@
 project(cact-parser)
 
 set(AUTOGEN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/autogen)
-options(GENERATE_PARSER "Generate parser code using ANTLR-4" OFF)
+option(GENERATE_PARSER "Generate parser code using ANTLR-4" OFF)
 
 message(STATUS "ANTLR-4 jar path: ${ANTLR_JAR}")
 if (GENERATE_PARSER)
@@ -13,14 +13,13 @@ if (GENERATE_PARSER)
             OUTPUT_VARIABLE output
             ERROR_VARIABLE error_output
     )
+    message(STATUS "ANTLR-4 Code Generation Output:\n${output}")
+    message(STATUS "ANTLR-4 Code Generation Error Output:\n${error_output}")
 else()
     message(STATUS "Globbing generated source files...")
 endif()
 file(GLOB_RECURSE CACT_PARSER_AUTOGEN_SOURCES autogen/src/*.cpp autogen/src/*.cc autogen/include/*.h autogen/include/*.hpp)
 file(GLOB_RECURSE CACT_PARSER_SOURCES src/*.cpp src/*.cc include/*.h include/*.hpp)
-
-message(STATUS "ANTLR-4 Code Generation Output:\n${output}")
-message(STATUS "ANTLR-4 Code Generation Error Output:\n${error_output}")
 
 add_library(cact-parser ${CACT_PARSER_SOURCES} ${CACT_PARSER_AUTOGEN_SOURCES})
 target_link_libraries(cact-parser PUBLIC antlr-runtime)
@@ -32,4 +31,3 @@ target_include_directories(cact-parser
 )
 
 get_target_property(INCLUDES cact-parser INCLUDE_DIRECTORIES)
-message(STATUS "cact-parser include directories: ${INCLUDES}")

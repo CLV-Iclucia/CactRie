@@ -2,7 +2,7 @@ cmake-*
 .idea
 .vscode
 .vs
-deps/*
+deps/*.jar
 ./cact-parser/grammar/*.tokens
 ./cact-parser/grammar/*.interp
 ./cact-rie/tests/*

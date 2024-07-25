@@ -1,0 +1,3 @@
+[submodule "deps/antlr-runtime"]
+	path = deps/antlr-runtime
+	url = git@github.com:CLV-Iclucia/antlr-cmake.git
