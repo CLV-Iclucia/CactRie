@@ -134,7 +134,7 @@ void cactparserParserInitialize() {
   	0,0,0,119,120,5,24,0,0,120,13,1,0,0,0,121,127,5,39,0,0,122,123,5,28,0,
   	0,123,124,5,40,0,0,124,126,5,29,0,0,125,122,1,0,0,0,126,129,1,0,0,0,127,
   	125,1,0,0,0,127,128,1,0,0,0,128,132,1,0,0,0,129,127,1,0,0,0,130,131,5,
-  	13,0,0,131,133,3,32,16,0,132,130,1,0,0,0,132,133,1,0,0,0,133,15,1,0,0,
+  	13,0,0,131,133,3,10,5,0,132,130,1,0,0,0,132,133,1,0,0,0,133,15,1,0,0,
   	0,134,135,3,18,9,0,135,136,5,39,0,0,136,138,5,26,0,0,137,139,3,20,10,
   	0,138,137,1,0,0,0,138,139,1,0,0,0,139,140,1,0,0,0,140,141,5,27,0,0,141,
   	142,3,24,12,0,142,17,1,0,0,0,143,144,7,1,0,0,144,19,1,0,0,0,145,150,3,
@@ -904,8 +904,8 @@ tree::TerminalNode* CactParser::VariableDefinitionContext::Equal() {
   return getToken(CactParser::Equal, 0);
 }
 
-CactParser::ConstantExpressionContext* CactParser::VariableDefinitionContext::constantExpression() {
-  return getRuleContext<CactParser::ConstantExpressionContext>(0);
+CactParser::ConstantInitialValueContext* CactParser::VariableDefinitionContext::constantInitialValue() {
+  return getRuleContext<CactParser::ConstantInitialValueContext>(0);
 }
 
 
@@ -959,7 +959,7 @@ CactParser::VariableDefinitionContext* CactParser::variableDefinition() {
       setState(130);
       match(CactParser::Equal);
       setState(131);
-      constantExpression();
+      constantInitialValue();
     }
    
   }

@@ -220,7 +220,7 @@ public:
     std::vector<antlr4::tree::TerminalNode *> RightBracket();
     antlr4::tree::TerminalNode* RightBracket(size_t i);
     antlr4::tree::TerminalNode *Equal();
-    ConstantExpressionContext *constantExpression();
+    ConstantInitialValueContext *constantInitialValue();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

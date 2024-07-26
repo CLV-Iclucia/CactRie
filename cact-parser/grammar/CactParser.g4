@@ -10,7 +10,7 @@ basicType: Int | Bool | Float | Double;
 constantDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
 constantInitialValue: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
 variableDeclaration: basicType variableDefinition (Comma variableDefinition)* Semicolon;
-variableDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantExpression)?;
+variableDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
 functionDefinition: functionType Identifier LeftParenthesis (functionFormalParams)? RightParenthesis block;
 functionType: Void | Int | Float | Double | Bool;
 functionFormalParams: functionFormalParam (Comma functionFormalParam)*;
