@@ -3,6 +3,7 @@
 //
 #include <cact-parser/cact-syntax-error-listener.h>
 #include <format>
+
 namespace cactparser {
 void CactSyntaxErrorListener::syntaxError(antlr4::Recognizer *recognizer,
                                           antlr4::Token *offendingSymbol,
@@ -10,7 +11,13 @@ void CactSyntaxErrorListener::syntaxError(antlr4::Recognizer *recognizer,
                                           size_t charPositionInLine,
                                           const std::string &msg,
                                           std::exception_ptr e) {
-  std::cerr << std::format("うるさい！第{}行の{}文字目に文法エラーが発見された: {}", line, charPositionInLine, msg) << std::endl;
+  has_syntax_error = true;
+  std::cerr << std::format("うるさい！ファイル{}の第{}行の{}文字目に文法エラーが発見された: {}",
+                           compiled_file_path.string(),
+                           line,
+                           charPositionInLine,
+                           msg) << std::endl;
+//  std::cerr << std::format("Как же раздражает! Ошибка синтаксиса найдена на {}-й строке, в {}-м символе: {}", line, charPositionInLine, msg) << std::endl;
 }
 
 }

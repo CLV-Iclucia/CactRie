@@ -22,14 +22,18 @@ int main(int argc, char *argv[]) {
   cactparser::CactParser parser(&tokens);
   lexer.removeErrorListeners();
   parser.removeErrorListeners();
-  cactparser::CactSyntaxErrorListener cact_error_listener;
+  cactparser::CactSyntaxErrorListener cact_error_listener(argv[1]);
   lexer.addErrorListener(&cact_error_listener);
   parser.addErrorListener(&cact_error_listener);
   try {
     antlr4::tree::ParseTree *tree = parser.compilationUnit();
-    std::cout << tree->toStringTree(&parser, true) << std::endl;
+    if (cact_error_listener.hasSyntaxError()) {
+      std::cerr << "Syntax error(s) found in the source file. Compilation failed." << std::endl;
+      return 1;
+    }
   } catch (const std::exception &ex) {
     std::cerr << "Parsing failed: " << ex.what() << std::endl;
+    return 1;
   }
 
   return 0;
