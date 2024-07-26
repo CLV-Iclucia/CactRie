@@ -22,19 +22,19 @@ public:
    */
     virtual std::any visitCompilationUnit(CactParser::CompilationUnitContext *context) = 0;
 
-    virtual std::any visitBasicType(CactParser::BasicTypeContext *context) = 0;
-
     virtual std::any visitDeclaration(CactParser::DeclarationContext *context) = 0;
 
-    virtual std::any visitVariableDefinition(CactParser::VariableDefinitionContext *context) = 0;
-
-    virtual std::any visitVariableDeclaration(CactParser::VariableDeclarationContext *context) = 0;
-
     virtual std::any visitConstantDeclaration(CactParser::ConstantDeclarationContext *context) = 0;
+
+    virtual std::any visitBasicType(CactParser::BasicTypeContext *context) = 0;
 
     virtual std::any visitConstantDefinition(CactParser::ConstantDefinitionContext *context) = 0;
 
     virtual std::any visitConstantInitialValue(CactParser::ConstantInitialValueContext *context) = 0;
+
+    virtual std::any visitVariableDeclaration(CactParser::VariableDeclarationContext *context) = 0;
+
+    virtual std::any visitVariableDefinition(CactParser::VariableDefinitionContext *context) = 0;
 
     virtual std::any visitFunctionDefinition(CactParser::FunctionDefinitionContext *context) = 0;
 

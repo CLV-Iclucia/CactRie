@@ -6,8 +6,6 @@ Double: 'double' ;
 Bool: 'bool' ;
 Void: 'void' ;
 Const: 'const' ;
-True: 'true' ;
-False: 'false' ;
 Return : 'return';
 If : 'if';
 Else : 'else';
@@ -41,18 +39,15 @@ Asterisk: '*';
 Slash: '/';
 Percent: '%';
 Identifier: [a-zA-Z_][a-zA-Z0-9_]* ;
-DecimalConstant: '0' | [1-9][0-9]*;
-OctalConstant: '0'[0-7]+;
-HexadecimalConstant: '0'[xX][0-9a-fA-F]+;
-IntegerConstant: DecimalConstant | OctalConstant | HexadecimalConstant;
+IntegerConstant: '0' | [1-9][0-9]* | '0'[0-7]+ | '0'[xX][0-9a-fA-F]+;
 FloatConstant: '.'[0-9]+[fF]
               | [0-9]+'.'[fF]
               | [0-9]+'.'[0-9]+[fF];
 DoubleConstant: '.'[0-9]+
               | [0-9]+'.'
               | [0-9]+'.'[0-9]+;
-BooleanConstant: True
-             | False;
+BooleanConstant: 'true'
+             | 'false';
 
 LineComment: '//' ~[\r\n]* -> skip;
 BlockComment: '/*' .*? '*/' -> skip;

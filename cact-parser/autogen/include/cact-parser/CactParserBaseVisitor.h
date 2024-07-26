@@ -21,23 +21,15 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitBasicType(CactParser::BasicTypeContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
   virtual std::any visitDeclaration(CactParser::DeclarationContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitVariableDefinition(CactParser::VariableDefinitionContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitVariableDeclaration(CactParser::VariableDeclarationContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
   virtual std::any visitConstantDeclaration(CactParser::ConstantDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitBasicType(CactParser::BasicTypeContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -46,6 +38,14 @@ public:
   }
 
   virtual std::any visitConstantInitialValue(CactParser::ConstantInitialValueContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitVariableDeclaration(CactParser::VariableDeclarationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitVariableDefinition(CactParser::VariableDefinitionContext *ctx) override {
     return visitChildren(ctx);
   }
 

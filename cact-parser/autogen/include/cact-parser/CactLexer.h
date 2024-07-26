@@ -13,17 +13,16 @@ namespace cactparser {
 class  CactLexer : public antlr4::Lexer {
 public:
   enum {
-    Int = 1, Float = 2, Double = 3, Bool = 4, Void = 5, Const = 6, True = 7, 
-    False = 8, Return = 9, If = 10, Else = 11, While = 12, Break = 13, Continue = 14, 
-    Equal = 15, LogicalEqual = 16, LogicalAnd = 17, LogicalOr = 18, NotEqual = 19, 
-    Less = 20, LessEqual = 21, Greater = 22, GreaterEqual = 23, Period = 24, 
-    Comma = 25, Semicolon = 26, Colon = 27, LeftParenthesis = 28, RightParenthesis = 29, 
-    LeftBracket = 30, RightBracket = 31, LeftBrace = 32, RightBrace = 33, 
-    Plus = 34, Minus = 35, Pipe = 36, ExclamationMark = 37, Asterisk = 38, 
-    Slash = 39, Percent = 40, Identifier = 41, DecimalConstant = 42, OctalConstant = 43, 
-    HexadecimalConstant = 44, IntegerConstant = 45, FloatConstant = 46, 
-    DoubleConstant = 47, BooleanConstant = 48, LineComment = 49, BlockComment = 50, 
-    NewLine = 51, WhiteSpaces = 52
+    Int = 1, Float = 2, Double = 3, Bool = 4, Void = 5, Const = 6, Return = 7, 
+    If = 8, Else = 9, While = 10, Break = 11, Continue = 12, Equal = 13, 
+    LogicalEqual = 14, LogicalAnd = 15, LogicalOr = 16, NotEqual = 17, Less = 18, 
+    LessEqual = 19, Greater = 20, GreaterEqual = 21, Period = 22, Comma = 23, 
+    Semicolon = 24, Colon = 25, LeftParenthesis = 26, RightParenthesis = 27, 
+    LeftBracket = 28, RightBracket = 29, LeftBrace = 30, RightBrace = 31, 
+    Plus = 32, Minus = 33, Pipe = 34, ExclamationMark = 35, Asterisk = 36, 
+    Slash = 37, Percent = 38, Identifier = 39, IntegerConstant = 40, FloatConstant = 41, 
+    DoubleConstant = 42, BooleanConstant = 43, LineComment = 44, BlockComment = 45, 
+    NewLine = 46, WhiteSpaces = 47
   };
 
   explicit CactLexer(antlr4::CharStream *input);

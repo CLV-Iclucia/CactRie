@@ -13,29 +13,29 @@ namespace cactparser {
 class  CactParser : public antlr4::Parser {
 public:
   enum {
-    Int = 1, Float = 2, Double = 3, Bool = 4, Void = 5, Const = 6, True = 7, 
-    False = 8, Return = 9, If = 10, Else = 11, While = 12, Break = 13, Continue = 14, 
-    Equal = 15, LogicalEqual = 16, LogicalAnd = 17, LogicalOr = 18, NotEqual = 19, 
-    Less = 20, LessEqual = 21, Greater = 22, GreaterEqual = 23, Period = 24, 
-    Comma = 25, Semicolon = 26, Colon = 27, LeftParenthesis = 28, RightParenthesis = 29, 
-    LeftBracket = 30, RightBracket = 31, LeftBrace = 32, RightBrace = 33, 
-    Plus = 34, Minus = 35, Pipe = 36, ExclamationMark = 37, Asterisk = 38, 
-    Slash = 39, Percent = 40, Identifier = 41, DecimalConstant = 42, OctalConstant = 43, 
-    HexadecimalConstant = 44, IntegerConstant = 45, FloatConstant = 46, 
-    DoubleConstant = 47, BooleanConstant = 48, LineComment = 49, BlockComment = 50, 
-    NewLine = 51, WhiteSpaces = 52
+    Int = 1, Float = 2, Double = 3, Bool = 4, Void = 5, Const = 6, Return = 7, 
+    If = 8, Else = 9, While = 10, Break = 11, Continue = 12, Equal = 13, 
+    LogicalEqual = 14, LogicalAnd = 15, LogicalOr = 16, NotEqual = 17, Less = 18, 
+    LessEqual = 19, Greater = 20, GreaterEqual = 21, Period = 22, Comma = 23, 
+    Semicolon = 24, Colon = 25, LeftParenthesis = 26, RightParenthesis = 27, 
+    LeftBracket = 28, RightBracket = 29, LeftBrace = 30, RightBrace = 31, 
+    Plus = 32, Minus = 33, Pipe = 34, ExclamationMark = 35, Asterisk = 36, 
+    Slash = 37, Percent = 38, Identifier = 39, IntegerConstant = 40, FloatConstant = 41, 
+    DoubleConstant = 42, BooleanConstant = 43, LineComment = 44, BlockComment = 45, 
+    NewLine = 46, WhiteSpaces = 47
   };
 
   enum {
-    RuleCompilationUnit = 0, RuleBasicType = 1, RuleDeclaration = 2, RuleVariableDefinition = 3, 
-    RuleVariableDeclaration = 4, RuleConstantDeclaration = 5, RuleConstantDefinition = 6, 
-    RuleConstantInitialValue = 7, RuleFunctionDefinition = 8, RuleFunctionType = 9, 
-    RuleFunctionFormalParams = 10, RuleFunctionFormalParam = 11, RuleBlock = 12, 
-    RuleBlockItem = 13, RuleStatement = 14, RuleExpression = 15, RuleConstantExpression = 16, 
-    RuleCondition = 17, RuleLeftValue = 18, RulePrimaryExpression = 19, 
-    RuleNumber = 20, RuleUnaryExpression = 21, RuleFunctionRealParams = 22, 
-    RuleMulExpression = 23, RuleAddExpression = 24, RuleRelationalExpression = 25, 
-    RuleLogicalEqualExpression = 26, RuleLogicalAndExpression = 27, RuleLogicalOrExpression = 28
+    RuleCompilationUnit = 0, RuleDeclaration = 1, RuleConstantDeclaration = 2, 
+    RuleBasicType = 3, RuleConstantDefinition = 4, RuleConstantInitialValue = 5, 
+    RuleVariableDeclaration = 6, RuleVariableDefinition = 7, RuleFunctionDefinition = 8, 
+    RuleFunctionType = 9, RuleFunctionFormalParams = 10, RuleFunctionFormalParam = 11, 
+    RuleBlock = 12, RuleBlockItem = 13, RuleStatement = 14, RuleExpression = 15, 
+    RuleConstantExpression = 16, RuleCondition = 17, RuleLeftValue = 18, 
+    RulePrimaryExpression = 19, RuleNumber = 20, RuleUnaryExpression = 21, 
+    RuleFunctionRealParams = 22, RuleMulExpression = 23, RuleAddExpression = 24, 
+    RuleRelationalExpression = 25, RuleLogicalEqualExpression = 26, RuleLogicalAndExpression = 27, 
+    RuleLogicalOrExpression = 28
   };
 
   explicit CactParser(antlr4::TokenStream *input);
@@ -56,13 +56,13 @@ public:
 
 
   class CompilationUnitContext;
-  class BasicTypeContext;
   class DeclarationContext;
-  class VariableDefinitionContext;
-  class VariableDeclarationContext;
   class ConstantDeclarationContext;
+  class BasicTypeContext;
   class ConstantDefinitionContext;
   class ConstantInitialValueContext;
+  class VariableDeclarationContext;
+  class VariableDefinitionContext;
   class FunctionDefinitionContext;
   class FunctionTypeContext;
   class FunctionFormalParamsContext;
@@ -101,22 +101,6 @@ public:
 
   CompilationUnitContext* compilationUnit();
 
-  class  BasicTypeContext : public antlr4::ParserRuleContext {
-  public:
-    BasicTypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *Int();
-    antlr4::tree::TerminalNode *Bool();
-    antlr4::tree::TerminalNode *Float();
-    antlr4::tree::TerminalNode *Double();
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  BasicTypeContext* basicType();
-
   class  DeclarationContext : public antlr4::ParserRuleContext {
   public:
     DeclarationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -130,42 +114,6 @@ public:
   };
 
   DeclarationContext* declaration();
-
-  class  VariableDefinitionContext : public antlr4::ParserRuleContext {
-  public:
-    VariableDefinitionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *Identifier();
-    antlr4::tree::TerminalNode *LeftBracket();
-    antlr4::tree::TerminalNode *IntegerConstant();
-    antlr4::tree::TerminalNode *RightBracket();
-    antlr4::tree::TerminalNode *Equal();
-    ConstantExpressionContext *constantExpression();
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  VariableDefinitionContext* variableDefinition();
-
-  class  VariableDeclarationContext : public antlr4::ParserRuleContext {
-  public:
-    VariableDeclarationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    BasicTypeContext *basicType();
-    std::vector<VariableDefinitionContext *> variableDefinition();
-    VariableDefinitionContext* variableDefinition(size_t i);
-    antlr4::tree::TerminalNode *Semicolon();
-    std::vector<antlr4::tree::TerminalNode *> Comma();
-    antlr4::tree::TerminalNode* Comma(size_t i);
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  VariableDeclarationContext* variableDeclaration();
 
   class  ConstantDeclarationContext : public antlr4::ParserRuleContext {
   public:
@@ -186,6 +134,22 @@ public:
 
   ConstantDeclarationContext* constantDeclaration();
 
+  class  BasicTypeContext : public antlr4::ParserRuleContext {
+  public:
+    BasicTypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *Int();
+    antlr4::tree::TerminalNode *Bool();
+    antlr4::tree::TerminalNode *Float();
+    antlr4::tree::TerminalNode *Double();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  BasicTypeContext* basicType();
+
   class  ConstantDefinitionContext : public antlr4::ParserRuleContext {
   public:
     ConstantDefinitionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -193,9 +157,12 @@ public:
     antlr4::tree::TerminalNode *Identifier();
     antlr4::tree::TerminalNode *Equal();
     ConstantInitialValueContext *constantInitialValue();
-    antlr4::tree::TerminalNode *LeftBracket();
-    antlr4::tree::TerminalNode *IntegerConstant();
-    antlr4::tree::TerminalNode *RightBracket();
+    std::vector<antlr4::tree::TerminalNode *> LeftBracket();
+    antlr4::tree::TerminalNode* LeftBracket(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> IntegerConstant();
+    antlr4::tree::TerminalNode* IntegerConstant(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> RightBracket();
+    antlr4::tree::TerminalNode* RightBracket(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -222,6 +189,45 @@ public:
   };
 
   ConstantInitialValueContext* constantInitialValue();
+
+  class  VariableDeclarationContext : public antlr4::ParserRuleContext {
+  public:
+    VariableDeclarationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    BasicTypeContext *basicType();
+    std::vector<VariableDefinitionContext *> variableDefinition();
+    VariableDefinitionContext* variableDefinition(size_t i);
+    antlr4::tree::TerminalNode *Semicolon();
+    std::vector<antlr4::tree::TerminalNode *> Comma();
+    antlr4::tree::TerminalNode* Comma(size_t i);
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  VariableDeclarationContext* variableDeclaration();
+
+  class  VariableDefinitionContext : public antlr4::ParserRuleContext {
+  public:
+    VariableDefinitionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *Identifier();
+    std::vector<antlr4::tree::TerminalNode *> LeftBracket();
+    antlr4::tree::TerminalNode* LeftBracket(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> IntegerConstant();
+    antlr4::tree::TerminalNode* IntegerConstant(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> RightBracket();
+    antlr4::tree::TerminalNode* RightBracket(size_t i);
+    antlr4::tree::TerminalNode *Equal();
+    ConstantExpressionContext *constantExpression();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  VariableDefinitionContext* variableDefinition();
 
   class  FunctionDefinitionContext : public antlr4::ParserRuleContext {
   public:
@@ -264,7 +270,8 @@ public:
     virtual size_t getRuleIndex() const override;
     std::vector<FunctionFormalParamContext *> functionFormalParam();
     FunctionFormalParamContext* functionFormalParam(size_t i);
-    antlr4::tree::TerminalNode *Comma();
+    std::vector<antlr4::tree::TerminalNode *> Comma();
+    antlr4::tree::TerminalNode* Comma(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -566,6 +573,7 @@ public:
   public:
     LogicalOrExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *BooleanConstant();
     LogicalAndExpressionContext *logicalAndExpression();
     LogicalOrExpressionContext *logicalOrExpression();
     antlr4::tree::TerminalNode *LogicalOr();
