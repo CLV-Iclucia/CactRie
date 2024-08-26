@@ -58,7 +58,7 @@ void cactlexerLexerInitialize() {
 #endif
   auto staticData = std::make_unique<CactLexerStaticData>(
     std::vector<std::string>{
-      "Int", "Float", "Double", "Bool", "Void", "Const", "Return", "If", 
+      "Int32", "Float", "Double", "Bool", "Void", "Const", "Return", "If", 
       "Else", "While", "Break", "Continue", "Equal", "LogicalEqual", "LogicalAnd", 
       "LogicalOr", "NotEqual", "Less", "LessEqual", "Greater", "GreaterEqual", 
       "Period", "Comma", "Semicolon", "Colon", "LeftParenthesis", "RightParenthesis", 
@@ -81,12 +81,12 @@ void cactlexerLexerInitialize() {
       "'+'", "'-'", "'|'", "'!'", "'*'", "'/'", "'%'"
     },
     std::vector<std::string>{
-      "", "Int", "Float", "Double", "Bool", "Void", "Const", "Return", "If", 
-      "Else", "While", "Break", "Continue", "Equal", "LogicalEqual", "LogicalAnd", 
-      "LogicalOr", "NotEqual", "Less", "LessEqual", "Greater", "GreaterEqual", 
-      "Period", "Comma", "Semicolon", "Colon", "LeftParenthesis", "RightParenthesis", 
-      "LeftBracket", "RightBracket", "LeftBrace", "RightBrace", "Plus", 
-      "Minus", "Pipe", "ExclamationMark", "Asterisk", "Slash", "Percent", 
+      "", "Int32", "Float", "Double", "Bool", "Void", "Const", "Return", 
+      "If", "Else", "While", "Break", "Continue", "Equal", "LogicalEqual", 
+      "LogicalAnd", "LogicalOr", "NotEqual", "Less", "LessEqual", "Greater", 
+      "GreaterEqual", "Period", "Comma", "Semicolon", "Colon", "LeftParenthesis", 
+      "RightParenthesis", "LeftBracket", "RightBracket", "LeftBrace", "RightBrace", 
+      "Plus", "Minus", "Pipe", "ExclamationMark", "Asterisk", "Slash", "Percent", 
       "Identifier", "IntegerConstant", "FloatConstant", "DoubleConstant", 
       "BooleanConstant", "LineComment", "BlockComment", "NewLine", "WhiteSpaces"
     }

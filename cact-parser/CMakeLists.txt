@@ -1,7 +1,7 @@
 project(cact-parser)
 
 set(AUTOGEN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/autogen)
-option(GENERATE_PARSER "Generate parser code using ANTLR-4" OFF)
+option(GENERATE_PARSER "Generate parser code using ANTLR-4" ON)
 
 message(STATUS "ANTLR-4 jar path: ${ANTLR_JAR}")
 if (GENERATE_PARSER)
@@ -29,5 +29,3 @@ target_include_directories(cact-parser
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/autogen/include/cact-parser
         PUBLIC ${ANTLR_RUNTIME_INCLUDE_DIR}/antlr-runtime
 )
-
-get_target_property(INCLUDES cact-parser INCLUDE_DIRECTORIES)

@@ -1,4 +1,9 @@
 
+#include <cact-parser/cact-expr.h>
+#include <cact-parser/mystl/observer_ptr.h>
+#include <cact-parser/symbol-registry.h>
+
+
 // Generated from ./grammar/CactParser.g4 by ANTLR 4.13.1
 
 #pragma once
@@ -74,6 +79,34 @@ public:
   }
 
   virtual std::any visitStatement(CactParser::StatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitAssignStatement(CactParser::AssignStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitExpressionStatement(CactParser::ExpressionStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitReturnStatement(CactParser::ReturnStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitIfStatement(CactParser::IfStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitWhileStatement(CactParser::WhileStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitBreakStatement(CactParser::BreakStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitContinueStatement(CactParser::ContinueStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 

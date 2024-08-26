@@ -13,7 +13,7 @@ namespace cactparser {
 class  CactLexer : public antlr4::Lexer {
 public:
   enum {
-    Int = 1, Float = 2, Double = 3, Bool = 4, Void = 5, Const = 6, Return = 7, 
+    Int32 = 1, Float = 2, Double = 3, Bool = 4, Void = 5, Const = 6, Return = 7, 
     If = 8, Else = 9, While = 10, Break = 11, Continue = 12, Equal = 13, 
     LogicalEqual = 14, LogicalAnd = 15, LogicalOr = 16, NotEqual = 17, Less = 18, 
     LessEqual = 19, Greater = 20, GreaterEqual = 21, Period = 22, Comma = 23, 

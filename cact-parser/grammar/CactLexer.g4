@@ -1,6 +1,6 @@
 lexer grammar CactLexer;
 
-Int: 'int' ;
+Int32: 'int' ;
 Float: 'float' ;
 Double: 'double' ;
 Bool: 'bool' ;

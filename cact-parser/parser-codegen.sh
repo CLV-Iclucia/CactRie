@@ -12,3 +12,6 @@ find ./grammar -name "*.cpp" -exec mv {} autogen/src/ \;
 find ./grammar -name "*.cc" -exec mv {} autogen/src/ \;
 find ./grammar -name "*.h" -exec mv {} autogen/include/cact-parser/ \;
 find ./grammar -name "*.hpp" -exec mv {} autogen/include/cact-parser/ \;
+
+rm ./grammar/*.interp
+rm ./grammar/*.tokens

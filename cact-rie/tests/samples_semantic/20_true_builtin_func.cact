@@ -1,0 +1,8 @@
+int main(){
+    float a;
+    int b;
+    a = get_float();
+    print_float(a);
+    b = get_int();
+    return b;
+}

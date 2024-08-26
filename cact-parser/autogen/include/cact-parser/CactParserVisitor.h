@@ -1,4 +1,9 @@
 
+#include <cact-parser/cact-expr.h>
+#include <cact-parser/mystl/observer_ptr.h>
+#include <cact-parser/symbol-registry.h>
+
+
 // Generated from ./grammar/CactParser.g4 by ANTLR 4.13.1
 
 #pragma once
@@ -49,6 +54,20 @@ public:
     virtual std::any visitBlockItem(CactParser::BlockItemContext *context) = 0;
 
     virtual std::any visitStatement(CactParser::StatementContext *context) = 0;
+
+    virtual std::any visitAssignStatement(CactParser::AssignStatementContext *context) = 0;
+
+    virtual std::any visitExpressionStatement(CactParser::ExpressionStatementContext *context) = 0;
+
+    virtual std::any visitReturnStatement(CactParser::ReturnStatementContext *context) = 0;
+
+    virtual std::any visitIfStatement(CactParser::IfStatementContext *context) = 0;
+
+    virtual std::any visitWhileStatement(CactParser::WhileStatementContext *context) = 0;
+
+    virtual std::any visitBreakStatement(CactParser::BreakStatementContext *context) = 0;
+
+    virtual std::any visitContinueStatement(CactParser::ContinueStatementContext *context) = 0;
 
     virtual std::any visitExpression(CactParser::ExpressionContext *context) = 0;
 
