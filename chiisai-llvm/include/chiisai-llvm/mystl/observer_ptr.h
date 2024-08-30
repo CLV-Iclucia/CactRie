@@ -5,7 +5,7 @@
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H
 #include <cassert>
-namespace cactparser {
+namespace llvm {
 template<typename T>
 class observer_ptr {
 public:

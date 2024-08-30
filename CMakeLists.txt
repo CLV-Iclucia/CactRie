@@ -10,5 +10,5 @@ set(ANTLR4_JAR_NAME antlr-4.${ANTLR4_MAJOR_VERSION}.${ANTLR4_MINOR_VERSION}-comp
 set(ANTLR_JAR ${CMAKE_CURRENT_SOURCE_DIR}/deps/${ANTLR4_JAR_NAME})
 add_subdirectory(deps/antlr-runtime)
 add_subdirectory(cact-parser)
-add_subdirectory(mini-llvm)
+add_subdirectory(chiisai-llvm)
 add_subdirectory(cact-rie)

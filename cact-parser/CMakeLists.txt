@@ -1,6 +1,5 @@
 project(cact-parser)
 
-set(AUTOGEN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/autogen)
 option(GENERATE_PARSER "Generate parser code using ANTLR-4" ON)
 
 message(STATUS "ANTLR-4 jar path: ${ANTLR_JAR}")
