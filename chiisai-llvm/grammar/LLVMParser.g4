@@ -32,24 +32,20 @@ parameter: type localIdentifier;
 
 block: LeftBrace basicBlock* RightBrace;
 
-basicBlock: unamedIdentifier
+basicBlock: Label Colon instruction*;
 
-instruction
-    : retInstruction
-    | unreachableInstruction
-    | brInstruction
+instruction: returnInstruction
+    | branchInstruction
     | callInstruction
     | arithmeticInstruction
-    | loadStoreInstruction
+    | memoryInstruction
     | phiInstruction
     | comparisonInstruction
     ;
 
-retInstruction: Ret type value?;
+returnInstruction: Ret type value?;
 
-unreachableInstruction: Unreachable;
-
-brInstruction: Br I1 value Comma Label unamedIdentifier Comma Label unamedIdentifier
+branchInstruction: Br I1 value Comma Label unamedIdentifier Comma Label unamedIdentifier
                 | Br Label unamedIdentifier;
 
 callInstruction: Call type globalIdentifier functionParameters;
@@ -58,7 +54,7 @@ arithmeticInstruction
     : variable Equals (Add | Sub | Mul | Div) type value Comma value
     ;
 
-loadStoreInstruction
+memoryInstruction
     : variable Equals (Load | Store) type Comma type Asterisk variable (Comma Align IntegerLiteral)?
     ;
 

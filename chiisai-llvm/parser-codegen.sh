@@ -7,8 +7,8 @@ ${JAVA_EXEC} -jar "${ANTLR_JAR}" -Dlanguage=Cpp -package llvm -visitor -no-liste
 
 find ./grammar -name "*.cpp" -exec mv {} src/autogen \;
 find ./grammar -name "*.cc" -exec mv {} src/autogen \;
-find ./grammar -name "*.h" -exec mv {} include/mini-llvm/autogen \;
-find ./grammar -name "*.hpp" -exec mv {} include/mini-llvm/autogen \;
+find ./grammar -name "*.h" -exec mv {} include/chiisai-llvm/autogen \;
+find ./grammar -name "*.hpp" -exec mv {} include/chiisai-llvm/autogen \;
 
 rm ./grammar/*.interp
 rm ./grammar/*.tokens

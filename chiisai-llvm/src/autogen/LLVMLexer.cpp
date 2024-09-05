@@ -1,5 +1,5 @@
 
-// Generated from /home/creeper/CLionProjects/CactRie/chiisai-llvm/grammar/LLVMLexer.g4 by ANTLR 4.13.1
+// Generated from ./grammar/LLVMLexer.g4 by ANTLR 4.13.1
 
 
 #include "LLVMLexer.h"
@@ -7,6 +7,7 @@
 
 using namespace antlr4;
 
+using namespace llvm;
 
 
 using namespace antlr4;

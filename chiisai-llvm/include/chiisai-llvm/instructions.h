@@ -16,38 +16,36 @@ struct Operand {
   [[nodiscard]] bool isVariable() const {
     return std::holds_alternative<std::reference_wrapper<Variable>>(operand);
   }
-  Variable& variable() {
+  Variable &variable() {
     return std::get<std::reference_wrapper<Variable>>(operand);
   }
   Literal literal() {
     return std::get<Literal>(operand);
   }
-
   std::variant<std::reference_wrapper<Variable>, Literal> operand;
 };
 
-struct ArithmeticInstruction : public Instruction {
+struct ArithInst : public Instruction {
 
-  Variable& result;
+  Variable &result;
   Operand lhs;
   Operand rhs;
   BinaryOp op;
 };
 
 struct CmpInst : public Instruction {
-
+  Variable &result;
+  Operand lhs;
+  Operand rhs;
+  BinaryOp op;
 };
 
-struct LoadInst : public Instruction {
-
-};
-
-struct StoreInst : public Instruction {
-
-};
-
-struct AllocaInst : public Instruction {
-
+struct MemoryInst : public Instruction {
+  LLVMType type;
+  Variable &result;
+  Variable &pointer;
+  size_t alignment;
+  MemoryOp op;
 };
 
 }

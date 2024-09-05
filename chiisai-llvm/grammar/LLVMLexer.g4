@@ -42,6 +42,16 @@ I32: 'i32';
 I64: 'i64';
 F32: 'f32';
 F64: 'f64';
+Eq: 'eq';
+Ne: 'ne';
+Ugt: 'ugt';
+Uge: 'uge';
+Ult: 'ult';
+Ule: 'ule';
+Sgt: 'sgt';
+Sge: 'sge';
+Slt: 'slt';
+Sle: 'sle';
 
 Equals: '=';
 Comma: ',';
@@ -52,7 +62,7 @@ RightBrace: '}';
 At: '@';
 Percent: '%';
 Asterisk: '*';
-// ':'
+Colon: ':';
 
 
 NumericIdentifier: [0-9]+;

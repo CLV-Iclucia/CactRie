@@ -19,6 +19,7 @@ struct Function;
 struct BasicBlock;
 struct Module;
 
+
 struct Instruction {
   enum class BinaryOp {
     Add,
@@ -38,6 +39,10 @@ struct Instruction {
     Gt,
     Le,
     Ge,
+  };
+  enum class MemoryOp {
+    Load,
+    Store,
   };
   const BasicBlock &basicBlock;
 };
