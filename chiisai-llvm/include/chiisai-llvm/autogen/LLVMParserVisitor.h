@@ -1,4 +1,11 @@
 
+    #include <optional>
+    #include <memory>
+    #include <variant>
+    #include <chiisai-llvm/literal.h>
+    #include <chiisai-llvm/llvm-ir.h>
+
+
 // Generated from ./grammar/LLVMParser.g4 by ANTLR 4.13.1
 
 #pragma once
@@ -20,7 +27,13 @@ public:
   /**
    * Visit parse trees produced by LLVMParser.
    */
+    virtual std::any visitBasicType(LLVMParser::BasicTypeContext *context) = 0;
+
     virtual std::any visitType(LLVMParser::TypeContext *context) = 0;
+
+    virtual std::any visitPointerType(LLVMParser::PointerTypeContext *context) = 0;
+
+    virtual std::any visitArrayType(LLVMParser::ArrayTypeContext *context) = 0;
 
     virtual std::any visitGlobalIdentifier(LLVMParser::GlobalIdentifierContext *context) = 0;
 
@@ -36,11 +49,13 @@ public:
 
     virtual std::any visitModule(LLVMParser::ModuleContext *context) = 0;
 
+    virtual std::any visitLiteral(LLVMParser::LiteralContext *context) = 0;
+
     virtual std::any visitGlobalDeclaration(LLVMParser::GlobalDeclarationContext *context) = 0;
 
     virtual std::any visitFunctionDefinition(LLVMParser::FunctionDefinitionContext *context) = 0;
 
-    virtual std::any visitFunctionParameters(LLVMParser::FunctionParametersContext *context) = 0;
+    virtual std::any visitFunctionArguments(LLVMParser::FunctionArgumentsContext *context) = 0;
 
     virtual std::any visitParameterList(LLVMParser::ParameterListContext *context) = 0;
 

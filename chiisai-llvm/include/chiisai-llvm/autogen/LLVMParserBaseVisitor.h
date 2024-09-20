@@ -1,4 +1,11 @@
 
+    #include <optional>
+    #include <memory>
+    #include <variant>
+    #include <chiisai-llvm/literal.h>
+    #include <chiisai-llvm/llvm-ir.h>
+
+
 // Generated from ./grammar/LLVMParser.g4 by ANTLR 4.13.1
 
 #pragma once
@@ -17,7 +24,19 @@ namespace llvm {
 class  LLVMParserBaseVisitor : public LLVMParserVisitor {
 public:
 
+  virtual std::any visitBasicType(LLVMParser::BasicTypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitType(LLVMParser::TypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitPointerType(LLVMParser::PointerTypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitArrayType(LLVMParser::ArrayTypeContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -49,6 +68,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitLiteral(LLVMParser::LiteralContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitGlobalDeclaration(LLVMParser::GlobalDeclarationContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -57,7 +80,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitFunctionParameters(LLVMParser::FunctionParametersContext *ctx) override {
+  virtual std::any visitFunctionArguments(LLVMParser::FunctionArgumentsContext *ctx) override {
     return visitChildren(ctx);
   }
 

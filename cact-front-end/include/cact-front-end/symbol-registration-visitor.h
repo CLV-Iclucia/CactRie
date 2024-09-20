@@ -4,8 +4,8 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_REGISTRATION_VISITOR_H
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_REGISTRATION_VISITOR_H
-#include <cact-parser/CactParserBaseVisitor.h>
-#include <cact-parser/symbol-registry.h>
+#include <cact-front-end/CactParserBaseVisitor.h>
+#include <cact-front-end/symbol-registry.h>
 namespace cactparser {
 struct SymbolRegistrationVisitor : public CactParserBaseVisitor {
   SymbolRegistrationVisitor() : registry(std::make_unique<SymbolRegistry>()) {}

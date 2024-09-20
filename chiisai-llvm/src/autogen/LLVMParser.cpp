@@ -1,4 +1,11 @@
 
+    #include <optional>
+    #include <memory>
+    #include <variant>
+    #include <chiisai-llvm/literal.h>
+    #include <chiisai-llvm/llvm-ir.h>
+
+
 // Generated from ./grammar/LLVMParser.g4 by ANTLR 4.13.1
 
 
@@ -53,12 +60,13 @@ void llvmparserParserInitialize() {
 #endif
   auto staticData = std::make_unique<LLVMParserStaticData>(
     std::vector<std::string>{
-      "type", "globalIdentifier", "localIdentifier", "unamedIdentifier", 
-      "variable", "number", "value", "module", "globalDeclaration", "functionDefinition", 
-      "functionParameters", "parameterList", "parameter", "block", "basicBlock", 
-      "instruction", "returnInstruction", "branchInstruction", "callInstruction", 
-      "arithmeticInstruction", "memoryInstruction", "phiInstruction", "phiValue", 
-      "comparisonInstruction", "comparisonPredicate"
+      "basicType", "type", "pointerType", "arrayType", "globalIdentifier", 
+      "localIdentifier", "unamedIdentifier", "variable", "number", "value", 
+      "module", "literal", "globalDeclaration", "functionDefinition", "functionArguments", 
+      "parameterList", "parameter", "block", "basicBlock", "instruction", 
+      "returnInstruction", "branchInstruction", "callInstruction", "arithmeticInstruction", 
+      "memoryInstruction", "phiInstruction", "phiValue", "comparisonInstruction", 
+      "comparisonPredicate"
     },
     std::vector<std::string>{
       "", "'global'", "'external'", "'define'", "'align'", "'unreachable'", 
@@ -67,8 +75,8 @@ void llvmparserParserInitialize() {
       "'lshr'", "'ashr'", "'icmp'", "'fcmp'", "'sext'", "'zext'", "'trunc'", 
       "'label'", "'void'", "'ptr'", "'i1'", "'i32'", "'i64'", "'f32'", "'f64'", 
       "'eq'", "'ne'", "'ugt'", "'uge'", "'ult'", "'ule'", "'sgt'", "'sge'", 
-      "'slt'", "'sle'", "'='", "','", "'('", "')'", "'{'", "'}'", "'@'", 
-      "'%'", "'*'", "':'"
+      "'slt'", "'sle'", "'='", "','", "'('", "')'", "'{'", "'}'", "'['", 
+      "']'", "'@'", "'%'", "'*'", "':'", "'x'"
     },
     std::vector<std::string>{
       "", "Global", "External", "Define", "Align", "Unreachable", "Br", 
@@ -77,75 +85,91 @@ void llvmparserParserInitialize() {
       "Sext", "Zext", "Trunc", "Label", "Void", "Ptr", "I1", "I32", "I64", 
       "F32", "F64", "Eq", "Ne", "Ugt", "Uge", "Ult", "Ule", "Sgt", "Sge", 
       "Slt", "Sle", "Equals", "Comma", "LeftParen", "RightParen", "LeftBrace", 
-      "RightBrace", "At", "Percent", "Asterisk", "Colon", "NumericIdentifier", 
-      "NamedIdentifier", "IntegerLiteral", "FloatLiteral", "Whitespace", 
-      "Comment"
+      "RightBrace", "LeftBracket", "RightBracket", "At", "Percent", "Asterisk", 
+      "Colon", "Cross", "NumericIdentifier", "NamedIdentifier", "IntegerLiteral", 
+      "FloatLiteral", "Whitespace", "Comment"
     }
   );
   static const int32_t serializedATNSegment[] = {
-  	4,1,61,208,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
+  	4,1,64,255,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
   	7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,
   	14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,
-  	21,2,22,7,22,2,23,7,23,2,24,7,24,1,0,1,0,1,1,1,1,1,1,1,2,1,2,1,2,1,3,
-  	1,3,1,3,1,4,1,4,1,4,3,4,65,8,4,1,5,1,5,1,6,1,6,3,6,71,8,6,1,7,1,7,5,7,
-  	75,8,7,10,7,12,7,78,9,7,1,8,1,8,1,8,1,8,1,8,1,8,3,8,86,8,8,1,9,1,9,1,
-  	9,1,9,1,9,1,9,1,10,1,10,3,10,96,8,10,1,10,1,10,1,11,1,11,1,11,5,11,103,
-  	8,11,10,11,12,11,106,9,11,1,12,1,12,1,12,1,13,1,13,5,13,113,8,13,10,13,
-  	12,13,116,9,13,1,13,1,13,1,14,1,14,1,14,5,14,123,8,14,10,14,12,14,126,
-  	9,14,1,15,1,15,1,15,1,15,1,15,1,15,1,15,3,15,135,8,15,1,16,1,16,1,16,
-  	3,16,140,8,16,1,17,1,17,1,17,1,17,1,17,1,17,1,17,1,17,1,17,1,17,1,17,
-  	1,17,1,17,3,17,155,8,17,1,18,1,18,1,18,1,18,1,18,1,19,1,19,1,19,1,19,
-  	1,19,1,19,1,19,1,19,1,20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,
-  	1,20,3,20,181,8,20,1,21,1,21,1,21,1,21,1,21,5,21,188,8,21,10,21,12,21,
-  	191,9,21,1,22,1,22,1,22,1,22,1,22,1,22,1,23,1,23,1,23,1,23,1,23,1,23,
-  	1,23,1,24,1,24,1,24,0,0,25,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,
-  	32,34,36,38,40,42,44,46,48,0,6,1,0,29,35,1,0,58,59,1,0,13,16,1,0,9,10,
-  	1,0,23,24,1,0,36,45,202,0,50,1,0,0,0,2,52,1,0,0,0,4,55,1,0,0,0,6,58,1,
-  	0,0,0,8,64,1,0,0,0,10,66,1,0,0,0,12,70,1,0,0,0,14,76,1,0,0,0,16,79,1,
-  	0,0,0,18,87,1,0,0,0,20,93,1,0,0,0,22,99,1,0,0,0,24,107,1,0,0,0,26,110,
-  	1,0,0,0,28,119,1,0,0,0,30,134,1,0,0,0,32,136,1,0,0,0,34,154,1,0,0,0,36,
-  	156,1,0,0,0,38,161,1,0,0,0,40,169,1,0,0,0,42,182,1,0,0,0,44,192,1,0,0,
-  	0,46,198,1,0,0,0,48,205,1,0,0,0,50,51,7,0,0,0,51,1,1,0,0,0,52,53,5,52,
-  	0,0,53,54,5,57,0,0,54,3,1,0,0,0,55,56,5,53,0,0,56,57,5,57,0,0,57,5,1,
-  	0,0,0,58,59,5,53,0,0,59,60,5,56,0,0,60,7,1,0,0,0,61,65,3,2,1,0,62,65,
-  	3,4,2,0,63,65,3,6,3,0,64,61,1,0,0,0,64,62,1,0,0,0,64,63,1,0,0,0,65,9,
-  	1,0,0,0,66,67,7,1,0,0,67,11,1,0,0,0,68,71,3,8,4,0,69,71,3,10,5,0,70,68,
-  	1,0,0,0,70,69,1,0,0,0,71,13,1,0,0,0,72,75,3,16,8,0,73,75,3,18,9,0,74,
-  	72,1,0,0,0,74,73,1,0,0,0,75,78,1,0,0,0,76,74,1,0,0,0,76,77,1,0,0,0,77,
-  	15,1,0,0,0,78,76,1,0,0,0,79,80,5,1,0,0,80,81,3,0,0,0,81,85,3,2,1,0,82,
-  	83,5,47,0,0,83,84,5,4,0,0,84,86,5,58,0,0,85,82,1,0,0,0,85,86,1,0,0,0,
-  	86,17,1,0,0,0,87,88,5,3,0,0,88,89,3,0,0,0,89,90,3,2,1,0,90,91,3,20,10,
-  	0,91,92,3,26,13,0,92,19,1,0,0,0,93,95,5,48,0,0,94,96,3,22,11,0,95,94,
-  	1,0,0,0,95,96,1,0,0,0,96,97,1,0,0,0,97,98,5,49,0,0,98,21,1,0,0,0,99,104,
-  	3,24,12,0,100,101,5,47,0,0,101,103,3,24,12,0,102,100,1,0,0,0,103,106,
-  	1,0,0,0,104,102,1,0,0,0,104,105,1,0,0,0,105,23,1,0,0,0,106,104,1,0,0,
-  	0,107,108,3,0,0,0,108,109,3,4,2,0,109,25,1,0,0,0,110,114,5,50,0,0,111,
-  	113,3,28,14,0,112,111,1,0,0,0,113,116,1,0,0,0,114,112,1,0,0,0,114,115,
-  	1,0,0,0,115,117,1,0,0,0,116,114,1,0,0,0,117,118,5,51,0,0,118,27,1,0,0,
-  	0,119,120,5,28,0,0,120,124,5,55,0,0,121,123,3,30,15,0,122,121,1,0,0,0,
-  	123,126,1,0,0,0,124,122,1,0,0,0,124,125,1,0,0,0,125,29,1,0,0,0,126,124,
-  	1,0,0,0,127,135,3,32,16,0,128,135,3,34,17,0,129,135,3,36,18,0,130,135,
-  	3,38,19,0,131,135,3,40,20,0,132,135,3,42,21,0,133,135,3,46,23,0,134,127,
-  	1,0,0,0,134,128,1,0,0,0,134,129,1,0,0,0,134,130,1,0,0,0,134,131,1,0,0,
-  	0,134,132,1,0,0,0,134,133,1,0,0,0,135,31,1,0,0,0,136,137,5,7,0,0,137,
-  	139,3,0,0,0,138,140,3,12,6,0,139,138,1,0,0,0,139,140,1,0,0,0,140,33,1,
-  	0,0,0,141,142,5,6,0,0,142,143,5,31,0,0,143,144,3,12,6,0,144,145,5,47,
-  	0,0,145,146,5,28,0,0,146,147,3,6,3,0,147,148,5,47,0,0,148,149,5,28,0,
-  	0,149,150,3,6,3,0,150,155,1,0,0,0,151,152,5,6,0,0,152,153,5,28,0,0,153,
-  	155,3,6,3,0,154,141,1,0,0,0,154,151,1,0,0,0,155,35,1,0,0,0,156,157,5,
-  	8,0,0,157,158,3,0,0,0,158,159,3,2,1,0,159,160,3,20,10,0,160,37,1,0,0,
-  	0,161,162,3,8,4,0,162,163,5,46,0,0,163,164,7,2,0,0,164,165,3,0,0,0,165,
-  	166,3,12,6,0,166,167,5,47,0,0,167,168,3,12,6,0,168,39,1,0,0,0,169,170,
-  	3,8,4,0,170,171,5,46,0,0,171,172,7,3,0,0,172,173,3,0,0,0,173,174,5,47,
-  	0,0,174,175,3,0,0,0,175,176,5,54,0,0,176,180,3,8,4,0,177,178,5,47,0,0,
-  	178,179,5,4,0,0,179,181,5,58,0,0,180,177,1,0,0,0,180,181,1,0,0,0,181,
-  	41,1,0,0,0,182,183,5,12,0,0,183,184,3,0,0,0,184,189,3,44,22,0,185,186,
-  	5,47,0,0,186,188,3,44,22,0,187,185,1,0,0,0,188,191,1,0,0,0,189,187,1,
-  	0,0,0,189,190,1,0,0,0,190,43,1,0,0,0,191,189,1,0,0,0,192,193,5,50,0,0,
-  	193,194,3,6,3,0,194,195,5,47,0,0,195,196,3,12,6,0,196,197,5,51,0,0,197,
-  	45,1,0,0,0,198,199,7,4,0,0,199,200,3,48,24,0,200,201,3,0,0,0,201,202,
-  	3,12,6,0,202,203,5,47,0,0,203,204,3,12,6,0,204,47,1,0,0,0,205,206,7,5,
-  	0,0,206,49,1,0,0,0,14,64,70,74,76,85,95,104,114,124,134,139,154,180,189
+  	21,2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,2,26,7,26,2,27,7,27,2,28,7,
+  	28,1,0,1,0,1,1,1,1,1,1,3,1,64,8,1,1,2,1,2,1,2,4,2,69,8,2,11,2,12,2,70,
+  	1,2,1,2,4,2,75,8,2,11,2,12,2,76,3,2,79,8,2,1,2,1,2,4,2,83,8,2,11,2,12,
+  	2,84,5,2,87,8,2,10,2,12,2,90,9,2,1,3,1,3,1,3,1,3,1,3,1,3,1,4,1,4,1,4,
+  	1,5,1,5,1,5,1,6,1,6,1,6,1,7,1,7,1,7,3,7,110,8,7,1,8,1,8,1,9,1,9,3,9,116,
+  	8,9,1,10,1,10,5,10,120,8,10,10,10,12,10,123,9,10,1,11,1,11,1,12,1,12,
+  	1,12,1,12,1,12,1,12,3,12,133,8,12,1,13,1,13,1,13,1,13,1,13,1,13,1,14,
+  	1,14,3,14,143,8,14,1,14,1,14,1,15,1,15,1,15,5,15,150,8,15,10,15,12,15,
+  	153,9,15,1,16,1,16,1,16,1,17,1,17,5,17,160,8,17,10,17,12,17,163,9,17,
+  	1,17,1,17,1,18,1,18,1,18,5,18,170,8,18,10,18,12,18,173,9,18,1,19,1,19,
+  	1,19,1,19,1,19,1,19,1,19,3,19,182,8,19,1,20,1,20,1,20,3,20,187,8,20,1,
+  	21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,3,21,202,
+  	8,21,1,22,1,22,1,22,1,22,1,22,1,23,1,23,1,23,1,23,1,23,1,23,1,23,1,23,
+  	1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,1,24,3,24,228,8,24,
+  	1,25,1,25,1,25,1,25,1,25,5,25,235,8,25,10,25,12,25,238,9,25,1,26,1,26,
+  	1,26,1,26,1,26,1,26,1,27,1,27,1,27,1,27,1,27,1,27,1,27,1,28,1,28,1,28,
+  	0,1,4,29,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,
+  	44,46,48,50,52,54,56,0,6,2,0,29,29,31,35,1,0,61,62,1,0,13,16,1,0,9,10,
+  	1,0,23,24,1,0,36,45,252,0,58,1,0,0,0,2,63,1,0,0,0,4,78,1,0,0,0,6,91,1,
+  	0,0,0,8,97,1,0,0,0,10,100,1,0,0,0,12,103,1,0,0,0,14,109,1,0,0,0,16,111,
+  	1,0,0,0,18,115,1,0,0,0,20,121,1,0,0,0,22,124,1,0,0,0,24,126,1,0,0,0,26,
+  	134,1,0,0,0,28,140,1,0,0,0,30,146,1,0,0,0,32,154,1,0,0,0,34,157,1,0,0,
+  	0,36,166,1,0,0,0,38,181,1,0,0,0,40,183,1,0,0,0,42,201,1,0,0,0,44,203,
+  	1,0,0,0,46,208,1,0,0,0,48,216,1,0,0,0,50,229,1,0,0,0,52,239,1,0,0,0,54,
+  	245,1,0,0,0,56,252,1,0,0,0,58,59,7,0,0,0,59,1,1,0,0,0,60,64,3,0,0,0,61,
+  	64,3,4,2,0,62,64,3,6,3,0,63,60,1,0,0,0,63,61,1,0,0,0,63,62,1,0,0,0,64,
+  	3,1,0,0,0,65,66,6,2,-1,0,66,68,3,0,0,0,67,69,5,56,0,0,68,67,1,0,0,0,69,
+  	70,1,0,0,0,70,68,1,0,0,0,70,71,1,0,0,0,71,79,1,0,0,0,72,74,3,6,3,0,73,
+  	75,5,56,0,0,74,73,1,0,0,0,75,76,1,0,0,0,76,74,1,0,0,0,76,77,1,0,0,0,77,
+  	79,1,0,0,0,78,65,1,0,0,0,78,72,1,0,0,0,79,88,1,0,0,0,80,82,10,2,0,0,81,
+  	83,5,56,0,0,82,81,1,0,0,0,83,84,1,0,0,0,84,82,1,0,0,0,84,85,1,0,0,0,85,
+  	87,1,0,0,0,86,80,1,0,0,0,87,90,1,0,0,0,88,86,1,0,0,0,88,89,1,0,0,0,89,
+  	5,1,0,0,0,90,88,1,0,0,0,91,92,5,52,0,0,92,93,5,61,0,0,93,94,5,58,0,0,
+  	94,95,3,2,1,0,95,96,5,53,0,0,96,7,1,0,0,0,97,98,5,54,0,0,98,99,5,60,0,
+  	0,99,9,1,0,0,0,100,101,5,55,0,0,101,102,5,60,0,0,102,11,1,0,0,0,103,104,
+  	5,55,0,0,104,105,5,59,0,0,105,13,1,0,0,0,106,110,3,8,4,0,107,110,3,10,
+  	5,0,108,110,3,12,6,0,109,106,1,0,0,0,109,107,1,0,0,0,109,108,1,0,0,0,
+  	110,15,1,0,0,0,111,112,7,1,0,0,112,17,1,0,0,0,113,116,3,14,7,0,114,116,
+  	3,16,8,0,115,113,1,0,0,0,115,114,1,0,0,0,116,19,1,0,0,0,117,120,3,24,
+  	12,0,118,120,3,26,13,0,119,117,1,0,0,0,119,118,1,0,0,0,120,123,1,0,0,
+  	0,121,119,1,0,0,0,121,122,1,0,0,0,122,21,1,0,0,0,123,121,1,0,0,0,124,
+  	125,7,1,0,0,125,23,1,0,0,0,126,127,5,1,0,0,127,128,3,2,1,0,128,132,3,
+  	8,4,0,129,130,5,47,0,0,130,131,5,4,0,0,131,133,3,22,11,0,132,129,1,0,
+  	0,0,132,133,1,0,0,0,133,25,1,0,0,0,134,135,5,3,0,0,135,136,3,2,1,0,136,
+  	137,3,8,4,0,137,138,3,28,14,0,138,139,3,34,17,0,139,27,1,0,0,0,140,142,
+  	5,48,0,0,141,143,3,30,15,0,142,141,1,0,0,0,142,143,1,0,0,0,143,144,1,
+  	0,0,0,144,145,5,49,0,0,145,29,1,0,0,0,146,151,3,32,16,0,147,148,5,47,
+  	0,0,148,150,3,32,16,0,149,147,1,0,0,0,150,153,1,0,0,0,151,149,1,0,0,0,
+  	151,152,1,0,0,0,152,31,1,0,0,0,153,151,1,0,0,0,154,155,3,2,1,0,155,156,
+  	3,10,5,0,156,33,1,0,0,0,157,161,5,50,0,0,158,160,3,36,18,0,159,158,1,
+  	0,0,0,160,163,1,0,0,0,161,159,1,0,0,0,161,162,1,0,0,0,162,164,1,0,0,0,
+  	163,161,1,0,0,0,164,165,5,51,0,0,165,35,1,0,0,0,166,167,5,28,0,0,167,
+  	171,5,57,0,0,168,170,3,38,19,0,169,168,1,0,0,0,170,173,1,0,0,0,171,169,
+  	1,0,0,0,171,172,1,0,0,0,172,37,1,0,0,0,173,171,1,0,0,0,174,182,3,40,20,
+  	0,175,182,3,42,21,0,176,182,3,44,22,0,177,182,3,46,23,0,178,182,3,48,
+  	24,0,179,182,3,50,25,0,180,182,3,54,27,0,181,174,1,0,0,0,181,175,1,0,
+  	0,0,181,176,1,0,0,0,181,177,1,0,0,0,181,178,1,0,0,0,181,179,1,0,0,0,181,
+  	180,1,0,0,0,182,39,1,0,0,0,183,184,5,7,0,0,184,186,3,2,1,0,185,187,3,
+  	18,9,0,186,185,1,0,0,0,186,187,1,0,0,0,187,41,1,0,0,0,188,189,5,6,0,0,
+  	189,190,5,31,0,0,190,191,3,18,9,0,191,192,5,47,0,0,192,193,5,28,0,0,193,
+  	194,3,12,6,0,194,195,5,47,0,0,195,196,5,28,0,0,196,197,3,12,6,0,197,202,
+  	1,0,0,0,198,199,5,6,0,0,199,200,5,28,0,0,200,202,3,12,6,0,201,188,1,0,
+  	0,0,201,198,1,0,0,0,202,43,1,0,0,0,203,204,5,8,0,0,204,205,3,2,1,0,205,
+  	206,3,8,4,0,206,207,3,28,14,0,207,45,1,0,0,0,208,209,3,14,7,0,209,210,
+  	5,46,0,0,210,211,7,2,0,0,211,212,3,2,1,0,212,213,3,18,9,0,213,214,5,47,
+  	0,0,214,215,3,18,9,0,215,47,1,0,0,0,216,217,3,14,7,0,217,218,5,46,0,0,
+  	218,219,7,3,0,0,219,220,3,2,1,0,220,221,5,47,0,0,221,222,3,2,1,0,222,
+  	223,5,56,0,0,223,227,3,14,7,0,224,225,5,47,0,0,225,226,5,4,0,0,226,228,
+  	5,61,0,0,227,224,1,0,0,0,227,228,1,0,0,0,228,49,1,0,0,0,229,230,5,12,
+  	0,0,230,231,3,2,1,0,231,236,3,52,26,0,232,233,5,47,0,0,233,235,3,52,26,
+  	0,234,232,1,0,0,0,235,238,1,0,0,0,236,234,1,0,0,0,236,237,1,0,0,0,237,
+  	51,1,0,0,0,238,236,1,0,0,0,239,240,5,50,0,0,240,241,3,12,6,0,241,242,
+  	5,47,0,0,242,243,3,18,9,0,243,244,5,51,0,0,244,53,1,0,0,0,245,246,7,4,
+  	0,0,246,247,3,56,28,0,247,248,3,2,1,0,248,249,3,18,9,0,249,250,5,47,0,
+  	0,250,251,3,18,9,0,251,55,1,0,0,0,252,253,7,5,0,0,253,57,1,0,0,0,20,63,
+  	70,76,78,84,88,109,115,119,121,132,142,151,161,171,181,186,201,227,236
   };
   staticData->serializedATN = antlr4::atn::SerializedATNView(serializedATNSegment, sizeof(serializedATNSegment) / sizeof(serializedATNSegment[0]));
 
@@ -194,38 +218,100 @@ antlr4::atn::SerializedATNView LLVMParser::getSerializedATN() const {
 }
 
 
+//----------------- BasicTypeContext ------------------------------------------------------------------
+
+LLVMParser::BasicTypeContext::BasicTypeContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+tree::TerminalNode* LLVMParser::BasicTypeContext::Void() {
+  return getToken(LLVMParser::Void, 0);
+}
+
+tree::TerminalNode* LLVMParser::BasicTypeContext::I1() {
+  return getToken(LLVMParser::I1, 0);
+}
+
+tree::TerminalNode* LLVMParser::BasicTypeContext::I32() {
+  return getToken(LLVMParser::I32, 0);
+}
+
+tree::TerminalNode* LLVMParser::BasicTypeContext::I64() {
+  return getToken(LLVMParser::I64, 0);
+}
+
+tree::TerminalNode* LLVMParser::BasicTypeContext::F32() {
+  return getToken(LLVMParser::F32, 0);
+}
+
+tree::TerminalNode* LLVMParser::BasicTypeContext::F64() {
+  return getToken(LLVMParser::F64, 0);
+}
+
+
+size_t LLVMParser::BasicTypeContext::getRuleIndex() const {
+  return LLVMParser::RuleBasicType;
+}
+
+
+std::any LLVMParser::BasicTypeContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<LLVMParserVisitor*>(visitor))
+    return parserVisitor->visitBasicType(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+LLVMParser::BasicTypeContext* LLVMParser::basicType() {
+  BasicTypeContext *_localctx = _tracker.createInstance<BasicTypeContext>(_ctx, getState());
+  enterRule(_localctx, 0, LLVMParser::RuleBasicType);
+  size_t _la = 0;
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    exitRule();
+  });
+  try {
+    enterOuterAlt(_localctx, 1);
+    setState(58);
+    _la = _input->LA(1);
+    if (!((((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 67108864000) != 0))) {
+    _errHandler->recoverInline(this);
+    }
+    else {
+      _errHandler->reportMatch(this);
+      consume();
+    }
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
 //----------------- TypeContext ------------------------------------------------------------------
 
 LLVMParser::TypeContext::TypeContext(ParserRuleContext *parent, size_t invokingState)
   : ParserRuleContext(parent, invokingState) {
 }
 
-tree::TerminalNode* LLVMParser::TypeContext::Void() {
-  return getToken(LLVMParser::Void, 0);
+LLVMParser::BasicTypeContext* LLVMParser::TypeContext::basicType() {
+  return getRuleContext<LLVMParser::BasicTypeContext>(0);
 }
 
-tree::TerminalNode* LLVMParser::TypeContext::Ptr() {
-  return getToken(LLVMParser::Ptr, 0);
+LLVMParser::PointerTypeContext* LLVMParser::TypeContext::pointerType() {
+  return getRuleContext<LLVMParser::PointerTypeContext>(0);
 }
 
-tree::TerminalNode* LLVMParser::TypeContext::I1() {
-  return getToken(LLVMParser::I1, 0);
-}
-
-tree::TerminalNode* LLVMParser::TypeContext::I32() {
-  return getToken(LLVMParser::I32, 0);
-}
-
-tree::TerminalNode* LLVMParser::TypeContext::I64() {
-  return getToken(LLVMParser::I64, 0);
-}
-
-tree::TerminalNode* LLVMParser::TypeContext::F32() {
-  return getToken(LLVMParser::F32, 0);
-}
-
-tree::TerminalNode* LLVMParser::TypeContext::F64() {
-  return getToken(LLVMParser::F64, 0);
+LLVMParser::ArrayTypeContext* LLVMParser::TypeContext::arrayType() {
+  return getRuleContext<LLVMParser::ArrayTypeContext>(0);
 }
 
 
@@ -243,8 +329,266 @@ std::any LLVMParser::TypeContext::accept(tree::ParseTreeVisitor *visitor) {
 
 LLVMParser::TypeContext* LLVMParser::type() {
   TypeContext *_localctx = _tracker.createInstance<TypeContext>(_ctx, getState());
-  enterRule(_localctx, 0, LLVMParser::RuleType);
-  size_t _la = 0;
+  enterRule(_localctx, 2, LLVMParser::RuleType);
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    exitRule();
+  });
+  try {
+    setState(63);
+    _errHandler->sync(this);
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 0, _ctx)) {
+    case 1: {
+      enterOuterAlt(_localctx, 1);
+      setState(60);
+      basicType();
+      break;
+    }
+
+    case 2: {
+      enterOuterAlt(_localctx, 2);
+      setState(61);
+      pointerType(0);
+      break;
+    }
+
+    case 3: {
+      enterOuterAlt(_localctx, 3);
+      setState(62);
+      arrayType();
+      break;
+    }
+
+    default:
+      break;
+    }
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- PointerTypeContext ------------------------------------------------------------------
+
+LLVMParser::PointerTypeContext::PointerTypeContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+LLVMParser::BasicTypeContext* LLVMParser::PointerTypeContext::basicType() {
+  return getRuleContext<LLVMParser::BasicTypeContext>(0);
+}
+
+std::vector<tree::TerminalNode *> LLVMParser::PointerTypeContext::Asterisk() {
+  return getTokens(LLVMParser::Asterisk);
+}
+
+tree::TerminalNode* LLVMParser::PointerTypeContext::Asterisk(size_t i) {
+  return getToken(LLVMParser::Asterisk, i);
+}
+
+LLVMParser::ArrayTypeContext* LLVMParser::PointerTypeContext::arrayType() {
+  return getRuleContext<LLVMParser::ArrayTypeContext>(0);
+}
+
+LLVMParser::PointerTypeContext* LLVMParser::PointerTypeContext::pointerType() {
+  return getRuleContext<LLVMParser::PointerTypeContext>(0);
+}
+
+
+size_t LLVMParser::PointerTypeContext::getRuleIndex() const {
+  return LLVMParser::RulePointerType;
+}
+
+
+std::any LLVMParser::PointerTypeContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<LLVMParserVisitor*>(visitor))
+    return parserVisitor->visitPointerType(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+
+LLVMParser::PointerTypeContext* LLVMParser::pointerType() {
+   return pointerType(0);
+}
+
+LLVMParser::PointerTypeContext* LLVMParser::pointerType(int precedence) {
+  ParserRuleContext *parentContext = _ctx;
+  size_t parentState = getState();
+  LLVMParser::PointerTypeContext *_localctx = _tracker.createInstance<PointerTypeContext>(_ctx, parentState);
+  LLVMParser::PointerTypeContext *previousContext = _localctx;
+  (void)previousContext; // Silence compiler, in case the context is not used by generated code.
+  size_t startState = 4;
+  enterRecursionRule(_localctx, 4, LLVMParser::RulePointerType, precedence);
+
+    
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    unrollRecursionContexts(parentContext);
+  });
+  try {
+    size_t alt;
+    enterOuterAlt(_localctx, 1);
+    setState(78);
+    _errHandler->sync(this);
+    switch (_input->LA(1)) {
+      case LLVMParser::Void:
+      case LLVMParser::I1:
+      case LLVMParser::I32:
+      case LLVMParser::I64:
+      case LLVMParser::F32:
+      case LLVMParser::F64: {
+        setState(66);
+        basicType();
+        setState(68); 
+        _errHandler->sync(this);
+        alt = 1;
+        do {
+          switch (alt) {
+            case 1: {
+                  setState(67);
+                  match(LLVMParser::Asterisk);
+                  break;
+                }
+
+          default:
+            throw NoViableAltException(this);
+          }
+          setState(70); 
+          _errHandler->sync(this);
+          alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 1, _ctx);
+        } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
+        break;
+      }
+
+      case LLVMParser::LeftBracket: {
+        setState(72);
+        arrayType();
+        setState(74); 
+        _errHandler->sync(this);
+        alt = 1;
+        do {
+          switch (alt) {
+            case 1: {
+                  setState(73);
+                  match(LLVMParser::Asterisk);
+                  break;
+                }
+
+          default:
+            throw NoViableAltException(this);
+          }
+          setState(76); 
+          _errHandler->sync(this);
+          alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 2, _ctx);
+        } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER);
+        break;
+      }
+
+    default:
+      throw NoViableAltException(this);
+    }
+    _ctx->stop = _input->LT(-1);
+    setState(88);
+    _errHandler->sync(this);
+    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 5, _ctx);
+    while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
+      if (alt == 1) {
+        if (!_parseListeners.empty())
+          triggerExitRuleEvent();
+        previousContext = _localctx;
+        _localctx = _tracker.createInstance<PointerTypeContext>(parentContext, parentState);
+        pushNewRecursionContext(_localctx, startState, RulePointerType);
+        setState(80);
+
+        if (!(precpred(_ctx, 2))) throw FailedPredicateException(this, "precpred(_ctx, 2)");
+        setState(82); 
+        _errHandler->sync(this);
+        alt = 1;
+        do {
+          switch (alt) {
+            case 1: {
+                  setState(81);
+                  match(LLVMParser::Asterisk);
+                  break;
+                }
+
+          default:
+            throw NoViableAltException(this);
+          }
+          setState(84); 
+          _errHandler->sync(this);
+          alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 4, _ctx);
+        } while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER); 
+      }
+      setState(90);
+      _errHandler->sync(this);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 5, _ctx);
+    }
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+  return _localctx;
+}
+
+//----------------- ArrayTypeContext ------------------------------------------------------------------
+
+LLVMParser::ArrayTypeContext::ArrayTypeContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+tree::TerminalNode* LLVMParser::ArrayTypeContext::LeftBracket() {
+  return getToken(LLVMParser::LeftBracket, 0);
+}
+
+tree::TerminalNode* LLVMParser::ArrayTypeContext::IntegerLiteral() {
+  return getToken(LLVMParser::IntegerLiteral, 0);
+}
+
+tree::TerminalNode* LLVMParser::ArrayTypeContext::Cross() {
+  return getToken(LLVMParser::Cross, 0);
+}
+
+LLVMParser::TypeContext* LLVMParser::ArrayTypeContext::type() {
+  return getRuleContext<LLVMParser::TypeContext>(0);
+}
+
+tree::TerminalNode* LLVMParser::ArrayTypeContext::RightBracket() {
+  return getToken(LLVMParser::RightBracket, 0);
+}
+
+
+size_t LLVMParser::ArrayTypeContext::getRuleIndex() const {
+  return LLVMParser::RuleArrayType;
+}
+
+
+std::any LLVMParser::ArrayTypeContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<LLVMParserVisitor*>(visitor))
+    return parserVisitor->visitArrayType(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+LLVMParser::ArrayTypeContext* LLVMParser::arrayType() {
+  ArrayTypeContext *_localctx = _tracker.createInstance<ArrayTypeContext>(_ctx, getState());
+  enterRule(_localctx, 6, LLVMParser::RuleArrayType);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -255,16 +599,16 @@ LLVMParser::TypeContext* LLVMParser::type() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(50);
-    _la = _input->LA(1);
-    if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 68182605824) != 0))) {
-    _errHandler->recoverInline(this);
-    }
-    else {
-      _errHandler->reportMatch(this);
-      consume();
-    }
+    setState(91);
+    match(LLVMParser::LeftBracket);
+    setState(92);
+    match(LLVMParser::IntegerLiteral);
+    setState(93);
+    match(LLVMParser::Cross);
+    setState(94);
+    type();
+    setState(95);
+    match(LLVMParser::RightBracket);
    
   }
   catch (RecognitionException &e) {
@@ -305,7 +649,7 @@ std::any LLVMParser::GlobalIdentifierContext::accept(tree::ParseTreeVisitor *vis
 
 LLVMParser::GlobalIdentifierContext* LLVMParser::globalIdentifier() {
   GlobalIdentifierContext *_localctx = _tracker.createInstance<GlobalIdentifierContext>(_ctx, getState());
-  enterRule(_localctx, 2, LLVMParser::RuleGlobalIdentifier);
+  enterRule(_localctx, 8, LLVMParser::RuleGlobalIdentifier);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -316,9 +660,9 @@ LLVMParser::GlobalIdentifierContext* LLVMParser::globalIdentifier() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(52);
+    setState(97);
     match(LLVMParser::At);
-    setState(53);
+    setState(98);
     match(LLVMParser::NamedIdentifier);
    
   }
@@ -360,7 +704,7 @@ std::any LLVMParser::LocalIdentifierContext::accept(tree::ParseTreeVisitor *visi
 
 LLVMParser::LocalIdentifierContext* LLVMParser::localIdentifier() {
   LocalIdentifierContext *_localctx = _tracker.createInstance<LocalIdentifierContext>(_ctx, getState());
-  enterRule(_localctx, 4, LLVMParser::RuleLocalIdentifier);
+  enterRule(_localctx, 10, LLVMParser::RuleLocalIdentifier);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -371,9 +715,9 @@ LLVMParser::LocalIdentifierContext* LLVMParser::localIdentifier() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(55);
+    setState(100);
     match(LLVMParser::Percent);
-    setState(56);
+    setState(101);
     match(LLVMParser::NamedIdentifier);
    
   }
@@ -415,7 +759,7 @@ std::any LLVMParser::UnamedIdentifierContext::accept(tree::ParseTreeVisitor *vis
 
 LLVMParser::UnamedIdentifierContext* LLVMParser::unamedIdentifier() {
   UnamedIdentifierContext *_localctx = _tracker.createInstance<UnamedIdentifierContext>(_ctx, getState());
-  enterRule(_localctx, 6, LLVMParser::RuleUnamedIdentifier);
+  enterRule(_localctx, 12, LLVMParser::RuleUnamedIdentifier);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -426,9 +770,9 @@ LLVMParser::UnamedIdentifierContext* LLVMParser::unamedIdentifier() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(58);
+    setState(103);
     match(LLVMParser::Percent);
-    setState(59);
+    setState(104);
     match(LLVMParser::NumericIdentifier);
    
   }
@@ -474,7 +818,7 @@ std::any LLVMParser::VariableContext::accept(tree::ParseTreeVisitor *visitor) {
 
 LLVMParser::VariableContext* LLVMParser::variable() {
   VariableContext *_localctx = _tracker.createInstance<VariableContext>(_ctx, getState());
-  enterRule(_localctx, 8, LLVMParser::RuleVariable);
+  enterRule(_localctx, 14, LLVMParser::RuleVariable);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -484,26 +828,26 @@ LLVMParser::VariableContext* LLVMParser::variable() {
     exitRule();
   });
   try {
-    setState(64);
+    setState(109);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 0, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 6, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(61);
+      setState(106);
       globalIdentifier();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(62);
+      setState(107);
       localIdentifier();
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(63);
+      setState(108);
       unamedIdentifier();
       break;
     }
@@ -551,7 +895,7 @@ std::any LLVMParser::NumberContext::accept(tree::ParseTreeVisitor *visitor) {
 
 LLVMParser::NumberContext* LLVMParser::number() {
   NumberContext *_localctx = _tracker.createInstance<NumberContext>(_ctx, getState());
-  enterRule(_localctx, 10, LLVMParser::RuleNumber);
+  enterRule(_localctx, 16, LLVMParser::RuleNumber);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -563,7 +907,7 @@ LLVMParser::NumberContext* LLVMParser::number() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(66);
+    setState(111);
     _la = _input->LA(1);
     if (!(_la == LLVMParser::IntegerLiteral
 
@@ -614,7 +958,7 @@ std::any LLVMParser::ValueContext::accept(tree::ParseTreeVisitor *visitor) {
 
 LLVMParser::ValueContext* LLVMParser::value() {
   ValueContext *_localctx = _tracker.createInstance<ValueContext>(_ctx, getState());
-  enterRule(_localctx, 12, LLVMParser::RuleValue);
+  enterRule(_localctx, 18, LLVMParser::RuleValue);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -624,13 +968,13 @@ LLVMParser::ValueContext* LLVMParser::value() {
     exitRule();
   });
   try {
-    setState(70);
+    setState(115);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case LLVMParser::At:
       case LLVMParser::Percent: {
         enterOuterAlt(_localctx, 1);
-        setState(68);
+        setState(113);
         variable();
         break;
       }
@@ -638,7 +982,7 @@ LLVMParser::ValueContext* LLVMParser::value() {
       case LLVMParser::IntegerLiteral:
       case LLVMParser::FloatLiteral: {
         enterOuterAlt(_localctx, 2);
-        setState(69);
+        setState(114);
         number();
         break;
       }
@@ -694,7 +1038,7 @@ std::any LLVMParser::ModuleContext::accept(tree::ParseTreeVisitor *visitor) {
 
 LLVMParser::ModuleContext* LLVMParser::module() {
   ModuleContext *_localctx = _tracker.createInstance<ModuleContext>(_ctx, getState());
-  enterRule(_localctx, 14, LLVMParser::RuleModule);
+  enterRule(_localctx, 20, LLVMParser::RuleModule);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -706,23 +1050,23 @@ LLVMParser::ModuleContext* LLVMParser::module() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(76);
+    setState(121);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == LLVMParser::Global
 
     || _la == LLVMParser::Define) {
-      setState(74);
+      setState(119);
       _errHandler->sync(this);
       switch (_input->LA(1)) {
         case LLVMParser::Global: {
-          setState(72);
+          setState(117);
           globalDeclaration();
           break;
         }
 
         case LLVMParser::Define: {
-          setState(73);
+          setState(118);
           functionDefinition();
           break;
         }
@@ -730,9 +1074,72 @@ LLVMParser::ModuleContext* LLVMParser::module() {
       default:
         throw NoViableAltException(this);
       }
-      setState(78);
+      setState(123);
       _errHandler->sync(this);
       _la = _input->LA(1);
+    }
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- LiteralContext ------------------------------------------------------------------
+
+LLVMParser::LiteralContext::LiteralContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+tree::TerminalNode* LLVMParser::LiteralContext::IntegerLiteral() {
+  return getToken(LLVMParser::IntegerLiteral, 0);
+}
+
+tree::TerminalNode* LLVMParser::LiteralContext::FloatLiteral() {
+  return getToken(LLVMParser::FloatLiteral, 0);
+}
+
+
+size_t LLVMParser::LiteralContext::getRuleIndex() const {
+  return LLVMParser::RuleLiteral;
+}
+
+
+std::any LLVMParser::LiteralContext::accept(tree::ParseTreeVisitor *visitor) {
+  if (auto parserVisitor = dynamic_cast<LLVMParserVisitor*>(visitor))
+    return parserVisitor->visitLiteral(this);
+  else
+    return visitor->visitChildren(this);
+}
+
+LLVMParser::LiteralContext* LLVMParser::literal() {
+  LiteralContext *_localctx = _tracker.createInstance<LiteralContext>(_ctx, getState());
+  enterRule(_localctx, 22, LLVMParser::RuleLiteral);
+  size_t _la = 0;
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    exitRule();
+  });
+  try {
+    enterOuterAlt(_localctx, 1);
+    setState(124);
+    _la = _input->LA(1);
+    if (!(_la == LLVMParser::IntegerLiteral
+
+    || _la == LLVMParser::FloatLiteral)) {
+    _errHandler->recoverInline(this);
+    }
+    else {
+      _errHandler->reportMatch(this);
+      consume();
     }
    
   }
@@ -771,8 +1178,8 @@ tree::TerminalNode* LLVMParser::GlobalDeclarationContext::Align() {
   return getToken(LLVMParser::Align, 0);
 }
 
-tree::TerminalNode* LLVMParser::GlobalDeclarationContext::IntegerLiteral() {
-  return getToken(LLVMParser::IntegerLiteral, 0);
+LLVMParser::LiteralContext* LLVMParser::GlobalDeclarationContext::literal() {
+  return getRuleContext<LLVMParser::LiteralContext>(0);
 }
 
 
@@ -790,7 +1197,7 @@ std::any LLVMParser::GlobalDeclarationContext::accept(tree::ParseTreeVisitor *vi
 
 LLVMParser::GlobalDeclarationContext* LLVMParser::globalDeclaration() {
   GlobalDeclarationContext *_localctx = _tracker.createInstance<GlobalDeclarationContext>(_ctx, getState());
-  enterRule(_localctx, 16, LLVMParser::RuleGlobalDeclaration);
+  enterRule(_localctx, 24, LLVMParser::RuleGlobalDeclaration);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -802,23 +1209,23 @@ LLVMParser::GlobalDeclarationContext* LLVMParser::globalDeclaration() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(79);
+    setState(126);
     match(LLVMParser::Global);
-    setState(80);
+    setState(127);
     type();
-    setState(81);
+    setState(128);
     globalIdentifier();
-    setState(85);
+    setState(132);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == LLVMParser::Comma) {
-      setState(82);
+      setState(129);
       match(LLVMParser::Comma);
-      setState(83);
+      setState(130);
       match(LLVMParser::Align);
-      setState(84);
-      match(LLVMParser::IntegerLiteral);
+      setState(131);
+      literal();
     }
    
   }
@@ -849,8 +1256,8 @@ LLVMParser::GlobalIdentifierContext* LLVMParser::FunctionDefinitionContext::glob
   return getRuleContext<LLVMParser::GlobalIdentifierContext>(0);
 }
 
-LLVMParser::FunctionParametersContext* LLVMParser::FunctionDefinitionContext::functionParameters() {
-  return getRuleContext<LLVMParser::FunctionParametersContext>(0);
+LLVMParser::FunctionArgumentsContext* LLVMParser::FunctionDefinitionContext::functionArguments() {
+  return getRuleContext<LLVMParser::FunctionArgumentsContext>(0);
 }
 
 LLVMParser::BlockContext* LLVMParser::FunctionDefinitionContext::block() {
@@ -872,7 +1279,7 @@ std::any LLVMParser::FunctionDefinitionContext::accept(tree::ParseTreeVisitor *v
 
 LLVMParser::FunctionDefinitionContext* LLVMParser::functionDefinition() {
   FunctionDefinitionContext *_localctx = _tracker.createInstance<FunctionDefinitionContext>(_ctx, getState());
-  enterRule(_localctx, 18, LLVMParser::RuleFunctionDefinition);
+  enterRule(_localctx, 26, LLVMParser::RuleFunctionDefinition);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -883,15 +1290,15 @@ LLVMParser::FunctionDefinitionContext* LLVMParser::functionDefinition() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(87);
+    setState(134);
     match(LLVMParser::Define);
-    setState(88);
+    setState(135);
     type();
-    setState(89);
+    setState(136);
     globalIdentifier();
-    setState(90);
-    functionParameters();
-    setState(91);
+    setState(137);
+    functionArguments();
+    setState(138);
     block();
    
   }
@@ -904,40 +1311,40 @@ LLVMParser::FunctionDefinitionContext* LLVMParser::functionDefinition() {
   return _localctx;
 }
 
-//----------------- FunctionParametersContext ------------------------------------------------------------------
+//----------------- FunctionArgumentsContext ------------------------------------------------------------------
 
-LLVMParser::FunctionParametersContext::FunctionParametersContext(ParserRuleContext *parent, size_t invokingState)
+LLVMParser::FunctionArgumentsContext::FunctionArgumentsContext(ParserRuleContext *parent, size_t invokingState)
   : ParserRuleContext(parent, invokingState) {
 }
 
-tree::TerminalNode* LLVMParser::FunctionParametersContext::LeftParen() {
+tree::TerminalNode* LLVMParser::FunctionArgumentsContext::LeftParen() {
   return getToken(LLVMParser::LeftParen, 0);
 }
 
-tree::TerminalNode* LLVMParser::FunctionParametersContext::RightParen() {
+tree::TerminalNode* LLVMParser::FunctionArgumentsContext::RightParen() {
   return getToken(LLVMParser::RightParen, 0);
 }
 
-LLVMParser::ParameterListContext* LLVMParser::FunctionParametersContext::parameterList() {
+LLVMParser::ParameterListContext* LLVMParser::FunctionArgumentsContext::parameterList() {
   return getRuleContext<LLVMParser::ParameterListContext>(0);
 }
 
 
-size_t LLVMParser::FunctionParametersContext::getRuleIndex() const {
-  return LLVMParser::RuleFunctionParameters;
+size_t LLVMParser::FunctionArgumentsContext::getRuleIndex() const {
+  return LLVMParser::RuleFunctionArguments;
 }
 
 
-std::any LLVMParser::FunctionParametersContext::accept(tree::ParseTreeVisitor *visitor) {
+std::any LLVMParser::FunctionArgumentsContext::accept(tree::ParseTreeVisitor *visitor) {
   if (auto parserVisitor = dynamic_cast<LLVMParserVisitor*>(visitor))
-    return parserVisitor->visitFunctionParameters(this);
+    return parserVisitor->visitFunctionArguments(this);
   else
     return visitor->visitChildren(this);
 }
 
-LLVMParser::FunctionParametersContext* LLVMParser::functionParameters() {
-  FunctionParametersContext *_localctx = _tracker.createInstance<FunctionParametersContext>(_ctx, getState());
-  enterRule(_localctx, 20, LLVMParser::RuleFunctionParameters);
+LLVMParser::FunctionArgumentsContext* LLVMParser::functionArguments() {
+  FunctionArgumentsContext *_localctx = _tracker.createInstance<FunctionArgumentsContext>(_ctx, getState());
+  enterRule(_localctx, 28, LLVMParser::RuleFunctionArguments);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -949,18 +1356,18 @@ LLVMParser::FunctionParametersContext* LLVMParser::functionParameters() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(93);
+    setState(140);
     match(LLVMParser::LeftParen);
-    setState(95);
+    setState(142);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 68182605824) != 0)) {
-      setState(94);
+      ((1ULL << _la) & 4503666736234496) != 0)) {
+      setState(141);
       parameterList();
     }
-    setState(97);
+    setState(144);
     match(LLVMParser::RightParen);
    
   }
@@ -1010,7 +1417,7 @@ std::any LLVMParser::ParameterListContext::accept(tree::ParseTreeVisitor *visito
 
 LLVMParser::ParameterListContext* LLVMParser::parameterList() {
   ParameterListContext *_localctx = _tracker.createInstance<ParameterListContext>(_ctx, getState());
-  enterRule(_localctx, 22, LLVMParser::RuleParameterList);
+  enterRule(_localctx, 30, LLVMParser::RuleParameterList);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1022,17 +1429,17 @@ LLVMParser::ParameterListContext* LLVMParser::parameterList() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(99);
+    setState(146);
     parameter();
-    setState(104);
+    setState(151);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == LLVMParser::Comma) {
-      setState(100);
+      setState(147);
       match(LLVMParser::Comma);
-      setState(101);
+      setState(148);
       parameter();
-      setState(106);
+      setState(153);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -1076,7 +1483,7 @@ std::any LLVMParser::ParameterContext::accept(tree::ParseTreeVisitor *visitor) {
 
 LLVMParser::ParameterContext* LLVMParser::parameter() {
   ParameterContext *_localctx = _tracker.createInstance<ParameterContext>(_ctx, getState());
-  enterRule(_localctx, 24, LLVMParser::RuleParameter);
+  enterRule(_localctx, 32, LLVMParser::RuleParameter);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1087,9 +1494,9 @@ LLVMParser::ParameterContext* LLVMParser::parameter() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(107);
+    setState(154);
     type();
-    setState(108);
+    setState(155);
     localIdentifier();
    
   }
@@ -1139,7 +1546,7 @@ std::any LLVMParser::BlockContext::accept(tree::ParseTreeVisitor *visitor) {
 
 LLVMParser::BlockContext* LLVMParser::block() {
   BlockContext *_localctx = _tracker.createInstance<BlockContext>(_ctx, getState());
-  enterRule(_localctx, 26, LLVMParser::RuleBlock);
+  enterRule(_localctx, 34, LLVMParser::RuleBlock);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1151,19 +1558,19 @@ LLVMParser::BlockContext* LLVMParser::block() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(110);
+    setState(157);
     match(LLVMParser::LeftBrace);
-    setState(114);
+    setState(161);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == LLVMParser::Label) {
-      setState(111);
+      setState(158);
       basicBlock();
-      setState(116);
+      setState(163);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(117);
+    setState(164);
     match(LLVMParser::RightBrace);
    
   }
@@ -1213,7 +1620,7 @@ std::any LLVMParser::BasicBlockContext::accept(tree::ParseTreeVisitor *visitor) 
 
 LLVMParser::BasicBlockContext* LLVMParser::basicBlock() {
   BasicBlockContext *_localctx = _tracker.createInstance<BasicBlockContext>(_ctx, getState());
-  enterRule(_localctx, 28, LLVMParser::RuleBasicBlock);
+  enterRule(_localctx, 36, LLVMParser::RuleBasicBlock);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1225,18 +1632,18 @@ LLVMParser::BasicBlockContext* LLVMParser::basicBlock() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(119);
+    setState(166);
     match(LLVMParser::Label);
-    setState(120);
+    setState(167);
     match(LLVMParser::Colon);
-    setState(124);
+    setState(171);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 13510798907281856) != 0)) {
-      setState(121);
+      ((1ULL << _la) & 54043195553616320) != 0)) {
+      setState(168);
       instruction();
-      setState(126);
+      setState(173);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -1300,7 +1707,7 @@ std::any LLVMParser::InstructionContext::accept(tree::ParseTreeVisitor *visitor)
 
 LLVMParser::InstructionContext* LLVMParser::instruction() {
   InstructionContext *_localctx = _tracker.createInstance<InstructionContext>(_ctx, getState());
-  enterRule(_localctx, 30, LLVMParser::RuleInstruction);
+  enterRule(_localctx, 38, LLVMParser::RuleInstruction);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1310,54 +1717,54 @@ LLVMParser::InstructionContext* LLVMParser::instruction() {
     exitRule();
   });
   try {
-    setState(134);
+    setState(181);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 9, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 15, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(127);
+      setState(174);
       returnInstruction();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(128);
+      setState(175);
       branchInstruction();
       break;
     }
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(129);
+      setState(176);
       callInstruction();
       break;
     }
 
     case 4: {
       enterOuterAlt(_localctx, 4);
-      setState(130);
+      setState(177);
       arithmeticInstruction();
       break;
     }
 
     case 5: {
       enterOuterAlt(_localctx, 5);
-      setState(131);
+      setState(178);
       memoryInstruction();
       break;
     }
 
     case 6: {
       enterOuterAlt(_localctx, 6);
-      setState(132);
+      setState(179);
       phiInstruction();
       break;
     }
 
     case 7: {
       enterOuterAlt(_localctx, 7);
-      setState(133);
+      setState(180);
       comparisonInstruction();
       break;
     }
@@ -1409,7 +1816,7 @@ std::any LLVMParser::ReturnInstructionContext::accept(tree::ParseTreeVisitor *vi
 
 LLVMParser::ReturnInstructionContext* LLVMParser::returnInstruction() {
   ReturnInstructionContext *_localctx = _tracker.createInstance<ReturnInstructionContext>(_ctx, getState());
-  enterRule(_localctx, 32, LLVMParser::RuleReturnInstruction);
+  enterRule(_localctx, 40, LLVMParser::RuleReturnInstruction);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1420,16 +1827,16 @@ LLVMParser::ReturnInstructionContext* LLVMParser::returnInstruction() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(136);
+    setState(183);
     match(LLVMParser::Ret);
-    setState(137);
+    setState(184);
     type();
-    setState(139);
+    setState(186);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 10, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 16, _ctx)) {
     case 1: {
-      setState(138);
+      setState(185);
       value();
       break;
     }
@@ -1505,7 +1912,7 @@ std::any LLVMParser::BranchInstructionContext::accept(tree::ParseTreeVisitor *vi
 
 LLVMParser::BranchInstructionContext* LLVMParser::branchInstruction() {
   BranchInstructionContext *_localctx = _tracker.createInstance<BranchInstructionContext>(_ctx, getState());
-  enterRule(_localctx, 34, LLVMParser::RuleBranchInstruction);
+  enterRule(_localctx, 42, LLVMParser::RuleBranchInstruction);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1515,39 +1922,39 @@ LLVMParser::BranchInstructionContext* LLVMParser::branchInstruction() {
     exitRule();
   });
   try {
-    setState(154);
+    setState(201);
     _errHandler->sync(this);
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 11, _ctx)) {
+    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 17, _ctx)) {
     case 1: {
       enterOuterAlt(_localctx, 1);
-      setState(141);
+      setState(188);
       match(LLVMParser::Br);
-      setState(142);
+      setState(189);
       match(LLVMParser::I1);
-      setState(143);
+      setState(190);
       value();
-      setState(144);
+      setState(191);
       match(LLVMParser::Comma);
-      setState(145);
+      setState(192);
       match(LLVMParser::Label);
-      setState(146);
+      setState(193);
       unamedIdentifier();
-      setState(147);
+      setState(194);
       match(LLVMParser::Comma);
-      setState(148);
+      setState(195);
       match(LLVMParser::Label);
-      setState(149);
+      setState(196);
       unamedIdentifier();
       break;
     }
 
     case 2: {
       enterOuterAlt(_localctx, 2);
-      setState(151);
+      setState(198);
       match(LLVMParser::Br);
-      setState(152);
+      setState(199);
       match(LLVMParser::Label);
-      setState(153);
+      setState(200);
       unamedIdentifier();
       break;
     }
@@ -1584,8 +1991,8 @@ LLVMParser::GlobalIdentifierContext* LLVMParser::CallInstructionContext::globalI
   return getRuleContext<LLVMParser::GlobalIdentifierContext>(0);
 }
 
-LLVMParser::FunctionParametersContext* LLVMParser::CallInstructionContext::functionParameters() {
-  return getRuleContext<LLVMParser::FunctionParametersContext>(0);
+LLVMParser::FunctionArgumentsContext* LLVMParser::CallInstructionContext::functionArguments() {
+  return getRuleContext<LLVMParser::FunctionArgumentsContext>(0);
 }
 
 
@@ -1603,7 +2010,7 @@ std::any LLVMParser::CallInstructionContext::accept(tree::ParseTreeVisitor *visi
 
 LLVMParser::CallInstructionContext* LLVMParser::callInstruction() {
   CallInstructionContext *_localctx = _tracker.createInstance<CallInstructionContext>(_ctx, getState());
-  enterRule(_localctx, 36, LLVMParser::RuleCallInstruction);
+  enterRule(_localctx, 44, LLVMParser::RuleCallInstruction);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1614,14 +2021,14 @@ LLVMParser::CallInstructionContext* LLVMParser::callInstruction() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(156);
+    setState(203);
     match(LLVMParser::Call);
-    setState(157);
+    setState(204);
     type();
-    setState(158);
+    setState(205);
     globalIdentifier();
-    setState(159);
-    functionParameters();
+    setState(206);
+    functionArguments();
    
   }
   catch (RecognitionException &e) {
@@ -1694,7 +2101,7 @@ std::any LLVMParser::ArithmeticInstructionContext::accept(tree::ParseTreeVisitor
 
 LLVMParser::ArithmeticInstructionContext* LLVMParser::arithmeticInstruction() {
   ArithmeticInstructionContext *_localctx = _tracker.createInstance<ArithmeticInstructionContext>(_ctx, getState());
-  enterRule(_localctx, 38, LLVMParser::RuleArithmeticInstruction);
+  enterRule(_localctx, 46, LLVMParser::RuleArithmeticInstruction);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1706,11 +2113,11 @@ LLVMParser::ArithmeticInstructionContext* LLVMParser::arithmeticInstruction() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(161);
+    setState(208);
     variable();
-    setState(162);
+    setState(209);
     match(LLVMParser::Equals);
-    setState(163);
+    setState(210);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 122880) != 0))) {
@@ -1720,13 +2127,13 @@ LLVMParser::ArithmeticInstructionContext* LLVMParser::arithmeticInstruction() {
       _errHandler->reportMatch(this);
       consume();
     }
-    setState(164);
+    setState(211);
     type();
-    setState(165);
+    setState(212);
     value();
-    setState(166);
+    setState(213);
     match(LLVMParser::Comma);
-    setState(167);
+    setState(214);
     value();
    
   }
@@ -1808,7 +2215,7 @@ std::any LLVMParser::MemoryInstructionContext::accept(tree::ParseTreeVisitor *vi
 
 LLVMParser::MemoryInstructionContext* LLVMParser::memoryInstruction() {
   MemoryInstructionContext *_localctx = _tracker.createInstance<MemoryInstructionContext>(_ctx, getState());
-  enterRule(_localctx, 40, LLVMParser::RuleMemoryInstruction);
+  enterRule(_localctx, 48, LLVMParser::RuleMemoryInstruction);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1820,11 +2227,11 @@ LLVMParser::MemoryInstructionContext* LLVMParser::memoryInstruction() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(169);
+    setState(216);
     variable();
-    setState(170);
+    setState(217);
     match(LLVMParser::Equals);
-    setState(171);
+    setState(218);
     _la = _input->LA(1);
     if (!(_la == LLVMParser::Load
 
@@ -1835,26 +2242,26 @@ LLVMParser::MemoryInstructionContext* LLVMParser::memoryInstruction() {
       _errHandler->reportMatch(this);
       consume();
     }
-    setState(172);
+    setState(219);
     type();
-    setState(173);
+    setState(220);
     match(LLVMParser::Comma);
-    setState(174);
+    setState(221);
     type();
-    setState(175);
+    setState(222);
     match(LLVMParser::Asterisk);
-    setState(176);
+    setState(223);
     variable();
-    setState(180);
+    setState(227);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == LLVMParser::Comma) {
-      setState(177);
+      setState(224);
       match(LLVMParser::Comma);
-      setState(178);
+      setState(225);
       match(LLVMParser::Align);
-      setState(179);
+      setState(226);
       match(LLVMParser::IntegerLiteral);
     }
    
@@ -1913,7 +2320,7 @@ std::any LLVMParser::PhiInstructionContext::accept(tree::ParseTreeVisitor *visit
 
 LLVMParser::PhiInstructionContext* LLVMParser::phiInstruction() {
   PhiInstructionContext *_localctx = _tracker.createInstance<PhiInstructionContext>(_ctx, getState());
-  enterRule(_localctx, 42, LLVMParser::RulePhiInstruction);
+  enterRule(_localctx, 50, LLVMParser::RulePhiInstruction);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -1925,21 +2332,21 @@ LLVMParser::PhiInstructionContext* LLVMParser::phiInstruction() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(182);
+    setState(229);
     match(LLVMParser::Phi);
-    setState(183);
+    setState(230);
     type();
-    setState(184);
+    setState(231);
     phiValue();
-    setState(189);
+    setState(236);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == LLVMParser::Comma) {
-      setState(185);
+      setState(232);
       match(LLVMParser::Comma);
-      setState(186);
+      setState(233);
       phiValue();
-      setState(191);
+      setState(238);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
@@ -1995,7 +2402,7 @@ std::any LLVMParser::PhiValueContext::accept(tree::ParseTreeVisitor *visitor) {
 
 LLVMParser::PhiValueContext* LLVMParser::phiValue() {
   PhiValueContext *_localctx = _tracker.createInstance<PhiValueContext>(_ctx, getState());
-  enterRule(_localctx, 44, LLVMParser::RulePhiValue);
+  enterRule(_localctx, 52, LLVMParser::RulePhiValue);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -2006,15 +2413,15 @@ LLVMParser::PhiValueContext* LLVMParser::phiValue() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(192);
+    setState(239);
     match(LLVMParser::LeftBrace);
-    setState(193);
+    setState(240);
     unamedIdentifier();
-    setState(194);
+    setState(241);
     match(LLVMParser::Comma);
-    setState(195);
+    setState(242);
     value();
-    setState(196);
+    setState(243);
     match(LLVMParser::RightBrace);
    
   }
@@ -2076,7 +2483,7 @@ std::any LLVMParser::ComparisonInstructionContext::accept(tree::ParseTreeVisitor
 
 LLVMParser::ComparisonInstructionContext* LLVMParser::comparisonInstruction() {
   ComparisonInstructionContext *_localctx = _tracker.createInstance<ComparisonInstructionContext>(_ctx, getState());
-  enterRule(_localctx, 46, LLVMParser::RuleComparisonInstruction);
+  enterRule(_localctx, 54, LLVMParser::RuleComparisonInstruction);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2088,7 +2495,7 @@ LLVMParser::ComparisonInstructionContext* LLVMParser::comparisonInstruction() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(198);
+    setState(245);
     _la = _input->LA(1);
     if (!(_la == LLVMParser::Icmp
 
@@ -2099,15 +2506,15 @@ LLVMParser::ComparisonInstructionContext* LLVMParser::comparisonInstruction() {
       _errHandler->reportMatch(this);
       consume();
     }
-    setState(199);
+    setState(246);
     comparisonPredicate();
-    setState(200);
+    setState(247);
     type();
-    setState(201);
+    setState(248);
     value();
-    setState(202);
+    setState(249);
     match(LLVMParser::Comma);
-    setState(203);
+    setState(250);
     value();
    
   }
@@ -2181,7 +2588,7 @@ std::any LLVMParser::ComparisonPredicateContext::accept(tree::ParseTreeVisitor *
 
 LLVMParser::ComparisonPredicateContext* LLVMParser::comparisonPredicate() {
   ComparisonPredicateContext *_localctx = _tracker.createInstance<ComparisonPredicateContext>(_ctx, getState());
-  enterRule(_localctx, 48, LLVMParser::RuleComparisonPredicate);
+  enterRule(_localctx, 56, LLVMParser::RuleComparisonPredicate);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2193,7 +2600,7 @@ LLVMParser::ComparisonPredicateContext* LLVMParser::comparisonPredicate() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(205);
+    setState(252);
     _la = _input->LA(1);
     if (!((((_la & ~ 0x3fULL) == 0) &&
       ((1ULL << _la) & 70300024700928) != 0))) {
@@ -2212,6 +2619,26 @@ LLVMParser::ComparisonPredicateContext* LLVMParser::comparisonPredicate() {
   }
 
   return _localctx;
+}
+
+bool LLVMParser::sempred(RuleContext *context, size_t ruleIndex, size_t predicateIndex) {
+  switch (ruleIndex) {
+    case 2: return pointerTypeSempred(antlrcpp::downCast<PointerTypeContext *>(context), predicateIndex);
+
+  default:
+    break;
+  }
+  return true;
+}
+
+bool LLVMParser::pointerTypeSempred(PointerTypeContext *_localctx, size_t predicateIndex) {
+  switch (predicateIndex) {
+    case 0: return precpred(_ctx, 2);
+
+  default:
+    break;
+  }
+  return true;
 }
 
 void LLVMParser::initialize() {

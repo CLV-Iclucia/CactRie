@@ -26,6 +26,10 @@ struct VariableInfo {
   std::optional<Literal> initialValue;
 };
 
+struct FunctionInfo {
+  std::string name;
+};
+
 struct Variable {
   explicit Variable(VariableInfo &&info)
       : m_name(std::move(info.name)), m_isConstant(info.isConstant), m_initialValue(info.initialValue) {}
@@ -38,7 +42,11 @@ struct Variable {
   [[nodiscard]] const std::string &name() const {
     return m_name;
   }
+  [[nodiscard]] bool match(LLVMType otherType) const {
+    return this->type == otherType;
+  }
 private:
+  LLVMType type;
   bool m_isConstant;
   std::string m_name;
   std::optional<Literal> m_initialValue;
@@ -68,27 +76,49 @@ struct Instruction {
     Load,
     Store,
   };
-  const BasicBlock &basicBlock;
+  int idx;
+  observer_ptr<const BasicBlock> basicBlock{};
 };
 
 struct BasicBlock {
-  const Function &function;
+  observer_ptr<Function> function{};
   auto &instructions() { return m_instructions; }
 private:
+  friend struct Function;
+  size_t idx;
   std::list<std::unique_ptr<Instruction>> m_instructions{};
   std::list<std::reference_wrapper<BasicBlock>> successors{};
   std::list<std::reference_wrapper<BasicBlock>> predecessors{};
 };
 
 struct Function {
-  explicit Function(const std::string& name, std::list<BasicBlock> &&blocks)
-      : name(name), basicBlocks(std::move(blocks)) {}
+  explicit Function(const FunctionInfo &functionInfo)
+      : name(functionInfo.name) {}
+  using BlockListIter = std::list<std::reference_wrapper<BasicBlock>>::iterator;
+
   [[nodiscard]] const std::string &functionName() const { return name; }
+  void appendBlock(BasicBlock &&block) {
+    block.idx = basicBlocks.size();
+    basicBlocks.emplace_back(block);
+  }
+  void removeBasicBlock(BlockListIter& iter) {
+    auto cur = iter;
+    basicBlocks.erase(cur);
+    ++iter;
+  }
+  void removeBasicBlock(std::reference_wrapper<BasicBlock> block) {
+    removeBasicBlock(block.get());
+  }
+  void removeBasicBlock(BasicBlock &block) {
+    auto idx = block.idx;
+    std::swap(basicBlockContainer[idx], basicBlockContainer.back());
+  }
   BasicBlock &entryBlock() {
     return *basicBlocks.begin();
   }
-  std::list<BasicBlock> basicBlocks{};
+  std::list<std::reference_wrapper<BasicBlock>> basicBlocks{};
 private:
+  std::vector<BasicBlock> basicBlockContainer{};
   std::string name;
 };
 

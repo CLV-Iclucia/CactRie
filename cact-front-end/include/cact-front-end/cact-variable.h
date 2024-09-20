@@ -4,7 +4,7 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_VARIABLE_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_VARIABLE_H_
-#include <cact-parser/cact-expr.h>
+#include <cact-front-end/cact-expr.h>
 #include <string>
 namespace cactparser {
 struct CactVariable {

@@ -28,5 +28,9 @@ file(GLOB_RECURSE SOURCES src/*.cpp src/*.cc)
 file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
 
 add_library(chiisai-llvm ${SOURCES} ${HEADERS})
-target_include_directories(chiisai-llvm PUBLIC include)
+target_include_directories(chiisai-llvm
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/chiisai-llvm/autogen
+        PUBLIC ${ANTLR_RUNTIME_INCLUDE_DIR}/antlr-runtime
+)
 target_link_libraries(chiisai-llvm chiisai-llvm-autogen)

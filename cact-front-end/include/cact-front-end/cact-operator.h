@@ -4,8 +4,8 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_OPERATOR_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_OPERATOR_H_
-#include <cact-parser/CactParser.h>
-#include <cact-parser/cact-expr.h>
+#include <cact-front-end/CactParser.h>
+#include <cact-front-end/cact-expr.h>
 #include <functional>
 namespace cactparser {
 

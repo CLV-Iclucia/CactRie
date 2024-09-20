@@ -1,10 +1,34 @@
 parser grammar LLVMParser;
-
+@header {
+    #include <optional>
+    #include <memory>
+    #include <variant>
+    #include <chiisai-llvm/literal.h>
+    #include <chiisai-llvm/llvm-ir.h>
+}
 options {
     tokenVocab=LLVMLexer;
 }
 
-type: Void | Ptr | I1 | I32 | I64 | F32 | F64;
+basicType
+    locals[
+    LLVMType llvmType,
+]: Void | I1 | I32 | I64 | F32 | F64;
+
+type
+    locals[
+    LLVMType llvmType,
+]: basicType | pointerType | arrayType;
+
+pointerType
+    locals[
+    LLVMType llvmType,
+]: basicType Asterisk+ | pointerType Asterisk+ | arrayType Asterisk+;
+
+arrayType
+    locals[
+    LLVMType llvmType,
+]: LeftBracket IntegerLiteral Cross type RightBracket;
 
 globalIdentifier: At NamedIdentifier;
 
@@ -20,11 +44,22 @@ value: variable | number;
 
 module: (globalDeclaration | functionDefinition)*;
 
-globalDeclaration: Global type globalIdentifier (Comma Align IntegerLiteral)?;
+literal
+locals[
+    Literal result,
+]: IntegerLiteral | FloatLiteral;
 
-functionDefinition: Define type globalIdentifier functionParameters block;
+globalDeclaration
+ locals [
+    Variable globalVar,
+]: Global type globalIdentifier (Comma Align literal)?;
 
-functionParameters: LeftParen parameterList? RightParen;
+functionDefinition
+ locals [
+    std::unique_ptr<Function> function,
+]: Define type globalIdentifier functionArguments block;
+
+functionArguments: LeftParen parameterList? RightParen;
 
 parameterList: parameter (Comma parameter)*;
 
@@ -48,7 +83,7 @@ returnInstruction: Ret type value?;
 branchInstruction: Br I1 value Comma Label unamedIdentifier Comma Label unamedIdentifier
                 | Br Label unamedIdentifier;
 
-callInstruction: Call type globalIdentifier functionParameters;
+callInstruction: Call type globalIdentifier functionArguments;
 
 arithmeticInstruction
     : variable Equals (Add | Sub | Mul | Div) type value Comma value

@@ -8,13 +8,26 @@
 #include <chiisai-llvm/llvm-ir.h>
 namespace llvm {
 struct LLVMModuleParserVisitor : public LLVMParserVisitor {
-  std::any visitType(LLVMParser::TypeContext* ctx) override {
+  std::any visitType(LLVMParser::TypeContext *ctx) override {
     std::string typeStr = ctx->getText();
-
+    if (typeStr == "i32") {
+      ctx->llvmType = LLVMType::i32;
+    } else if (typeStr == "i1") {
+      ctx->llvmType = LLVMType::i1;
+    } else if (typeStr == "f32") {
+      ctx->llvmType = LLVMType::f32;
+    } else if (typeStr == "f64") {
+      ctx->llvmType = LLVMType::f64;
+    } else if (typeStr == "void") {
+      ctx->llvmType = LLVMType::Void;
+    } else {
+      throw std::runtime_error("Invalid type");
+    }
+    return {};
   }
   std::any visitModule(LLVMParser::ModuleContext *ctx) override {
-    std::vector<Variable> globalVars;
-    std::list<Function> functions;
+    std::vector<Variable> globalVars{};
+    std::list<Function> functions{};
     std::string name;
     for (auto *decl : ctx->globalDeclaration()) {
       visitGlobalDeclaration(decl);
@@ -22,7 +35,7 @@ struct LLVMModuleParserVisitor : public LLVMParserVisitor {
     }
     for (auto *def : ctx->functionDefinition()) {
       visitFunctionDefinition(def);
-      functions.push_back(std::move(def->function));
+      functions.push_back(std::move(*def->function));
     }
     module = std::make_unique<Module>(ModuleInfo{
         .functions = std::move(functions),
@@ -33,32 +46,31 @@ struct LLVMModuleParserVisitor : public LLVMParserVisitor {
   }
   std::any visitGlobalDeclaration(LLVMParser::GlobalDeclarationContext *ctx) override {
     visitType(ctx->type());
-    auto varType = ctx->type()->type;
+    auto varType = ctx->type()->llvmType;
     std::string name = ctx->globalIdentifier()->NamedIdentifier()->getText();
     ctx->globalVar = Variable(VariableInfo{
         .name = std::move(name),
         .isConstant = false,
         .initialValue = std::nullopt
     });
+    auto literal = ctx->literal();
+    if (literal) {
+      visitLiteral(literal);
+      ctx->globalVar.initialValue() = literal->result;
+      if (!ctx->globalVar.match(varType)) {
+        // ERROR
+      }
+    }
     return {};
   }
   std::any visitFunctionDefinition(LLVMParser::FunctionDefinitionContext *ctx) override {
     visitType(ctx->type());
-    std::string name = ctx->functionIdentifier()->NamedIdentifier()->getText();
+    std::string name = ctx->globalIdentifier()->NamedIdentifier()->getText();
     std::vector<Variable> args;
-    for (auto *arg : ctx->functionArguments()->functionArgument()) {
-      visitFunctionArgument(arg);
-      args.push_back(arg->arg);
-    }
-    std::list<BasicBlock> blocks;
-    for (auto *block : ctx->basicBlock()) {
-      visitBasicBlock(block);
-      blocks.push_back(std::move(block->block));
-    }
-    ctx->function = Function(FunctionInfo{
+    visitFunctionArguments(ctx->functionArguments());
+    visitBlock(ctx->block());
+    ctx->function = std::make_unique<Function>(FunctionInfo{
         .name = std::move(name),
-        .args = std::move(args),
-        .blocks = std::move(blocks)
     });
     return {};
   }

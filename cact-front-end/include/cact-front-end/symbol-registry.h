@@ -8,9 +8,9 @@
 #include <vector>
 #include <map>
 #include <string>
-#include <cact-parser/cact-variable.h>
-#include <cact-parser/cact-functions.h>
-#include <cact-parser/mystl/observer_ptr.h>
+#include <cact-front-end/cact-variable.h>
+#include <cact-front-end/cact-functions.h>
+#include <cact-front-end/mystl/observer_ptr.h>
 namespace cactparser {
 
 struct SymbolRegistry;

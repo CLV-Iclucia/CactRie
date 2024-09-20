@@ -4,7 +4,7 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_FUNCTIONS_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_FUNCTIONS_H_
-#include <cact-parser/cact-type.h>
+#include <cact-front-end/cact-type.h>
 #include <string>
 namespace cactparser {
 

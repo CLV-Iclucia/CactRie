@@ -20,9 +20,10 @@ public:
     Label = 28, Void = 29, Ptr = 30, I1 = 31, I32 = 32, I64 = 33, F32 = 34, 
     F64 = 35, Eq = 36, Ne = 37, Ugt = 38, Uge = 39, Ult = 40, Ule = 41, 
     Sgt = 42, Sge = 43, Slt = 44, Sle = 45, Equals = 46, Comma = 47, LeftParen = 48, 
-    RightParen = 49, LeftBrace = 50, RightBrace = 51, At = 52, Percent = 53, 
-    Asterisk = 54, Colon = 55, NumericIdentifier = 56, NamedIdentifier = 57, 
-    IntegerLiteral = 58, FloatLiteral = 59, Whitespace = 60, Comment = 61
+    RightParen = 49, LeftBrace = 50, RightBrace = 51, LeftBracket = 52, 
+    RightBracket = 53, At = 54, Percent = 55, Asterisk = 56, Colon = 57, 
+    Cross = 58, NumericIdentifier = 59, NamedIdentifier = 60, IntegerLiteral = 61, 
+    FloatLiteral = 62, Whitespace = 63, Comment = 64
   };
 
   explicit LLVMLexer(antlr4::CharStream *input);

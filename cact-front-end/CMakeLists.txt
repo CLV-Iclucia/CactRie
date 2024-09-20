@@ -17,14 +17,14 @@ if (GENERATE_PARSER)
 else()
     message(STATUS "Globbing generated source files...")
 endif()
-file(GLOB_RECURSE CACT_PARSER_AUTOGEN_SOURCES autogen/src/*.cpp autogen/src/*.cc autogen/include/*.h autogen/include/*.hpp)
-file(GLOB_RECURSE CACT_PARSER_SOURCES src/*.cpp src/*.cc include/*.h include/*.hpp)
+file(GLOB_RECURSE CACT_FRONT_END_AUTOGEN_SOURCES autogen/src/*.cpp autogen/src/*.cc autogen/include/*.h autogen/include/*.hpp)
+file(GLOB_RECURSE CACT_FRONT_END_SOURCES src/*.cpp src/*.cc include/*.h include/*.hpp)
 
-add_library(cact-parser ${CACT_PARSER_SOURCES} ${CACT_PARSER_AUTOGEN_SOURCES})
-target_link_libraries(cact-parser PUBLIC antlr-runtime)
-target_include_directories(cact-parser
+add_library(cact-front-end ${CACT_FRONT_END_SOURCES} ${CACT_FRONT_END_AUTOGEN_SOURCES})
+target_link_libraries(cact-front-end PUBLIC antlr-runtime)
+target_include_directories(cact-front-end
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/autogen/include
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/autogen/include/cact-parser
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/autogen/include/cact-front-end
         PUBLIC ${ANTLR_RUNTIME_INCLUDE_DIR}/antlr-runtime
 )

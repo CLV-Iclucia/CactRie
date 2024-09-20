@@ -1,8 +1,8 @@
 parser grammar CactParser;
 @header {
-#include <cact-parser/cact-expr.h>
-#include <cact-parser/mystl/observer_ptr.h>
-#include <cact-parser/symbol-registry.h>
+#include <cact-front-end/cact-expr.h>
+#include <cact-front-end/mystl/observer_ptr.h>
+#include <cact-front-end/symbol-registry.h>
 }
 options {
 tokenVocab=CactLexer;

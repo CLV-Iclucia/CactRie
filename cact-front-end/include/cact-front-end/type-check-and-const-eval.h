@@ -4,10 +4,10 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_TYPE_CHECK_AND_CONST_EVAL_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_TYPE_CHECK_AND_CONST_EVAL_H_
-#include <cact-parser/CactParserBaseVisitor.h>
-#include <cact-parser/cact-expr.h>
-#include <cact-parser/cact-operator.h>
-#include <cact-parser/symbol-registry.h>
+#include <cact-front-end/CactParserBaseVisitor.h>
+#include <cact-front-end/cact-expr.h>
+#include <cact-front-end/cact-operator.h>
+#include <cact-front-end/symbol-registry.h>
 namespace cactparser {
 
 struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {

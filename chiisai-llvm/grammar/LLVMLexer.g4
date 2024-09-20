@@ -59,10 +59,13 @@ LeftParen: '(';
 RightParen: ')';
 LeftBrace: '{';
 RightBrace: '}';
+LeftBracket: '[';
+RightBracket: ']';
 At: '@';
 Percent: '%';
 Asterisk: '*';
 Colon: ':';
+Cross: 'x';
 
 
 NumericIdentifier: [0-9]+;

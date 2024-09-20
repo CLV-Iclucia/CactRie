@@ -1,4 +1,11 @@
 
+    #include <optional>
+    #include <memory>
+    #include <variant>
+    #include <chiisai-llvm/literal.h>
+    #include <chiisai-llvm/llvm-ir.h>
+
+
 // Generated from ./grammar/LLVMParser.g4 by ANTLR 4.13.1
 
 #pragma once
@@ -20,19 +27,22 @@ public:
     Label = 28, Void = 29, Ptr = 30, I1 = 31, I32 = 32, I64 = 33, F32 = 34, 
     F64 = 35, Eq = 36, Ne = 37, Ugt = 38, Uge = 39, Ult = 40, Ule = 41, 
     Sgt = 42, Sge = 43, Slt = 44, Sle = 45, Equals = 46, Comma = 47, LeftParen = 48, 
-    RightParen = 49, LeftBrace = 50, RightBrace = 51, At = 52, Percent = 53, 
-    Asterisk = 54, Colon = 55, NumericIdentifier = 56, NamedIdentifier = 57, 
-    IntegerLiteral = 58, FloatLiteral = 59, Whitespace = 60, Comment = 61
+    RightParen = 49, LeftBrace = 50, RightBrace = 51, LeftBracket = 52, 
+    RightBracket = 53, At = 54, Percent = 55, Asterisk = 56, Colon = 57, 
+    Cross = 58, NumericIdentifier = 59, NamedIdentifier = 60, IntegerLiteral = 61, 
+    FloatLiteral = 62, Whitespace = 63, Comment = 64
   };
 
   enum {
-    RuleType = 0, RuleGlobalIdentifier = 1, RuleLocalIdentifier = 2, RuleUnamedIdentifier = 3, 
-    RuleVariable = 4, RuleNumber = 5, RuleValue = 6, RuleModule = 7, RuleGlobalDeclaration = 8, 
-    RuleFunctionDefinition = 9, RuleFunctionParameters = 10, RuleParameterList = 11, 
-    RuleParameter = 12, RuleBlock = 13, RuleBasicBlock = 14, RuleInstruction = 15, 
-    RuleReturnInstruction = 16, RuleBranchInstruction = 17, RuleCallInstruction = 18, 
-    RuleArithmeticInstruction = 19, RuleMemoryInstruction = 20, RulePhiInstruction = 21, 
-    RulePhiValue = 22, RuleComparisonInstruction = 23, RuleComparisonPredicate = 24
+    RuleBasicType = 0, RuleType = 1, RulePointerType = 2, RuleArrayType = 3, 
+    RuleGlobalIdentifier = 4, RuleLocalIdentifier = 5, RuleUnamedIdentifier = 6, 
+    RuleVariable = 7, RuleNumber = 8, RuleValue = 9, RuleModule = 10, RuleLiteral = 11, 
+    RuleGlobalDeclaration = 12, RuleFunctionDefinition = 13, RuleFunctionArguments = 14, 
+    RuleParameterList = 15, RuleParameter = 16, RuleBlock = 17, RuleBasicBlock = 18, 
+    RuleInstruction = 19, RuleReturnInstruction = 20, RuleBranchInstruction = 21, 
+    RuleCallInstruction = 22, RuleArithmeticInstruction = 23, RuleMemoryInstruction = 24, 
+    RulePhiInstruction = 25, RulePhiValue = 26, RuleComparisonInstruction = 27, 
+    RuleComparisonPredicate = 28
   };
 
   explicit LLVMParser(antlr4::TokenStream *input);
@@ -52,7 +62,10 @@ public:
   antlr4::atn::SerializedATNView getSerializedATN() const override;
 
 
+  class BasicTypeContext;
   class TypeContext;
+  class PointerTypeContext;
+  class ArrayTypeContext;
   class GlobalIdentifierContext;
   class LocalIdentifierContext;
   class UnamedIdentifierContext;
@@ -60,9 +73,10 @@ public:
   class NumberContext;
   class ValueContext;
   class ModuleContext;
+  class LiteralContext;
   class GlobalDeclarationContext;
   class FunctionDefinitionContext;
-  class FunctionParametersContext;
+  class FunctionArgumentsContext;
   class ParameterListContext;
   class ParameterContext;
   class BlockContext;
@@ -78,12 +92,12 @@ public:
   class ComparisonInstructionContext;
   class ComparisonPredicateContext; 
 
-  class  TypeContext : public antlr4::ParserRuleContext {
+  class  BasicTypeContext : public antlr4::ParserRuleContext {
   public:
-    TypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    LLVMType llvmType;
+    BasicTypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *Void();
-    antlr4::tree::TerminalNode *Ptr();
     antlr4::tree::TerminalNode *I1();
     antlr4::tree::TerminalNode *I32();
     antlr4::tree::TerminalNode *I64();
@@ -95,7 +109,59 @@ public:
    
   };
 
+  BasicTypeContext* basicType();
+
+  class  TypeContext : public antlr4::ParserRuleContext {
+  public:
+    LLVMType llvmType;
+    TypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    BasicTypeContext *basicType();
+    PointerTypeContext *pointerType();
+    ArrayTypeContext *arrayType();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
   TypeContext* type();
+
+  class  PointerTypeContext : public antlr4::ParserRuleContext {
+  public:
+    LLVMType llvmType;
+    PointerTypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    BasicTypeContext *basicType();
+    std::vector<antlr4::tree::TerminalNode *> Asterisk();
+    antlr4::tree::TerminalNode* Asterisk(size_t i);
+    ArrayTypeContext *arrayType();
+    PointerTypeContext *pointerType();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  PointerTypeContext* pointerType();
+  PointerTypeContext* pointerType(int precedence);
+  class  ArrayTypeContext : public antlr4::ParserRuleContext {
+  public:
+    LLVMType llvmType;
+    ArrayTypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *LeftBracket();
+    antlr4::tree::TerminalNode *IntegerLiteral();
+    antlr4::tree::TerminalNode *Cross();
+    TypeContext *type();
+    antlr4::tree::TerminalNode *RightBracket();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  ArrayTypeContext* arrayType();
 
   class  GlobalIdentifierContext : public antlr4::ParserRuleContext {
   public:
@@ -198,8 +264,24 @@ public:
 
   ModuleContext* module();
 
+  class  LiteralContext : public antlr4::ParserRuleContext {
+  public:
+    Literal result;
+    LiteralContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *IntegerLiteral();
+    antlr4::tree::TerminalNode *FloatLiteral();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  LiteralContext* literal();
+
   class  GlobalDeclarationContext : public antlr4::ParserRuleContext {
   public:
+    Variable globalVar;
     GlobalDeclarationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *Global();
@@ -207,7 +289,7 @@ public:
     GlobalIdentifierContext *globalIdentifier();
     antlr4::tree::TerminalNode *Comma();
     antlr4::tree::TerminalNode *Align();
-    antlr4::tree::TerminalNode *IntegerLiteral();
+    LiteralContext *literal();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -218,12 +300,13 @@ public:
 
   class  FunctionDefinitionContext : public antlr4::ParserRuleContext {
   public:
+    std::unique_ptr<Function> function;
     FunctionDefinitionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *Define();
     TypeContext *type();
     GlobalIdentifierContext *globalIdentifier();
-    FunctionParametersContext *functionParameters();
+    FunctionArgumentsContext *functionArguments();
     BlockContext *block();
 
 
@@ -233,9 +316,9 @@ public:
 
   FunctionDefinitionContext* functionDefinition();
 
-  class  FunctionParametersContext : public antlr4::ParserRuleContext {
+  class  FunctionArgumentsContext : public antlr4::ParserRuleContext {
   public:
-    FunctionParametersContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    FunctionArgumentsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *LeftParen();
     antlr4::tree::TerminalNode *RightParen();
@@ -246,7 +329,7 @@ public:
    
   };
 
-  FunctionParametersContext* functionParameters();
+  FunctionArgumentsContext* functionArguments();
 
   class  ParameterListContext : public antlr4::ParserRuleContext {
   public:
@@ -372,7 +455,7 @@ public:
     antlr4::tree::TerminalNode *Call();
     TypeContext *type();
     GlobalIdentifierContext *globalIdentifier();
-    FunctionParametersContext *functionParameters();
+    FunctionArgumentsContext *functionArguments();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -503,6 +586,10 @@ public:
 
   ComparisonPredicateContext* comparisonPredicate();
 
+
+  bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;
+
+  bool pointerTypeSempred(PointerTypeContext *_localctx, size_t predicateIndex);
 
   // By default the static state used to implement the parser is lazily initialized during the first
   // call to the constructor. You can call this function if you wish to initialize the static state

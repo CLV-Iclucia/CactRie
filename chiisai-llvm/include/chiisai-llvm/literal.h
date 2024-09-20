@@ -13,6 +13,7 @@ enum class LLVMType {
   i32,
   f32,
   f64,
+  Void,
 };
 
 template <LLVMType T>
