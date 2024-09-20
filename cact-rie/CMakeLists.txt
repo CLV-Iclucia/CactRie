@@ -4,7 +4,7 @@ file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
 
 add_library(cactrie ${SOURCES} ${HEADERS})
 target_include_directories(cactrie PUBLIC include)
-target_link_libraries(cactrie cact-parser)
+target_link_libraries(cactrie cact-front-end)
 
 add_executable(cact-rie apps/cact-rie.cc)
 target_link_libraries(cact-rie cactrie)

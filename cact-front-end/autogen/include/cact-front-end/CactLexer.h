@@ -7,7 +7,7 @@
 #include "antlr4-runtime.h"
 
 
-namespace cactparser {
+namespace cactfrontend {
 
 
 class  CactLexer : public antlr4::Lexer {
@@ -57,4 +57,4 @@ private:
 
 };
 
-}  // namespace cactparser
+}  // namespace cactfrontend

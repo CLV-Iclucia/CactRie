@@ -1,10 +1,10 @@
 //
 // Created by creeper on 7/24/24.
 //
-#include <cact-parser/cact-syntax-error-listener.h>
+#include <cact-front-end/cact-syntax-error-listener.h>
 #include <format>
 
-namespace cactparser {
+namespace cactfrontend {
 void CactSyntaxErrorListener::syntaxError(antlr4::Recognizer *recognizer,
                                           antlr4::Token *offendingSymbol,
                                           size_t line,

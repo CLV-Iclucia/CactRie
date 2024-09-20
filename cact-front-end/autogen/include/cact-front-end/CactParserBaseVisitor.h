@@ -13,7 +13,7 @@
 #include "CactParserVisitor.h"
 
 
-namespace cactparser {
+namespace cactfrontend {
 
 /**
  * This class provides an empty implementation of CactParserVisitor, which can be
@@ -169,4 +169,4 @@ public:
 
 };
 
-}  // namespace cactparser
+}  // namespace cactfrontend

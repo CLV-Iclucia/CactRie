@@ -13,7 +13,7 @@
 
 
 using namespace antlrcpp;
-using namespace cactparser;
+using namespace cactfrontend;
 
 using namespace antlr4;
 

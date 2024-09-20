@@ -4,23 +4,23 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_IR_GENERATOR_H
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_IR_GENERATOR_H
-#include "cact-parser/CactParserBaseVisitor.h"
-#include "cact-rie/mini-llvm/llvm-ir.h"
-#include "cact-parser/cact-operator.h"
+#include <cact-front-end/CactParser.h>
+#include <cact-front-end/CactParserVisitor.h>
+#include <cact-front-end/cact-operator.h>
 #include <sstream>
 #include <format>
-namespace cactrie {
+namespace cactfrontend {
 
-struct IRGenerator : public cactparser::CactParserBaseVisitor {
+struct IRGenerator : public CactParserVisitor {
   explicit IRGenerator(std::ostream &os, const std::string &name) : irCodeStream(os), name(name) {}
-  std::any visitCompilationUnit(cactparser::CactParser::CompilationUnitContext *ctx) override {
+  std::any visitCompilationUnit(CactParser::CompilationUnitContext *ctx) override {
     irCodeStream << std::format("; ModuleID = '{}'\nsource_filename = \"{}.cact\"\n", name, name);
     for (auto &child : ctx->children)
       visit(child);
     return {};
   }
 
-  std::any visitFunctionDefinition(cactparser::CactParser::FunctionDefinitionContext *ctx) override {
+  std::any visitFunctionDefinition(CactParser::FunctionDefinitionContext *ctx) override {
     for (auto &child : ctx->children)
       visit(child);
     irCodeStream << "}\n";
@@ -33,7 +33,7 @@ struct IRGenerator : public cactparser::CactParserBaseVisitor {
     if (ctx->addExpression())
       visitAddExpression(ctx->addExpression());
     visitMulExpression(ctx->mulExpression());
-    ctx->tmpResultID = temporaryID++;
+
     irCodeStream << std::format("%{} = {} {} {} {}\n",
 
                                 temporaryName(ctx->tmpResultID),
@@ -47,7 +47,6 @@ struct IRGenerator : public cactparser::CactParserBaseVisitor {
     if (ctx->mulExpression())
       visitMulExpression(ctx->mulExpression());
     visitUnaryExpression(ctx->unaryExpression());
-    ctx->tmpResultID = temporaryID++;
 
     return {};
   }

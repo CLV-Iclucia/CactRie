@@ -10,5 +10,5 @@
 #include "CactParserVisitor.h"
 
 
-using namespace cactparser;
+using namespace cactfrontend;
 

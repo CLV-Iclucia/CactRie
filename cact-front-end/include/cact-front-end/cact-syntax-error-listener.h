@@ -8,7 +8,7 @@
 #include <antlr-runtime/BaseErrorListener.h>
 #include <filesystem>
 
-namespace cactparser {
+namespace cactfrontend {
 struct CactSyntaxErrorListener : public antlr4::BaseErrorListener {
   explicit CactSyntaxErrorListener(std::filesystem::path compiled_file_path) : compiled_file_path(std::move(
       compiled_file_path)) {}

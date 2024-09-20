@@ -11,13 +11,13 @@
 #include <cact-front-end/cact-variable.h>
 #include <cact-front-end/cact-functions.h>
 #include <cact-front-end/mystl/observer_ptr.h>
-namespace cactparser {
+namespace cactfrontend {
 
 struct SymbolRegistry;
 
 struct Scope {
   void registerVariable(const std::string &name, const CactType &type) {
-    variables.push_back(CactVariable(type));
+    variables.emplace_back(type);
     variableID.insert({name, variables.size() - 1});
   }
   [[nodiscard]] bool find(const std::string &name) const {

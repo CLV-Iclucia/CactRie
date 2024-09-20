@@ -10,7 +10,7 @@
 #include <memory>
 #include <optional>
 
-namespace cactparser {
+namespace cactfrontend {
 
 // an alias for std::variant<int32_t, float, double>
 
@@ -63,6 +63,7 @@ struct CompileTimeConstant final : EvalResult {
 };
 
 struct ExpressionResult final : EvalResult {
+  ExpressionResult() = default;
   explicit ExpressionResult(const CactType& type) : m_type(type) {}
   explicit ExpressionResult(ConstEvalResult value)
       : compileTimeEvaluationResult(value), m_type(constEvalResultType(value)) {}
@@ -91,7 +92,7 @@ struct ExpressionResult final : EvalResult {
     }
   }
  private:
-  CactType m_type;
+  CactType m_type{};
 };
 
 struct CactExpr {

@@ -7,7 +7,7 @@
 
 using namespace antlr4;
 
-using namespace cactparser;
+using namespace cactfrontend;
 
 
 using namespace antlr4;

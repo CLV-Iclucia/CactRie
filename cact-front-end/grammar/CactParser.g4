@@ -82,39 +82,32 @@ number: IntegerConstant | FloatConstant | DoubleConstant;
 unaryExpression
     locals [
         ExpressionResult expressionResult,
-        int tmpResultID,
     ]: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
                 | Identifier LeftParenthesis (functionRealParams)? RightParenthesis;
 functionRealParams: expression (Comma expression)*;
 mulExpression
     locals [
         ExpressionResult expressionResult,
-        int tmpResultID,
     ]: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression;
 addExpression
     locals [
         ExpressionResult expressionResult,
-        int tmpResultID,
     ]: mulExpression | addExpression (Plus | Minus) mulExpression;
 relationalExpression
     locals[
         ExpressionResult expressionResult,
-        int tmpResultID,
     ]: addExpression | relationalExpression (Less | LessEqual | Greater | GreaterEqual) addExpression;
 logicalEqualExpression
     locals[
         ExpressionResult expressionResult,
-        int tmpResultID,
     ]: relationalExpression | logicalEqualExpression (LogicalEqual | NotEqual) relationalExpression;
 logicalAndExpression
     locals[
         ExpressionResult expressionResult,
-        int tmpResultID,
     ]: logicalEqualExpression | logicalAndExpression LogicalAnd logicalEqualExpression;
 logicalOrExpression
     locals[
         ExpressionResult expressionResult,
-        int tmpResultID,
     ]: BooleanConstant | logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression;
 
 

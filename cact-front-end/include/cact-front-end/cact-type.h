@@ -9,7 +9,7 @@
 #include <array>
 #include <cassert>
 
-namespace cactparser {
+namespace cactfrontend {
 enum class CactBasicType : uint8_t {
   Unknown,
   Void,
@@ -19,7 +19,7 @@ enum class CactBasicType : uint8_t {
   Double
 };
 
-uint32_t sizeOf(CactBasicType type) {
+inline uint32_t sizeOf(CactBasicType type) {
   static std::array<uint32_t, 8> size ={
       0, 0, 4, 4, 4, 8,
   };
@@ -44,7 +44,8 @@ struct CactType {
     return type != CactBasicType::Unknown && type != CactBasicType::Void && !isArray();
   }
   [[nodiscard]] bool validFormalParameterType() const {
-    return true;
+    // dummy, need to be implemented
+    return type != CactBasicType::Unknown && type != CactBasicType::Void;
   }
 
   [[nodiscard]] uint32_t dim() const {

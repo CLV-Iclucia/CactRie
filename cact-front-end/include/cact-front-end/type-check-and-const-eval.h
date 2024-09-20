@@ -8,7 +8,7 @@
 #include <cact-front-end/cact-expr.h>
 #include <cact-front-end/cact-operator.h>
 #include <cact-front-end/symbol-registry.h>
-namespace cactparser {
+namespace cactfrontend {
 
 struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
   std::any visitCompilationUnit(CactParser::CompilationUnitContext *ctx) override {

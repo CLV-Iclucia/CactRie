@@ -6,7 +6,7 @@
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_FUNCTIONS_H_
 #include <cact-front-end/cact-type.h>
 #include <string>
-namespace cactparser {
+namespace cactfrontend {
 
 struct FormalParameter {
   CactType type;

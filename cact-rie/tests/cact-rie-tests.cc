@@ -7,9 +7,9 @@
 #include <fstream>
 #include <format>
 #include <antlr-runtime/antlr4-runtime.h>
-#include <cact-parser/CactLexer.h>
-#include <cact-parser/CactParser.h>
-#include <cact-parser/cact-syntax-error-listener.h>
+#include <cact-front-end/CactLexer.h>
+#include <cact-front-end/CactParser.h>
+#include <cact-front-end/cact-syntax-error-listener.h>
 
 struct TestCase {
   std::filesystem::path path;
@@ -75,12 +75,12 @@ bool runCompiler(const std::filesystem::path &test_case_path) {
     return false;
   }
   antlr4::ANTLRInputStream input(stream);
-  cactparser::CactLexer lexer(&input);
+  cactfrontend::CactLexer lexer(&input);
   antlr4::CommonTokenStream tokens(&lexer);
-  cactparser::CactParser parser(&tokens);
+  cactfrontend::CactParser parser(&tokens);
   lexer.removeErrorListeners();
   parser.removeErrorListeners();
-  cactparser::CactSyntaxErrorListener cact_error_listener(test_case_path);
+  cactfrontend::CactSyntaxErrorListener cact_error_listener(test_case_path);
   lexer.addErrorListener(&cact_error_listener);
   parser.addErrorListener(&cact_error_listener);
   try {

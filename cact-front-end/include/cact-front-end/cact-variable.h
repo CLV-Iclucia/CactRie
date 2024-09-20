@@ -6,7 +6,7 @@
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_VARIABLE_H_
 #include <cact-front-end/cact-expr.h>
 #include <string>
-namespace cactparser {
+namespace cactfrontend {
 struct CactVariable {
   explicit CactVariable(const CactType& type) : value(type) {}
   ExpressionResult value;

@@ -1,9 +1,9 @@
 //
 // Created by creeper on 8/15/24.
 //
-#include <cact-parser/cact-operator.h>
+#include <cact-front-end/cact-operator.h>
 #include <memory>
-namespace cactparser {
+namespace cactfrontend {
 
 std::unique_ptr<BinaryOperator> binaryOperator(CactParser::MulExpressionContext &ctx) {
   auto ast = ctx.Asterisk();
@@ -55,7 +55,7 @@ std::unique_ptr<UnaryOperator> unaryOperator(CactParser::UnaryExpressionContext 
     return std::make_unique<LogicalNotOperator>();
   throw std::runtime_error("Only exactly one of + - ! should be present");
 }
-std::unique_ptr<BinaryOperator> cactparser::binaryOperator(CactParser::LogicalEqualExpressionContext &ctx) {
+std::unique_ptr<BinaryOperator> binaryOperator(CactParser::LogicalEqualExpressionContext &ctx) {
   auto equal = ctx.LogicalEqual();
   auto notEqual = ctx.NotEqual();
   if (equal && !notEqual)

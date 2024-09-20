@@ -7,7 +7,7 @@
 #include <cact-front-end/CactParser.h>
 #include <cact-front-end/cact-expr.h>
 #include <functional>
-namespace cactparser {
+namespace cactfrontend {
 
 struct UnaryOperator {
   [[nodiscard]] virtual std::optional<ConstEvalResult> apply(const ConstEvalResult& x) const = 0;

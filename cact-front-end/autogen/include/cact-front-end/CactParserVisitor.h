@@ -13,7 +13,7 @@
 #include "CactParser.h"
 
 
-namespace cactparser {
+namespace cactfrontend {
 
 /**
  * This class defines an abstract visitor for a parse tree
@@ -100,4 +100,4 @@ public:
 
 };
 
-}  // namespace cactparser
+}  // namespace cactfrontend

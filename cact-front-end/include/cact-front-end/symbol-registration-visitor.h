@@ -6,9 +6,9 @@
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_REGISTRATION_VISITOR_H
 #include <cact-front-end/CactParserBaseVisitor.h>
 #include <cact-front-end/symbol-registry.h>
-namespace cactparser {
+namespace cactfrontend {
 struct SymbolRegistrationVisitor : public CactParserBaseVisitor {
-  SymbolRegistrationVisitor() : registry(std::make_unique<SymbolRegistry>()) {}
+  SymbolRegistrationVisitor() : registry(std::make_unique<SymbolRegistry>()) = default;
   std::any visitCompilationUnit(CactParser::CompilationUnitContext *ctx) override {
     currentScope = registry->newScope();
     for (auto &child : ctx->children)

@@ -12,7 +12,7 @@
 #include "antlr4-runtime.h"
 
 
-namespace cactparser {
+namespace cactfrontend {
 
 
 class  CactParser : public antlr4::Parser {
@@ -582,7 +582,6 @@ public:
   class  UnaryExpressionContext : public antlr4::ParserRuleContext {
   public:
     ExpressionResult expressionResult;
-    int tmpResultID;
     UnaryExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     PrimaryExpressionContext *primaryExpression();
@@ -621,7 +620,6 @@ public:
   class  MulExpressionContext : public antlr4::ParserRuleContext {
   public:
     ExpressionResult expressionResult;
-    int tmpResultID;
     MulExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     UnaryExpressionContext *unaryExpression();
@@ -640,7 +638,6 @@ public:
   class  AddExpressionContext : public antlr4::ParserRuleContext {
   public:
     ExpressionResult expressionResult;
-    int tmpResultID;
     AddExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     MulExpressionContext *mulExpression();
@@ -658,7 +655,6 @@ public:
   class  RelationalExpressionContext : public antlr4::ParserRuleContext {
   public:
     ExpressionResult expressionResult;
-    int tmpResultID;
     RelationalExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     AddExpressionContext *addExpression();
@@ -678,7 +674,6 @@ public:
   class  LogicalEqualExpressionContext : public antlr4::ParserRuleContext {
   public:
     ExpressionResult expressionResult;
-    int tmpResultID;
     LogicalEqualExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     RelationalExpressionContext *relationalExpression();
@@ -696,7 +691,6 @@ public:
   class  LogicalAndExpressionContext : public antlr4::ParserRuleContext {
   public:
     ExpressionResult expressionResult;
-    int tmpResultID;
     LogicalAndExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     LogicalEqualExpressionContext *logicalEqualExpression();
@@ -713,7 +707,6 @@ public:
   class  LogicalOrExpressionContext : public antlr4::ParserRuleContext {
   public:
     ExpressionResult expressionResult;
-    int tmpResultID;
     LogicalOrExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *BooleanConstant();
@@ -746,4 +739,4 @@ public:
 private:
 };
 
-}  // namespace cactparser
+}  // namespace cactfrontend
