@@ -2,8 +2,9 @@
     #include <optional>
     #include <memory>
     #include <variant>
-    #include <chiisai-llvm/literal.h>
-    #include <chiisai-llvm/llvm-ir.h>
+    #include <chiisai-llvm/ref.h>
+    #include <chiisai-llvm/type.h>
+    #include <chiisai-llvm/basic-block.h>
 
 
 // Generated from ./grammar/LLVMParser.g4 by ANTLR 4.13.1
@@ -68,7 +69,11 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitLiteral(LLVMParser::LiteralContext *ctx) override {
+  virtual std::any visitInitializer(LLVMParser::InitializerContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitConstantArray(LLVMParser::ConstantArrayContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -133,6 +138,10 @@ public:
   }
 
   virtual std::any visitComparisonInstruction(LLVMParser::ComparisonInstructionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitBinaryOperation(LLVMParser::BinaryOperationContext *ctx) override {
     return visitChildren(ctx);
   }
 

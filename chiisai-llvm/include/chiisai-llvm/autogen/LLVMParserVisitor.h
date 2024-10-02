@@ -2,8 +2,9 @@
     #include <optional>
     #include <memory>
     #include <variant>
-    #include <chiisai-llvm/literal.h>
-    #include <chiisai-llvm/llvm-ir.h>
+    #include <chiisai-llvm/ref.h>
+    #include <chiisai-llvm/type.h>
+    #include <chiisai-llvm/basic-block.h>
 
 
 // Generated from ./grammar/LLVMParser.g4 by ANTLR 4.13.1
@@ -49,7 +50,9 @@ public:
 
     virtual std::any visitModule(LLVMParser::ModuleContext *context) = 0;
 
-    virtual std::any visitLiteral(LLVMParser::LiteralContext *context) = 0;
+    virtual std::any visitInitializer(LLVMParser::InitializerContext *context) = 0;
+
+    virtual std::any visitConstantArray(LLVMParser::ConstantArrayContext *context) = 0;
 
     virtual std::any visitGlobalDeclaration(LLVMParser::GlobalDeclarationContext *context) = 0;
 
@@ -82,6 +85,8 @@ public:
     virtual std::any visitPhiValue(LLVMParser::PhiValueContext *context) = 0;
 
     virtual std::any visitComparisonInstruction(LLVMParser::ComparisonInstructionContext *context) = 0;
+
+    virtual std::any visitBinaryOperation(LLVMParser::BinaryOperationContext *context) = 0;
 
     virtual std::any visitComparisonPredicate(LLVMParser::ComparisonPredicateContext *context) = 0;
 

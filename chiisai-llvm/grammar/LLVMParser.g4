@@ -3,8 +3,9 @@ parser grammar LLVMParser;
     #include <optional>
     #include <memory>
     #include <variant>
-    #include <chiisai-llvm/literal.h>
-    #include <chiisai-llvm/llvm-ir.h>
+    #include <chiisai-llvm/ref.h>
+    #include <chiisai-llvm/type.h>
+    #include <chiisai-llvm/basic-block.h>
 }
 options {
     tokenVocab=LLVMLexer;
@@ -12,22 +13,22 @@ options {
 
 basicType
     locals[
-    LLVMType llvmType,
+    CRef<Type> typeRef,
 ]: Void | I1 | I32 | I64 | F32 | F64;
 
 type
     locals[
-    LLVMType llvmType,
+    CRef<Type> typeRef,
 ]: basicType | pointerType | arrayType;
 
 pointerType
     locals[
-    LLVMType llvmType,
+    CRef<Type> typeRef,
 ]: basicType Asterisk+ | pointerType Asterisk+ | arrayType Asterisk+;
 
 arrayType
     locals[
-    LLVMType llvmType,
+    CRef<Type> typeRef,
 ]: LeftBracket IntegerLiteral Cross type RightBracket;
 
 globalIdentifier: At NamedIdentifier;
@@ -44,15 +45,20 @@ value: variable | number;
 
 module: (globalDeclaration | functionDefinition)*;
 
-literal
+initializer
 locals[
     Literal result,
-]: IntegerLiteral | FloatLiteral;
+]: IntegerLiteral | FloatLiteral | constantArray;
+
+constantArray
+locals[
+    std::vector<Literal> elements,
+]: LeftBracket type IntegerLiteral Cross value (Comma value)* RightBracket;
 
 globalDeclaration
  locals [
     Variable globalVar,
-]: Global type globalIdentifier (Comma Align literal)?;
+]: Global type globalIdentifier (Comma Align initializer)?;
 
 functionDefinition
  locals [
@@ -67,9 +73,15 @@ parameter: type localIdentifier;
 
 block: LeftBrace basicBlock* RightBrace;
 
-basicBlock: Label Colon instruction*;
+basicBlock
+  locals [
+      std::unique_ptr<BasicBlock> basicBlockInstance,
+]: Label Colon instruction*;
 
-instruction: returnInstruction
+instruction
+  locals [
+      std::unique_ptr<Instruction> inst,
+]: returnInstruction
     | branchInstruction
     | callInstruction
     | arithmeticInstruction
@@ -86,7 +98,7 @@ branchInstruction: Br I1 value Comma Label unamedIdentifier Comma Label unamedId
 callInstruction: Call type globalIdentifier functionArguments;
 
 arithmeticInstruction
-    : variable Equals (Add | Sub | Mul | Div) type value Comma value
+    : variable Equals binaryOperation type value Comma value
     ;
 
 memoryInstruction
@@ -101,6 +113,10 @@ phiValue: LeftBrace unamedIdentifier Comma value RightBrace;
 
 comparisonInstruction
     : (Icmp | Fcmp) comparisonPredicate type value Comma value
+    ;
+
+binaryOperation
+    : Add | Sub | Mul | Div
     ;
 
 comparisonPredicate
