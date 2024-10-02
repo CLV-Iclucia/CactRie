@@ -53,6 +53,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitLocalVariable(LLVMParser::LocalVariableContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitVariable(LLVMParser::VariableContext *ctx) override {
     return visitChildren(ctx);
   }

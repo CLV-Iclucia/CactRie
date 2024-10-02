@@ -54,21 +54,13 @@ struct ModuleParser : public LLVMParserVisitor {
   }
   std::any visitArithmeticInstruction(LLVMParser::ArithmeticInstructionContext *ctx) override {
     auto op = stoinst(ctx->binaryOperation()->getText());
-    auto lhs = ctx->variable();
-    if (isGlobalIdentifier(lhs)) {
-
-    }
+    auto lhs = ctx->localVariable();
+    ctx->inst =
   }
   std::map<std::string, CRef<Value>> instructionResultMap{};
   std::unique_ptr<Module> module{};
   std::unique_ptr<LLVMContext> llvmContext{};
 private:
-  static bool isGlobalIdentifier(std::string_view str) {
-    return str[0] == '@';
-  }
-  static bool isGlobalIdentifier(LLVMParser::VariableContext *ctx) {
-    return isGlobalIdentifier(ctx->getText());
-  }
 };
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_PARSER_H

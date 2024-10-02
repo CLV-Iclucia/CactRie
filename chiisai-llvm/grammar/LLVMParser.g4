@@ -37,7 +37,9 @@ localIdentifier: Percent NamedIdentifier;
 
 unamedIdentifier: Percent NumericIdentifier;
 
-variable: globalIdentifier | localIdentifier | unamedIdentifier;
+localVariable: localIdentifier | unamedIdentifier;
+
+variable: globalIdentifier | localVariable;
 
 number: IntegerLiteral | FloatLiteral;
 
@@ -98,11 +100,11 @@ branchInstruction: Br I1 value Comma Label unamedIdentifier Comma Label unamedId
 callInstruction: Call type globalIdentifier functionArguments;
 
 arithmeticInstruction
-    : variable Equals binaryOperation type value Comma value
+    : localVariable Equals binaryOperation type value Comma value
     ;
 
 memoryInstruction
-    : variable Equals (Load | Store) type Comma type Asterisk variable (Comma Align IntegerLiteral)?
+    : localVariable Equals (Load | Store) type Comma type Asterisk variable (Comma Align IntegerLiteral)?
     ;
 
 phiInstruction

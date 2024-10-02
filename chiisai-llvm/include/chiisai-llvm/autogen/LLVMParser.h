@@ -37,13 +37,14 @@ public:
   enum {
     RuleBasicType = 0, RuleType = 1, RulePointerType = 2, RuleArrayType = 3, 
     RuleGlobalIdentifier = 4, RuleLocalIdentifier = 5, RuleUnamedIdentifier = 6, 
-    RuleVariable = 7, RuleNumber = 8, RuleValue = 9, RuleModule = 10, RuleInitializer = 11, 
-    RuleConstantArray = 12, RuleGlobalDeclaration = 13, RuleFunctionDefinition = 14, 
-    RuleFunctionArguments = 15, RuleParameterList = 16, RuleParameter = 17, 
-    RuleBlock = 18, RuleBasicBlock = 19, RuleInstruction = 20, RuleReturnInstruction = 21, 
-    RuleBranchInstruction = 22, RuleCallInstruction = 23, RuleArithmeticInstruction = 24, 
-    RuleMemoryInstruction = 25, RulePhiInstruction = 26, RulePhiValue = 27, 
-    RuleComparisonInstruction = 28, RuleBinaryOperation = 29, RuleComparisonPredicate = 30
+    RuleLocalVariable = 7, RuleVariable = 8, RuleNumber = 9, RuleValue = 10, 
+    RuleModule = 11, RuleInitializer = 12, RuleConstantArray = 13, RuleGlobalDeclaration = 14, 
+    RuleFunctionDefinition = 15, RuleFunctionArguments = 16, RuleParameterList = 17, 
+    RuleParameter = 18, RuleBlock = 19, RuleBasicBlock = 20, RuleInstruction = 21, 
+    RuleReturnInstruction = 22, RuleBranchInstruction = 23, RuleCallInstruction = 24, 
+    RuleArithmeticInstruction = 25, RuleMemoryInstruction = 26, RulePhiInstruction = 27, 
+    RulePhiValue = 28, RuleComparisonInstruction = 29, RuleBinaryOperation = 30, 
+    RuleComparisonPredicate = 31
   };
 
   explicit LLVMParser(antlr4::TokenStream *input);
@@ -70,6 +71,7 @@ public:
   class GlobalIdentifierContext;
   class LocalIdentifierContext;
   class UnamedIdentifierContext;
+  class LocalVariableContext;
   class VariableContext;
   class NumberContext;
   class ValueContext;
@@ -208,13 +210,26 @@ public:
 
   UnamedIdentifierContext* unamedIdentifier();
 
+  class  LocalVariableContext : public antlr4::ParserRuleContext {
+  public:
+    LocalVariableContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    LocalIdentifierContext *localIdentifier();
+    UnamedIdentifierContext *unamedIdentifier();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  LocalVariableContext* localVariable();
+
   class  VariableContext : public antlr4::ParserRuleContext {
   public:
     VariableContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     GlobalIdentifierContext *globalIdentifier();
-    LocalIdentifierContext *localIdentifier();
-    UnamedIdentifierContext *unamedIdentifier();
+    LocalVariableContext *localVariable();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -496,7 +511,7 @@ public:
   public:
     ArithmeticInstructionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    VariableContext *variable();
+    LocalVariableContext *localVariable();
     antlr4::tree::TerminalNode *Equals();
     BinaryOperationContext *binaryOperation();
     TypeContext *type();
@@ -515,14 +530,14 @@ public:
   public:
     MemoryInstructionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    std::vector<VariableContext *> variable();
-    VariableContext* variable(size_t i);
+    LocalVariableContext *localVariable();
     antlr4::tree::TerminalNode *Equals();
     std::vector<TypeContext *> type();
     TypeContext* type(size_t i);
     std::vector<antlr4::tree::TerminalNode *> Comma();
     antlr4::tree::TerminalNode* Comma(size_t i);
     antlr4::tree::TerminalNode *Asterisk();
+    VariableContext *variable();
     antlr4::tree::TerminalNode *Load();
     antlr4::tree::TerminalNode *Store();
     antlr4::tree::TerminalNode *Align();

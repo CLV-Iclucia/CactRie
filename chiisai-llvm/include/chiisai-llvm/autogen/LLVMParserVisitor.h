@@ -42,6 +42,8 @@ public:
 
     virtual std::any visitUnamedIdentifier(LLVMParser::UnamedIdentifierContext *context) = 0;
 
+    virtual std::any visitLocalVariable(LLVMParser::LocalVariableContext *context) = 0;
+
     virtual std::any visitVariable(LLVMParser::VariableContext *context) = 0;
 
     virtual std::any visitNumber(LLVMParser::NumberContext *context) = 0;
