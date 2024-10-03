@@ -66,8 +66,6 @@ public:
 
     virtual std::any visitParameter(LLVMParser::ParameterContext *context) = 0;
 
-    virtual std::any visitBlock(LLVMParser::BlockContext *context) = 0;
-
     virtual std::any visitBasicBlock(LLVMParser::BasicBlockContext *context) = 0;
 
     virtual std::any visitInstruction(LLVMParser::InstructionContext *context) = 0;
@@ -91,6 +89,8 @@ public:
     virtual std::any visitBinaryOperation(LLVMParser::BinaryOperationContext *context) = 0;
 
     virtual std::any visitComparisonPredicate(LLVMParser::ComparisonPredicateContext *context) = 0;
+
+    virtual std::any visitMemoryOperation(LLVMParser::MemoryOperationContext *context) = 0;
 
 
 };

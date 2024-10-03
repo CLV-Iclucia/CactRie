@@ -4,9 +4,10 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_GLOBAL_VARIABLE_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_GLOBAL_VARIABLE_H
+#include <chiisai-llvm/constant.h>
 namespace llvm {
 
-struct GlobalVariable {
+struct GlobalVariable : Constant {
 
 };
 

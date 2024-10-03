@@ -101,10 +101,6 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitBlock(LLVMParser::BlockContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
   virtual std::any visitBasicBlock(LLVMParser::BasicBlockContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -150,6 +146,10 @@ public:
   }
 
   virtual std::any visitComparisonPredicate(LLVMParser::ComparisonPredicateContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitMemoryOperation(LLVMParser::MemoryOperationContext *ctx) override {
     return visitChildren(ctx);
   }
 

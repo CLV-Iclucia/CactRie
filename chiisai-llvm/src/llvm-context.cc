@@ -38,7 +38,7 @@ uint8_t stoinst(std::string_view str) {
   return map[str];
 }
 
-class LLVMContextImpl : FixedInMem {
+class LLVMContextImpl : NonMovable {
 public:
   LLVMContextImpl() {
     basicTypeMap["void"] = cref(voidInstance);

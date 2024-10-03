@@ -40,11 +40,11 @@ public:
     RuleLocalVariable = 7, RuleVariable = 8, RuleNumber = 9, RuleValue = 10, 
     RuleModule = 11, RuleInitializer = 12, RuleConstantArray = 13, RuleGlobalDeclaration = 14, 
     RuleFunctionDefinition = 15, RuleFunctionArguments = 16, RuleParameterList = 17, 
-    RuleParameter = 18, RuleBlock = 19, RuleBasicBlock = 20, RuleInstruction = 21, 
-    RuleReturnInstruction = 22, RuleBranchInstruction = 23, RuleCallInstruction = 24, 
-    RuleArithmeticInstruction = 25, RuleMemoryInstruction = 26, RulePhiInstruction = 27, 
-    RulePhiValue = 28, RuleComparisonInstruction = 29, RuleBinaryOperation = 30, 
-    RuleComparisonPredicate = 31
+    RuleParameter = 18, RuleBasicBlock = 19, RuleInstruction = 20, RuleReturnInstruction = 21, 
+    RuleBranchInstruction = 22, RuleCallInstruction = 23, RuleArithmeticInstruction = 24, 
+    RuleMemoryInstruction = 25, RulePhiInstruction = 26, RulePhiValue = 27, 
+    RuleComparisonInstruction = 28, RuleBinaryOperation = 29, RuleComparisonPredicate = 30, 
+    RuleMemoryOperation = 31
   };
 
   explicit LLVMParser(antlr4::TokenStream *input);
@@ -83,7 +83,6 @@ public:
   class FunctionArgumentsContext;
   class ParameterListContext;
   class ParameterContext;
-  class BlockContext;
   class BasicBlockContext;
   class InstructionContext;
   class ReturnInstructionContext;
@@ -95,7 +94,8 @@ public:
   class PhiValueContext;
   class ComparisonInstructionContext;
   class BinaryOperationContext;
-  class ComparisonPredicateContext; 
+  class ComparisonPredicateContext;
+  class MemoryOperationContext; 
 
   class  BasicTypeContext : public antlr4::ParserRuleContext {
   public:
@@ -226,6 +226,7 @@ public:
 
   class  VariableContext : public antlr4::ParserRuleContext {
   public:
+    bool isGlobal;
     VariableContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     GlobalIdentifierContext *globalIdentifier();
@@ -254,6 +255,8 @@ public:
 
   class  ValueContext : public antlr4::ParserRuleContext {
   public:
+    bool isGlobal;
+    bool isConstant;
     ValueContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     VariableContext *variable();
@@ -342,13 +345,18 @@ public:
   class  FunctionDefinitionContext : public antlr4::ParserRuleContext {
   public:
     std::unique_ptr<Function> function;
+    std::vector<CRef<Type>> argTypes;
+        std::vector<std::string> ; argNames;
     FunctionDefinitionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *Define();
     TypeContext *type();
     GlobalIdentifierContext *globalIdentifier();
     FunctionArgumentsContext *functionArguments();
-    BlockContext *block();
+    antlr4::tree::TerminalNode *LeftBrace();
+    antlr4::tree::TerminalNode *RightBrace();
+    std::vector<BasicBlockContext *> basicBlock();
+    BasicBlockContext* basicBlock(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -359,6 +367,8 @@ public:
 
   class  FunctionArgumentsContext : public antlr4::ParserRuleContext {
   public:
+    std::vector<CRef<Type>> argTypes;
+        std::vector<std::string> ; argNames;
     FunctionArgumentsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *LeftParen();
@@ -374,6 +384,8 @@ public:
 
   class  ParameterListContext : public antlr4::ParserRuleContext {
   public:
+    std::vector<CRef<Type>> argTypes;
+        std::vector<std::string> ; argNames;
     ParameterListContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     std::vector<ParameterContext *> parameter();
@@ -390,6 +402,8 @@ public:
 
   class  ParameterContext : public antlr4::ParserRuleContext {
   public:
+    std::CRef<Type> argType;
+         std::string ; argName;
     ParameterContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     TypeContext *type();
@@ -401,22 +415,6 @@ public:
   };
 
   ParameterContext* parameter();
-
-  class  BlockContext : public antlr4::ParserRuleContext {
-  public:
-    BlockContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *LeftBrace();
-    antlr4::tree::TerminalNode *RightBrace();
-    std::vector<BasicBlockContext *> basicBlock();
-    BasicBlockContext* basicBlock(size_t i);
-
-
-    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
-  };
-
-  BlockContext* block();
 
   class  BasicBlockContext : public antlr4::ParserRuleContext {
   public:
@@ -532,14 +530,13 @@ public:
     virtual size_t getRuleIndex() const override;
     LocalVariableContext *localVariable();
     antlr4::tree::TerminalNode *Equals();
+    MemoryOperationContext *memoryOperation();
     std::vector<TypeContext *> type();
     TypeContext* type(size_t i);
     std::vector<antlr4::tree::TerminalNode *> Comma();
     antlr4::tree::TerminalNode* Comma(size_t i);
     antlr4::tree::TerminalNode *Asterisk();
     VariableContext *variable();
-    antlr4::tree::TerminalNode *Load();
-    antlr4::tree::TerminalNode *Store();
     antlr4::tree::TerminalNode *Align();
     antlr4::tree::TerminalNode *IntegerLiteral();
 
@@ -641,6 +638,20 @@ public:
   };
 
   ComparisonPredicateContext* comparisonPredicate();
+
+  class  MemoryOperationContext : public antlr4::ParserRuleContext {
+  public:
+    MemoryOperationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *Load();
+    antlr4::tree::TerminalNode *Store();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  MemoryOperationContext* memoryOperation();
 
 
   bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;

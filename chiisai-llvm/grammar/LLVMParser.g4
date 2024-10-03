@@ -39,11 +39,18 @@ unamedIdentifier: Percent NumericIdentifier;
 
 localVariable: localIdentifier | unamedIdentifier;
 
-variable: globalIdentifier | localVariable;
+variable
+    locals[
+   bool isGlobal,
+]: globalIdentifier | localVariable;
 
 number: IntegerLiteral | FloatLiteral;
 
-value: variable | number;
+value
+    locals[
+    bool isGlobal,
+    bool isConstant,
+]: variable | number;
 
 module: (globalDeclaration | functionDefinition)*;
 
@@ -65,15 +72,27 @@ globalDeclaration
 functionDefinition
  locals [
     std::unique_ptr<Function> function,
-]: Define type globalIdentifier functionArguments block;
+    std::vector<CRef<Type>> argTypes;
+    std::vector<std::string> argNames;
+]: Define type globalIdentifier functionArguments LeftBrace basicBlock* RightBrace;
 
-functionArguments: LeftParen parameterList? RightParen;
+functionArguments
+ locals [
+    std::vector<CRef<Type>> argTypes;
+    std::vector<std::string> argNames;
+]: LeftParen parameterList? RightParen;
 
-parameterList: parameter (Comma parameter)*;
+parameterList
+ locals[
+    std::vector<CRef<Type>> argTypes;
+    std::vector<std::string> argNames;
+]: parameter (Comma parameter)*;
 
-parameter: type localIdentifier;
-
-block: LeftBrace basicBlock* RightBrace;
+parameter
+  locals [
+     std::CRef<Type> argType;
+     std::string argName;
+]: type localIdentifier;
 
 basicBlock
   locals [
@@ -104,7 +123,7 @@ arithmeticInstruction
     ;
 
 memoryInstruction
-    : localVariable Equals (Load | Store) type Comma type Asterisk variable (Comma Align IntegerLiteral)?
+    : localVariable Equals memoryOperation type Comma type Asterisk variable (Comma Align IntegerLiteral)?
     ;
 
 phiInstruction
@@ -123,4 +142,8 @@ binaryOperation
 
 comparisonPredicate
     : Eq | Ne | Ugt | Uge | Ult | Ule | Sgt | Sge | Slt | Sle
+    ;
+
+memoryOperation
+    : Load | Store
     ;

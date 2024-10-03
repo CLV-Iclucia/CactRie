@@ -13,7 +13,7 @@ namespace llvm {
 struct LLVMContext;
 
 struct IntegerType;
-struct Type : FixedInMem {
+struct Type : NonMovable {
   enum class TypeEnum {
     Void,
     Integer,

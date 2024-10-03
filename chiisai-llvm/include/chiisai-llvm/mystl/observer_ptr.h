@@ -73,16 +73,5 @@ struct hash<llvm::mystl::observer_ptr<T>> {
     return llvm::mystl::hash<llvm::mystl::observer_ptr<T>>{}(ptr);
   }
 };
-
-template<typename T, typename U>
-struct hash<pair<llvm::mystl::observer_ptr<T>, U>> {
-  size_t operator()(const std::pair<T, U> &pair) const {
-    size_t seed = 0;
-    llvm::mystl::hash_combine(seed, pair.first);
-    llvm::mystl::hash_combine(seed, pair.second);
-    return seed;
-  }
-};
-
 }
 #endif //CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H

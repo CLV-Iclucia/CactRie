@@ -11,9 +11,9 @@ struct RAII {
   RAII &operator=(const RAII &) = delete;
 };
 
-struct FixedInMem {
-  FixedInMem() = default;
-  FixedInMem(FixedInMem &&) = delete;
+struct NonMovable {
+  NonMovable() = default;
+  NonMovable(NonMovable &&) = delete;
 };
 
 template<typename Derived>
