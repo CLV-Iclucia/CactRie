@@ -8,9 +8,8 @@
 #include <stdexcept>
 #include <chiisai-llvm/properties.h>
 #include <chiisai-llvm/ref.h>
+#include <chiisai-llvm/llvm-context.h>
 namespace llvm {
-
-struct LLVMContext;
 
 struct IntegerType;
 struct Type : NonMovable {

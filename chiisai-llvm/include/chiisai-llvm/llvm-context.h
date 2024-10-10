@@ -10,22 +10,30 @@
 #include <chiisai-llvm/ref.h>
 namespace llvm {
 
-class Type;
-class ArrayType;
-class PointerType;
-class LLVMContextImpl;
-
+struct Type;
+struct ArrayType;
+struct PointerType;
+struct TypeSystem;
+struct ConstantPool;
+struct IntegerType;
 uint8_t stoinst(std::string_view str);
 class LLVMContext {
 public:
   LLVMContext();
   ~LLVMContext();
   // String to Basic Type
-  [[nodiscard]] CRef<Type> stobt(std::string_view str) const;
+  [[nodiscard]] CRef<Type> stobt(const std::string& str) const;
   [[nodiscard]] CRef<ArrayType> arrayType(CRef<Type> elementType, size_t size) const;
   [[nodiscard]] CRef<PointerType> pointerType(CRef<Type> elementType) const;
+  [[nodiscard]] CRef<Type> voidType() const;
+  [[nodiscard]] CRef<Type> floatType() const;
+  [[nodiscard]] CRef<Type> doubleType() const;
+  [[nodiscard]] CRef<IntegerType> boolType() const;
+  [[nodiscard]] CRef<IntegerType> intType() const;
+  [[nodiscard]] CRef<IntegerType> longType() const;
 private:
-  std::unique_ptr<LLVMContextImpl> impl{};
+  std::unique_ptr<TypeSystem> typeSystem{};
+  std::unique_ptr<ConstantPool> constantPool{};
 };
 
 }  // namespace llvm

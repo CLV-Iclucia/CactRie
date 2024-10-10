@@ -2,13 +2,14 @@
 // Created by creeper on 9/5/24.
 //
 
-#ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_PARSER_H
-#define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_PARSER_H
+#ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_BUILDER_H
+#define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_BUILDER_H
 #include <chiisai-llvm/autogen/LLVMParserVisitor.h>
 namespace llvm {
 struct Module;
 struct LLVMContext;
-struct ModuleParser : public LLVMParserVisitor {
+
+struct ModuleBuilder : public LLVMParserVisitor {
   std::any visitType(LLVMParser::TypeContext *ctx) override {
     auto basicTy = ctx->basicType();
     auto arrayTy = ctx->arrayType();
@@ -70,7 +71,7 @@ struct ModuleParser : public LLVMParserVisitor {
     const auto &instructions = ctx->instruction();
     for (auto inst : instructions) {
       visitInstruction(inst);
-      ctx->basicBlockInstance->instructions.push_back<Instruction>(std::move(inst->inst));
+
     }
     return {};
   }
@@ -81,12 +82,16 @@ struct ModuleParser : public LLVMParserVisitor {
   std::any visitArithmeticInstruction(LLVMParser::ArithmeticInstructionContext *ctx) override {
     auto op = stoinst(ctx->binaryOperation()->getText());
     auto lhs = ctx->localVariable();
+    auto lhsName = lhs->getText();
+    if (currentFunction->hasArgument(lhsName))
+      throw std::runtime_error("Variable name already exists in the function arguments");
     const auto &operands = ctx->value();
     if (operands.size() != 2)
       throw std::runtime_error("Arithmetic instruction must have exactly two operands");
     auto operandLeftRef = resolveValueUsage(operands[0]);
     auto operandRightRef = resolveValueUsage(operands[1]);
-    instructionResultMap[lhs->getText()] = std::make_unique<Instruction>(op, operands[0], operands[1]);
+    auto inst = std::make_unique<Instruction>(op, lhsName, operandLeftRef, operandRightRef);
+
     return {};
   }
   std::any visitVariable(LLVMParser::VariableContext *ctx) override {
@@ -107,22 +112,13 @@ struct ModuleParser : public LLVMParserVisitor {
       throw std::runtime_error("Value must be either a variable or a number");
     return {};
   }
-  std::map<std::string, CRef<Value>> instructionResultMap{};
   std::unique_ptr<Module> module{};
   std::unique_ptr<LLVMContext> llvmContext{};
+  Ref<Function> currentFunction{};
+  Ref<BasicBlock> currentBasicBlock{};
+  std::unordered_map<std::string, Ref<Value>> currentAllocatedVars{};
 private:
-  CRef<Value> resolveValueUsage(LLVMParser::ValueContext *ctx) {
-    visitValue(ctx);
-    auto str = ctx->getText();
-    if (ctx->isConstant) {
-
-    } else if (ctx->isGlobal) {
-      return module->globalVariable(str);
-    }
-    if (!instructionResultMap.contains(str))
-      throw std::runtime_error("Value is not defined");
-    return instructionResultMap[str];
-  }
+  CRef<Value> resolveValueUsage(LLVMParser::ValueContext *ctx);
 };
 }
-#endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_PARSER_H
+#endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_BUILDER_H

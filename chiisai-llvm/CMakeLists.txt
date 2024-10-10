@@ -33,4 +33,4 @@ target_include_directories(chiisai-llvm
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include/chiisai-llvm/autogen
         PUBLIC ${ANTLR_RUNTIME_INCLUDE_DIR}/antlr-runtime
 )
-target_link_libraries(chiisai-llvm chiisai-llvm-autogen)
+target_link_libraries(chiisai-llvm chiisai-llvm-autogen minilog)

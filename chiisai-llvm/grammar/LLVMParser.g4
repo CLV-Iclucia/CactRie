@@ -42,6 +42,7 @@ localVariable: localIdentifier | unamedIdentifier;
 variable
     locals[
    bool isGlobal,
+    std::string name,
 ]: globalIdentifier | localVariable;
 
 number: IntegerLiteral | FloatLiteral;

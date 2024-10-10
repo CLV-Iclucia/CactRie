@@ -8,7 +8,9 @@
 namespace llvm {
 
 struct User : Value {
-
+private:
+  friend struct Module;
+  mystl::poly_view_list<Value> m_usedValues{};
 };
 
 }

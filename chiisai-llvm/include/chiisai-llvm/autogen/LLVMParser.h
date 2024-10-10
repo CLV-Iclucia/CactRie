@@ -227,6 +227,7 @@ public:
   class  VariableContext : public antlr4::ParserRuleContext {
   public:
     bool isGlobal;
+    std::string name;
     VariableContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     GlobalIdentifierContext *globalIdentifier();

@@ -6,6 +6,7 @@
 #define CACTRIE_CACT_RIE_INCLUDE_CACT_RIE_LLVM_INSTRUCTIONS_H
 #include <variant>
 #include <chiisai-llvm/user.h>
+#include <chiisai-llvm/basic-block.h>
 namespace llvm {
 
 struct Instruction : User {
@@ -81,8 +82,17 @@ struct Instruction : User {
     return opCode == Add || opCode == Mul || opCode == And || opCode == Or;
   }
 
+  [[nodiscard]] CRef<BasicBlock> basicBlock() const {
+    return m_basicBlock;
+  }
+  [[nodiscard]] CRef<Function> function() const {
+    return basicBlock()->function();
+  }
+  [[nodiscard]] CRef<Module> module() const {
+    return function()->module();
+  }
 private:
-
+  CRef<BasicBlock> m_basicBlock{};
 };
 
 struct BinaryInstruction : Instruction {

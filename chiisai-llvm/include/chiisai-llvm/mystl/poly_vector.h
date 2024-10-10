@@ -48,11 +48,11 @@ public:
   iterator end() {
     return iterator(data.end());
   }
-  Base *front() {
-    return data.front().get();
+  observer_ptr<Base> front() {
+    return make_observer(data.front().get());
   }
-  Base *back() {
-    return data.back().get();
+  observer_ptr<Base> back() {
+    return make_observer(data.back().get());
   }
   void pop_back() {
     data.pop_back();

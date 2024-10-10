@@ -75,5 +75,56 @@ public:
 private:
   std::list<std::unique_ptr<Base>> container{};
 };
+
+template <typename Base>
+struct poly_view_list {
+public:
+  template<typename Derived>
+  void push_back(observer_ptr<Derived> ptr) {
+    container.push_back(ptr);
+  }
+  template<typename Derived>
+  void push_front(observer_ptr<Derived> ptr) {
+    container.push_front(ptr);
+  }
+
+  struct iterator {
+    using container_iterator = typename std::vector<std::unique_ptr<Base>>::iterator;
+    explicit iterator(container_iterator it) : it(it) {}
+    observer_ptr<Base> operator*() {
+      return make_observer(it->get());
+    }
+    observer_ptr<Base> operator->() {
+      return it->get();
+    }
+    iterator &operator++() {
+      ++it;
+      return *this;
+    }
+    iterator &operator--() {
+      --it;
+      return *this;
+    }
+    bool operator==(const iterator &other) const {
+      return it == other.it;
+    }
+    bool operator!=(const iterator &other) const {
+      return it != other.it;
+    }
+  private:
+    container_iterator it;
+  };
+  iterator begin() const {
+    return iterator(container.begin());
+  }
+  iterator end() const {
+    return iterator(container.end());
+  }
+  iterator erase(iterator it) {
+    return iterator(container.erase(it.it));
+  }
+private:
+  std::list<observer_ptr<Base>> container{};
+};
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MYSTL_POLY_LIST_H

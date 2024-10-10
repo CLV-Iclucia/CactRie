@@ -24,6 +24,7 @@ struct Module {
   Ref<Function> function(std::string_view name) {
     return m_functionMap[name];
   }
+  void addUse(Ref<User> user, Ref<Value> value);
 private:
   std::unordered_map<std::string_view, Ref<GlobalVariable>> m_globalVariableMap;
   std::unordered_map<std::string_view, Ref<Function>> m_functionMap;

@@ -11,7 +11,7 @@ namespace llvm {
 
 struct User;
 
-struct Value : RAII {
+struct Value : NonMovable {
   auto type() {
     return m_type;
   }
@@ -23,7 +23,8 @@ struct Value : RAII {
   }
   virtual ~Value() = default;
 private:
-  mystl::poly_list<User> m_users{};
+  friend struct Module;
+  mystl::poly_view_list<User> m_users{};
   CRef<Type> m_type{};
   std::string m_name{};
 };

@@ -6,21 +6,21 @@
 namespace llvm {
 
 CRef<Type> Type::voidType(const LLVMContext &ctx) {
-  return cref(ctx.voidInstance);
+  return ctx.voidType();
 }
 CRef<Type> Type::floatType(const LLVMContext &ctx) {
-  return cref(ctx.floatInstance);
+  return ctx.floatType();
 }
 CRef<Type> Type::doubleType(const LLVMContext &ctx) {
-  return cref(ctx.doubleInstance);
+  return ctx.doubleType();
 }
 CRef<IntegerType> Type::boolType(const LLVMContext &ctx) {
-  return cref(ctx.boolInstance);
+  return ctx.boolType();
 }
 CRef<IntegerType> Type::intType(const llvm::LLVMContext &ctx) {
-  return cref(ctx.intInstance);
+  return ctx.intType();
 }
 CRef<IntegerType> Type::longType(const llvm::LLVMContext &ctx) {
-  return cref(ctx.longInstance);
+  return ctx.longType();
 }
 }
