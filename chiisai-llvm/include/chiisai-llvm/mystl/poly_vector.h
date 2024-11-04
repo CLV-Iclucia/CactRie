@@ -61,10 +61,12 @@ public:
     data.erase(data.begin());
   }
   template<typename Derived, typename... Args>
+  requires std::is_base_of_v<Base, Derived>
   void emplace_back(Args &&... args) {
     data.emplace_back(std::make_unique<Derived>(std::forward<Args>(args)...));
   }
   template<typename Derived, typename... Args>
+  requires std::is_base_of_v<Base, Derived>
   void push_back(Args &&... args) {
     data.push_back(std::make_unique<Derived>(std::forward<Args>(args)...));
   }

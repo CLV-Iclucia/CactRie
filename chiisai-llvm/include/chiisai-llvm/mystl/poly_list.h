@@ -13,12 +13,18 @@ template<typename Base>
 struct poly_list {
 public:
   template<typename Derived>
+  requires std::is_base_of_v<Base, Derived>
   void emplace_back() {
     container.emplace_back(std::make_unique<Derived>());
   }
   template<typename Derived, typename... Args>
+  requires std::is_base_of_v<Base, Derived>
   void emplace_back(Args &&... args) {
     container.emplace_back(std::make_unique<Derived>(std::forward<Args>(args)...));
+  }
+  template<typename Derived>
+  void emplace_back(std::unique_ptr<Derived>&& ptr) {
+    container.emplace_back(std::move(ptr));
   }
   template<typename Derived>
   void emplace_front() {
@@ -80,10 +86,12 @@ template <typename Base>
 struct poly_view_list {
 public:
   template<typename Derived>
+  requires std::is_base_of_v<Base, Derived>
   void push_back(observer_ptr<Derived> ptr) {
     container.push_back(ptr);
   }
   template<typename Derived>
+  requires std::is_base_of_v<Base, Derived>
   void push_front(observer_ptr<Derived> ptr) {
     container.push_front(ptr);
   }

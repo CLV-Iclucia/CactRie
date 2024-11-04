@@ -16,7 +16,7 @@
 #include <chiisai-llvm/mystl/manager_vector.h>
 namespace llvm {
 struct Type;
-struct TypeSystem : NonMovable {
+struct TypeSystem : RAII {
   TypeSystem() : basicTypeMap({{"void", cref(voidInstance)},
                                {"float", cref(floatInstance)},
                                {"double", cref(doubleInstance)},
@@ -26,7 +26,7 @@ struct TypeSystem : NonMovable {
 private:
   friend struct LLVMContext;
   // String to Basic Type
-  CRef<Type> stobt(std::string_view str) {
+  CRef<Type> stobt(const std::string &str) {
     return basicTypeMap[str];
   }
 
@@ -34,15 +34,30 @@ private:
     auto it = arrayTypeMap.find({elementType, size});
     if (it != arrayTypeMap.end())
       return it->second;
-    return createArrayType(elementType, size).arrayTypes.back();
+    auto ref = createArrayType(elementType, size).arrayTypes.back();
+    arrayTypeMap.insert({{elementType, size}, ref});
+    return ref;
   }
 
   CRef<PointerType> pointerType(CRef<Type> elementType) {
     auto it = pointerTypeMap.find(elementType);
     if (it != pointerTypeMap.end())
       return it->second;
-    return createPointerType(elementType).pointerTypes.back();
+    auto ref = createPointerType(elementType).pointerTypes.back();
+    pointerTypeMap.insert({elementType, ref});
+    return ref;
   }
+
+  CRef<FunctionType> functionType(const std::vector<CRef<Type>> &containedTypes) {
+    auto it = functionTypeMap.find(containedTypes);
+    if (it != functionTypeMap.end())
+      return it->second;
+    auto ref = createFunctionType(containedTypes[0], std::span(containedTypes).subspan(1)).functionTypes.back();
+    functionTypeMap.insert({containedTypes, ref});
+    return ref;
+  }
+
+
 
   Type voidInstance{Type::TypeEnum::Void}, floatInstance{Type::TypeEnum::Float},
       doubleInstance{Type::TypeEnum::Double};
@@ -53,22 +68,31 @@ private:
 
   mystl::manager_vector<PointerType> pointerTypes{};
 
-  std::unordered_map<std::string_view, CRef<Type>> basicTypeMap{};
+  mystl::manager_vector<FunctionType> functionTypes{};
+
+  std::unordered_map<std::string, CRef<Type>> basicTypeMap{};
 
   using ArrayTypeKey = std::pair<CRef<Type>, size_t>;
-  using PointerTypeKey = CRef<Type>;
-
   std::unordered_map<ArrayTypeKey, CRef<ArrayType>> arrayTypeMap{};
 
+  using PointerTypeKey = CRef<Type>;
   std::unordered_map<PointerTypeKey, CRef<PointerType>> pointerTypeMap{};
 
-  TypeSystem& createArrayType(CRef<Type> elementType, size_t size) {
+  using FunctionTypeKey = std::vector<CRef<Type>>;
+  std::unordered_map<FunctionTypeKey, CRef<FunctionType>> functionTypeMap{};
+
+  TypeSystem &createArrayType(CRef<Type> elementType, size_t size) {
     arrayTypes.emplace_back(elementType, size);
     return *this;
   }
 
-  TypeSystem& createPointerType(CRef<Type> elementType) {
+  TypeSystem &createPointerType(CRef<Type> elementType) {
     pointerTypes.emplace_back(elementType);
+    return *this;
+  }
+
+  TypeSystem &createFunctionType(CRef<Type> returnType, std::span<const CRef<Type>> argTypes) {
+    functionTypes.emplace_back(returnType, argTypes);
     return *this;
   }
 

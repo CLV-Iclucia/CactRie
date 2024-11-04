@@ -8,7 +8,7 @@
 #include <chiisai-llvm/constant-pool.h>
 namespace llvm {
 
-uint8_t stoinst(const std::string& str) {
+uint8_t stoinst(const std::string &str) {
   static std::unordered_map<std::string, uint8_t> map{
       {"add", Instruction::Add},
       {"fadd", Instruction::FAdd},
@@ -30,7 +30,7 @@ uint8_t stoinst(const std::string& str) {
       {"store", Instruction::Store},
       {"ret", Instruction::Ret},
       {"br", Instruction::Br},
-      {"invoke", Instruction::Invoke},
+      {"call", Instruction::Call},
   };
   return map[str];
 }
@@ -38,7 +38,7 @@ uint8_t stoinst(const std::string& str) {
 LLVMContext::LLVMContext() : typeSystem(std::make_unique<TypeSystem>()) {}
 LLVMContext::~LLVMContext() = default;
 
-CRef<Type> LLVMContext::stobt(const std::string& str) const {
+CRef<Type> LLVMContext::stobt(const std::string &str) const {
   return typeSystem->stobt(str);
 }
 
@@ -48,6 +48,10 @@ CRef<ArrayType> LLVMContext::arrayType(CRef<Type> elementType, size_t size) cons
 
 CRef<PointerType> LLVMContext::pointerType(CRef<Type> elementType) const {
   return typeSystem->pointerType(elementType);
+}
+
+CRef<FunctionType> LLVMContext::functionType(const std::vector<CRef<Type>> &containedTypes) const {
+  return typeSystem->functionType(containedTypes);
 }
 
 CRef<Type> LLVMContext::voidType() const {
@@ -74,5 +78,8 @@ CRef<IntegerType> LLVMContext::longType() const {
   return cref(typeSystem->longInstance);
 }
 
+Ref<Constant> LLVMContext::constant(CRef<Type> type, const std::string &str) {
+  return constantPool->constant(type, str);
+}
 
 }  // namespace llvm

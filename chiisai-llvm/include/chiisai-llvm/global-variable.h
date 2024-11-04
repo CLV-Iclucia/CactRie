@@ -7,8 +7,19 @@
 #include <chiisai-llvm/constant.h>
 namespace llvm {
 
-struct GlobalVariable : Constant {
+struct GlobalVariableDetails {
+  const std::string& name;
+  CRef<Constant> initializer{};
+  bool isConstant{};
+};
 
+struct GlobalVariable : Value {
+
+  [[nodiscard]] bool isConstant() const {
+    return m_isConstant;
+  }
+private:
+  bool m_isConstant{};
 };
 
 }

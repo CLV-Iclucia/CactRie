@@ -8,6 +8,7 @@
 #include <string>
 #include <chiisai-llvm/ref.h>
 #include <chiisai-llvm/mystl/manager_vector.h>
+#include <chiisai-llvm/global-variable.h>
 namespace llvm {
 struct GlobalVariable;
 struct Function;
@@ -24,7 +25,7 @@ struct Module {
   Ref<Function> function(std::string_view name) {
     return m_functionMap[name];
   }
-  void addUse(Ref<User> user, Ref<Value> value);
+  Module& addFunction(std::unique_ptr<Function>&& function);
 private:
   std::unordered_map<std::string_view, Ref<GlobalVariable>> m_globalVariableMap;
   std::unordered_map<std::string_view, Ref<Function>> m_functionMap;

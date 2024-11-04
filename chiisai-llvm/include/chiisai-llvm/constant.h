@@ -8,7 +8,7 @@
 namespace llvm {
 
 struct Constant : User {
-
+  Constant(const std::string &name, CRef<Type> type) : User(name, type) {}
 };
 
 }

@@ -11,10 +11,12 @@ options {
     tokenVocab=LLVMLexer;
 }
 
+scalarType : I1 | I32 | I64 | F32 | F64;
+
 basicType
     locals[
     CRef<Type> typeRef,
-]: Void | I1 | I32 | I64 | F32 | F64;
+]: Void | scalarType;
 
 type
     locals[
@@ -41,11 +43,13 @@ localVariable: localIdentifier | unamedIdentifier;
 
 variable
     locals[
-   bool isGlobal,
+    bool isGlobal,
     std::string name,
 ]: globalIdentifier | localVariable;
 
-number: IntegerLiteral | FloatLiteral;
+literal : IntegerLiteral | FloatLiteral;
+
+number: scalarType literal;
 
 value
     locals[
@@ -62,37 +66,34 @@ locals[
 
 constantArray
 locals[
-    std::vector<Literal> elements,
+    CRef<ConstantArray> constArray,
 ]: LeftBracket type IntegerLiteral Cross value (Comma value)* RightBracket;
 
-globalDeclaration
- locals [
-    Variable globalVar,
-]: Global type globalIdentifier (Comma Align initializer)?;
+globalDeclaration : Global type globalIdentifier (Comma Align initializer)?;
 
 functionDefinition
  locals [
     std::unique_ptr<Function> function,
-    std::vector<CRef<Type>> argTypes;
-    std::vector<std::string> argNames;
+    std::vector<CRef<Type>> argTypes,
+    std::vector<std::string> argNames,
 ]: Define type globalIdentifier functionArguments LeftBrace basicBlock* RightBrace;
 
 functionArguments
  locals [
-    std::vector<CRef<Type>> argTypes;
-    std::vector<std::string> argNames;
+    std::vector<CRef<Type>> argTypes,
+    std::vector<std::string> argNames,
 ]: LeftParen parameterList? RightParen;
 
 parameterList
  locals[
-    std::vector<CRef<Type>> argTypes;
-    std::vector<std::string> argNames;
+    std::vector<CRef<Type>> argTypes,
+    std::vector<std::string> argNames,
 ]: parameter (Comma parameter)*;
 
 parameter
   locals [
-     std::CRef<Type> argType;
-     std::string argName;
+     CRef<Type> argType,
+     std::string argName,
 ]: type localIdentifier;
 
 basicBlock
@@ -107,9 +108,11 @@ instruction
     | branchInstruction
     | callInstruction
     | arithmeticInstruction
-    | memoryInstruction
+    | loadInstruction
+    | storeInstruction
     | phiInstruction
     | comparisonInstruction
+    | allocaInstruction
     ;
 
 returnInstruction: Ret type value?;
@@ -120,11 +123,15 @@ branchInstruction: Br I1 value Comma Label unamedIdentifier Comma Label unamedId
 callInstruction: Call type globalIdentifier functionArguments;
 
 arithmeticInstruction
-    : localVariable Equals binaryOperation type value Comma value
+    : unamedIdentifier Equals binaryOperation type value Comma value
     ;
 
-memoryInstruction
-    : localVariable Equals memoryOperation type Comma type Asterisk variable (Comma Align IntegerLiteral)?
+loadInstruction
+    : unamedIdentifier Equals Load type Comma type Asterisk variable (Comma Align IntegerLiteral)?
+    ;
+
+storeInstruction
+    : Store type value Comma type Asterisk variable (Comma Align IntegerLiteral)?
     ;
 
 phiInstruction
@@ -133,8 +140,14 @@ phiInstruction
 
 phiValue: LeftBrace unamedIdentifier Comma value RightBrace;
 
+comparisonOperation : Icmp | Fcmp;
+
 comparisonInstruction
-    : (Icmp | Fcmp) comparisonPredicate type value Comma value
+    : unamedIdentifier Equals comparisonOperation comparisonPredicate type value Comma value
+    ;
+
+allocaInstruction
+    : localIdentifier Equals Alloca type
     ;
 
 binaryOperation
@@ -143,8 +156,4 @@ binaryOperation
 
 comparisonPredicate
     : Eq | Ne | Ugt | Uge | Ult | Ule | Sgt | Sge | Slt | Sle
-    ;
-
-memoryOperation
-    : Load | Store
     ;

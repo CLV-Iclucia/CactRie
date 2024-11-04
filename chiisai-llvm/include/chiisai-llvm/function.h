@@ -4,51 +4,58 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_FUNCTION_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_FUNCTION_H
-#include <string>
-#include <chiisai-llvm/value.h>
+#include <chiisai-llvm/argument.h>
 #include <chiisai-llvm/function-type.h>
+#include <chiisai-llvm/instruction.h>
 #include <chiisai-llvm/mystl/poly_vector.h>
+#include <chiisai-llvm/mystl/manager_vector.h>
 namespace llvm {
 
 struct Module;
 struct FunctionInfo {
   std::string name;
   CRef<FunctionType> functionType;
-  CRef<Module> module;
+  std::vector<std::string>&& argNames;
+  const Module& module;
 };
 
 struct BasicBlock;
 struct Function : Value {
-  explicit Function(const FunctionInfo& info) : m_name(info.name), m_functionType(info.functionType), m_module(info.module) {}
-  [[nodiscard]] const std::string &name() const { return m_name; }
-  [[nodiscard]] CRef<FunctionType> functionType() const {
-    return m_functionType;
-  }
-  [[nodiscard]] std::span<const std::string> argNames() const {
-    return {m_argNames};
+  explicit Function(const FunctionInfo& info) : Value(info.name, info.functionType), m_module(info.module) {
+    for (size_t i = 0; i < info.argNames.size(); ++i)
+      addArgument(info.argNames[i], info.functionType->argType(i));
   }
   Function& addArgument(const std::string& name, CRef<Type> type) {
-    m_argNames.push_back(name);
-    m_args.emplace_back<Value>(type);
+    m_args.emplace_back(name, type);
     m_argMap[name] = m_args.back();
     return *this;
   }
+  Function& addLocalVar(Ref<AllocaInst> allocaInst) {
+    m_localVars.emplace_back(allocaInst);
+    m_localVarMap[allocaInst->name()] = allocaInst;
+    return *this;
+  }
+  Ref<AllocaInst> localVar(const std::string& name) {
+    if (m_localVarMap.contains(name))
+      return m_localVarMap[name];
+    return nullptr;
+  }
   [[nodiscard]]
-  Ref<Value> arg(const std::string& name) {
-    return m_argMap[name];
+  Ref<Argument> arg(const std::string& name) {
+    if (m_argMap.contains(name))
+      return m_argMap[name];
+    return nullptr;
   }
-  bool hasArgument(const std::string& name) {
-    return m_argMap.contains(name);
-  }
+  const mystl::manager_vector<Argument>& args() const { return m_args; }
   std::list<BasicBlock> basicBlocks{};
-  [[nodiscard]] CRef<Module> module() const { return m_module; }
+  [[nodiscard]] const Module& module() const { return m_module; }
+  void accept(Executor& executor) override;
 private:
-  std::string m_name;
-  CRef<FunctionType> m_functionType{};
-  std::vector<std::string> m_argNames{};
-  mystl::poly_vector<Value> m_args{};
-  CRef<Module> m_module{};
-  std::unordered_map<std::string, Ref<Value>> m_argMap{};
+  mystl::manager_vector<Argument> m_args{};
+  std::vector<Ref<AllocaInst>> m_localVars{};
+  const Module& m_module;
+  std::unordered_map<std::string, Ref<Argument>> m_argMap{};
+  std::unordered_map<std::string, Ref<AllocaInst>> m_localVarMap{};
 };
 
 }

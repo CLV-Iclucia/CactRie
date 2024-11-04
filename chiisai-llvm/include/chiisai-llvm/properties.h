@@ -5,15 +5,16 @@
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_PROPERTIES_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_PROPERTIES_H
 namespace llvm {
-struct RAII {
-  RAII() = default;
-  RAII(const RAII &) = delete;
-  RAII &operator=(const RAII &) = delete;
+struct NonCopyable {
+  NonCopyable() = default;
+  NonCopyable(const NonCopyable &) = delete;
+  NonCopyable &operator=(const NonCopyable &) = delete;
+  NonCopyable(NonCopyable &&) = default;
 };
 
-struct NonMovable {
-  NonMovable() = default;
-  NonMovable(NonMovable &&) = delete;
+struct RAII {
+  RAII() = default;
+  RAII(RAII &&) = delete;
 };
 
 }

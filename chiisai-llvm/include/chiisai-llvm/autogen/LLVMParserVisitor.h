@@ -28,6 +28,8 @@ public:
   /**
    * Visit parse trees produced by LLVMParser.
    */
+    virtual std::any visitScalarType(LLVMParser::ScalarTypeContext *context) = 0;
+
     virtual std::any visitBasicType(LLVMParser::BasicTypeContext *context) = 0;
 
     virtual std::any visitType(LLVMParser::TypeContext *context) = 0;
@@ -45,6 +47,8 @@ public:
     virtual std::any visitLocalVariable(LLVMParser::LocalVariableContext *context) = 0;
 
     virtual std::any visitVariable(LLVMParser::VariableContext *context) = 0;
+
+    virtual std::any visitLiteral(LLVMParser::LiteralContext *context) = 0;
 
     virtual std::any visitNumber(LLVMParser::NumberContext *context) = 0;
 
@@ -78,19 +82,23 @@ public:
 
     virtual std::any visitArithmeticInstruction(LLVMParser::ArithmeticInstructionContext *context) = 0;
 
-    virtual std::any visitMemoryInstruction(LLVMParser::MemoryInstructionContext *context) = 0;
+    virtual std::any visitLoadInstruction(LLVMParser::LoadInstructionContext *context) = 0;
+
+    virtual std::any visitStoreInstruction(LLVMParser::StoreInstructionContext *context) = 0;
 
     virtual std::any visitPhiInstruction(LLVMParser::PhiInstructionContext *context) = 0;
 
     virtual std::any visitPhiValue(LLVMParser::PhiValueContext *context) = 0;
 
+    virtual std::any visitComparisonOperation(LLVMParser::ComparisonOperationContext *context) = 0;
+
     virtual std::any visitComparisonInstruction(LLVMParser::ComparisonInstructionContext *context) = 0;
+
+    virtual std::any visitAllocaInstruction(LLVMParser::AllocaInstructionContext *context) = 0;
 
     virtual std::any visitBinaryOperation(LLVMParser::BinaryOperationContext *context) = 0;
 
     virtual std::any visitComparisonPredicate(LLVMParser::ComparisonPredicateContext *context) = 0;
-
-    virtual std::any visitMemoryOperation(LLVMParser::MemoryOperationContext *context) = 0;
 
 
 };

@@ -25,6 +25,10 @@ namespace llvm {
 class  LLVMParserBaseVisitor : public LLVMParserVisitor {
 public:
 
+  virtual std::any visitScalarType(LLVMParser::ScalarTypeContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitBasicType(LLVMParser::BasicTypeContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -58,6 +62,10 @@ public:
   }
 
   virtual std::any visitVariable(LLVMParser::VariableContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitLiteral(LLVMParser::LiteralContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -125,7 +133,11 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitMemoryInstruction(LLVMParser::MemoryInstructionContext *ctx) override {
+  virtual std::any visitLoadInstruction(LLVMParser::LoadInstructionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitStoreInstruction(LLVMParser::StoreInstructionContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -137,7 +149,15 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitComparisonOperation(LLVMParser::ComparisonOperationContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitComparisonInstruction(LLVMParser::ComparisonInstructionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitAllocaInstruction(LLVMParser::AllocaInstructionContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -146,10 +166,6 @@ public:
   }
 
   virtual std::any visitComparisonPredicate(LLVMParser::ComparisonPredicateContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitMemoryOperation(LLVMParser::MemoryOperationContext *ctx) override {
     return visitChildren(ctx);
   }
 

@@ -5,25 +5,33 @@
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_VALUE_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_VALUE_H
 #include <string>
+#include <format>
 #include <chiisai-llvm/type.h>
 #include <chiisai-llvm/mystl/poly_list.h>
+#include <minilog/logger.h>
 namespace llvm {
 
 struct User;
-
-struct Value : NonMovable {
-  auto type() {
+struct Executor;
+struct Value : RAII {
+  explicit Value(const std::string& name, CRef<Type> type) : m_name(name), m_type(type) {}
+  [[nodiscard]] auto type() const {
     return m_type;
   }
-  std::string_view name() {
+  const std::string& name() {
     return m_name;
   }
   auto& users() {
     return m_users;
   }
+  void replaceAllUsesWith(Ref<Value> other);
+  virtual void accept(Executor& executor) {
+    minilog::warn("value shouldn't be executed for not implemented derived classes");
+  }
   virtual ~Value() = default;
 private:
   friend struct Module;
+  friend void addUse(Ref<User> user, Ref<Value> value);
   mystl::poly_view_list<User> m_users{};
   CRef<Type> m_type{};
   std::string m_name{};

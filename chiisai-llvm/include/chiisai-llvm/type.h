@@ -8,11 +8,11 @@
 #include <stdexcept>
 #include <chiisai-llvm/properties.h>
 #include <chiisai-llvm/ref.h>
-#include <chiisai-llvm/llvm-context.h>
 namespace llvm {
 
 struct IntegerType;
-struct Type : NonMovable {
+struct LLVMContext;
+struct Type : RAII {
   enum class TypeEnum {
     Void,
     Integer,
@@ -34,6 +34,18 @@ struct Type : NonMovable {
   static CRef<IntegerType> longType(const LLVMContext& ctx);
   static CRef<Type> floatType(const LLVMContext& ctx);
   static CRef<Type> doubleType(const LLVMContext& ctx);
+
+  [[nodiscard]] bool isComputable() const {
+    return type == TypeEnum::Integer || type == TypeEnum::Float || type == TypeEnum::Double;
+  }
+
+  [[nodiscard]] bool isInteger() const {
+    return type == TypeEnum::Integer;
+  }
+
+  [[nodiscard]] bool isFloatingPoint() const {
+    return type == TypeEnum::Float || type == TypeEnum::Double;
+  }
 
   [[nodiscard]] bool isArray() const {
     if (type == TypeEnum::Array) {

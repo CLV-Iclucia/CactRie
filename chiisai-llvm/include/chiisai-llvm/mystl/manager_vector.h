@@ -52,6 +52,39 @@ struct manager_vector {
   void erase(size_t index) {
     data.erase(data.begin() + index);
   }
+  struct iterator {
+    using container_iterator = typename std::vector<std::unique_ptr<T>>::iterator;
+    explicit iterator(container_iterator it) : it(it) {}
+    observer_ptr<T> operator*() {
+      return it->get();
+    }
+    observer_ptr<T> operator->() {
+      return it->get();
+    }
+    iterator &operator++() {
+      ++it;
+      return *this;
+    }
+    iterator &operator--() {
+      --it;
+      return *this;
+    }
+    bool operator==(const iterator &other) const {
+      return it == other.it;
+    }
+    bool operator!=(const iterator &other) const {
+      return it != other.it;
+    }
+  private:
+    container_iterator it;
+  };
+
+  iterator begin() const {
+    return iterator(data.begin());
+  }
+  iterator end() const {
+    return iterator(data.end());
+  }
 private:
   std::vector<std::unique_ptr<T>> data{};
 };
