@@ -192,9 +192,10 @@ struct PhiInst : Instruction {
 };
 
 struct CallInstDetails {
-  const std::string &name;
+  std::string name;
   CRef<Type> type;
   Ref<Function> function;
+  const std::vector<std::string>& realArgs;
 };
 
 struct CallInst : Instruction {
@@ -203,8 +204,9 @@ struct CallInst : Instruction {
                     details.name,
                     details.type,
                     basicBlock),
-        function(details.function) {}
+        function(details.function), realArgs(details.realArgs) {}
   Ref<Function> function;
+  std::vector<std::string> realArgs;
   void accept(Executor &executor);
 };
 

@@ -9,30 +9,37 @@ tokenVocab=CactLexer;
 }
 
 /* declaration & defination */
+// compilationUnit can be empty, or a list of declarations and function definitions
 // compilation Unit -> many declaration s and function_definition s
 compilationUnit: (declaration | functionDefinition)*;
 
+// declaration decalres either a constant or a variable
 // declaration -> constant_declaration | variable_declaration
 declaration
     locals[
         observer_ptr<Scope> scope,
     ]: constantDeclaration | variableDeclaration;
 
+// constantDeclaration declares a constant
 // constant_declaration -> const basic_type constant_definition (, constant_definition)* ;
 constantDeclaration
     locals[
         observer_ptr<Scope> scope,
     ]: Const basicType constantDefinition (Comma constantDefinition)* Semicolon;
 
+// basicType is either Int32, Bool, Float, or Double
 // basic_type -> Int32 | Bool | Float | Double
 basicType: Int32 | Bool | Float | Double;
 
+// constantDefinition can be either a single constant or a constant array
+// (LeftBracket IntegerConstant RightBracket)* is for possible array definition
 // constant_definition -> Identifier ([IntegerConstant])* = constant_initial_value
 constantDefinition
     locals[
         observer_ptr<Scope> scope,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
 
+// initial value of a constant can be a constant expression or a list of constant values
 // constant_initial_value -> constant_expression | { constant_initial_value (, constant_initial_value)* }
 constantInitialValue: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
 
@@ -48,6 +55,7 @@ variableDefinition
         observer_ptr<Scope> scope,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
 
+// functionDefinition contains the function signature and the function body
 // function_definition -> function_type Identifier ( (function_formal_params)? ) block
 functionDefinition
     locals[
@@ -57,6 +65,7 @@ functionDefinition
 // function_type -> Void | Int32 | Float | Double | Bool
 functionType: Void | Int32 | Float | Double | Bool;
 
+// functionFormalParams is a list of functionFormalParam
 // function_formal_params -> function_formal_param (, function_formal_param)*
 functionFormalParams: functionFormalParam (Comma functionFormalParam)*;
 
@@ -67,6 +76,7 @@ functionFormalParam
     ]: basicType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
 
 /* statement & expression */
+// a block is a list of declarations and statements enclosed by braces
 // block -> { (blockItem)* }
 block
     locals[
@@ -106,24 +116,34 @@ breakStatement: Break Semicolon;
 // continue_statement -> continue ;
 continueStatement: Continue Semicolon;
 
+// addExpression has the lowest precedence, so it's on the top of the parse tree above any other operators
 // expression -> logical_or_expression
 expression: addExpression | BooleanConstant;
 
+// constantExpression is an expression that can be evaluated at compile time
 // constant_expression -> number | BooleanConstant
 constantExpression: number | BooleanConstant;
 
+// condition is an expression that evaluates to a boolean value
+// logicalOrExpression has the lowest precedence
 // condition -> logical_or_expression
 condition
     locals [
         std::optional<bool> compileTimeResult,
     ]: logicalOrExpression;
 
+// leftValue is the value that can be put on the left hand side of an assignment
+// so they have an address in the memory
+// it can either be a variable or an array element
 // left_value -> Identifier ([expression])*
 leftValue
     locals [
         observer_ptr<Scope> scope,
     ]: Identifier (LeftBracket expression RightBracket)*;
 
+// primaryExpression is the most basic expression
+// is either enclosed by parentheses, or a leftValue, or a number
+// since it has the highest precedence, it should be deeper in the parse tree
 // primary_expression -> ( Identifier ) | left_value | number
 primaryExpression
     locals [
@@ -134,6 +154,9 @@ primaryExpression
 // number -> IntegerConstant | FloatConstant | DoubleConstant
 number: IntegerConstant | FloatConstant | DoubleConstant;
 
+// unaryExpression is an expression with unary operators
+// or it can be a function call
+// it has the second highest precedence, so it can derive primaryExpression
 // unary_expression -> primary_expression | (+ | - | !) unary_expression | Identifier ( (function_real_params)? )
 unaryExpression
     locals [
@@ -144,12 +167,16 @@ unaryExpression
 // function_real_params -> expression (, expression)*
 functionRealParams: expression (Comma expression)*;
 
+// mulExpression is an expression with multiplication, division, or modulo operators
+// if there isn't any operator, mulExpression is viewed as a unaryExpression
 // mul_expression -> unary_expression | mul_expression (* | / | %) unary_expression
 mulExpression
     locals [
         ExpressionResult expressionResult,
     ]: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression;
 
+// addExpression is an expression with addition or subtraction operators
+// if there isn't any operator, addExpression is viewed as a mulExpression
 // add_expression -> mul_expression | add_expression (+ | -) mul_expression
 addExpression
     locals [
