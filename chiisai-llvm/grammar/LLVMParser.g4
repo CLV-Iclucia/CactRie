@@ -120,7 +120,7 @@ returnInstruction: Ret type value?;
 branchInstruction: Br I1 value Comma Label unamedIdentifier Comma Label unamedIdentifier
                 | Br Label unamedIdentifier;
 
-callInstruction: Call type globalIdentifier functionArguments;
+callInstruction: (unamedIdentifier Equals)? Call type globalIdentifier functionArguments;
 
 arithmeticInstruction
     : unamedIdentifier Equals binaryOperation type value Comma value

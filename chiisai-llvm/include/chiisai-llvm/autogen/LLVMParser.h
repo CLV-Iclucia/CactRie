@@ -531,6 +531,8 @@ public:
     TypeContext *type();
     GlobalIdentifierContext *globalIdentifier();
     FunctionArgumentsContext *functionArguments();
+    UnamedIdentifierContext *unamedIdentifier();
+    antlr4::tree::TerminalNode *Equals();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
