@@ -116,7 +116,10 @@ assignStatement: leftValue Equal expression Semicolon;
 expressionStatement: (expression)? Semicolon;
 
 // return_statement -> return expression? ;
-returnStatement: Return expression? Semicolon;
+returnStatement
+    locals[
+        observer_ptr<CactFunction> retFunction,
+    ]: Return expression? Semicolon;
 
 // if_statement -> if ( condition ) statement (else statement)?
 ifStatement
@@ -130,13 +133,13 @@ whileStatement: While LeftParenthesis condition RightParenthesis statement;
 // break_statement -> break ;
 breakStatement
     locals[
-        WhileStatementContext *loopToBreak,
+        observer_ptr<WhileStatementContext> loopToBreak,
     ]: Break Semicolon;
 
 // continue_statement -> continue ;
 continueStatement
     locals[
-        WhileStatementContext *loopToContinue,
+        observer_ptr<WhileStatementContext> loopToBreak,
     ]: Continue Semicolon;
 
 // addExpression has the lowest precedence, so it's on the top of the parse tree above any other operators

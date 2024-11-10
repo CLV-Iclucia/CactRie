@@ -8,6 +8,8 @@
 #include <cact-front-end/symbol-registry.h>
 #include <cact-front-end/cact-parser-context.h>
 
+#include <stack>
+
 
 namespace cactfrontend {
 
@@ -236,6 +238,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // create a new function
     registry->newFunction(function);
+    currentFunction = make_observer(&function);
 
     // visit the block
     visit(ctx->block());
@@ -369,6 +372,27 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
   // visitting a expressionStatement does not need to be overrided
 
+  // visit a return statement
+  std::any visitReturnStatement(ReturnStatementCtx *ctx) override {
+    // visit the expression
+    visit(ctx->expression());
+
+    // check return type
+    if (ctx->expression() == nullptr) {
+      if (currentFunction->returnType != CactBasicType::Void)
+        throw std::runtime_error("Return type mismatch");
+    }
+    else {
+      if (ctx->expression()->basicType != currentFunction->returnType)
+        throw std::runtime_error("Return type mismatch");
+    }
+
+    // record function for return statement
+    ctx->retFunction = currentFunction;
+
+    return {};
+  }
+
   // visit a if statement
   std::any visitIfStatement(IfStatementCtx *ctx) override {
     // visit the condition
@@ -388,10 +412,49 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     return {};
   }
 
+  // visit while statement
+  std::any visitWhileStatement(WhileStatementCtx *ctx) override {
+    // visit the condition
+    visit(ctx->condition());
+
+    // visit the statement
+    whileLoopStack.push(make_observer(ctx));
+    visit(ctx->statement());
+    whileLoopStack.pop();
+
+    return {};
+  }
+
+  // visit break statement
+  std::any visitBreakStatement(BreakStatementCtx *ctx) override {
+    // check if the break statement is in a loop
+    if (whileLoopStack.empty())
+      throw std::runtime_error("Break statement not in a loop");
+
+    // record the loop to break
+    ctx->loopToBreak = whileLoopStack.top();
+
+    return {};
+  }
+
+  // visit continue statement
+  std::any visitContinueStatement(ContinueStatementCtx *ctx) override {
+    // check if the continue statement is in a loop
+    if (whileLoopStack.empty())
+      throw std::runtime_error("Continue statement not in a loop");
+
+    // record the loop to continue
+    ctx->loopToBreak = whileLoopStack.top();
+
+    return {};
+  }
+
+
 private:
   std::unique_ptr<SymbolRegistry> registry;
   observer_ptr<Scope> currentScope;
-  std::vector<WhileStatementCtx *> whileLoopStack;
+  std::stack<observer_ptr<WhileStatementCtx>> whileLoopStack;
+  observer_ptr<CactFunction> currentFunction;
 };
 
 }
