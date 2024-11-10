@@ -8,15 +8,36 @@
 #include <cact-front-end/cact-expr.h>
 #include <cact-front-end/cact-operator.h>
 #include <cact-front-end/symbol-registry.h>
+
 namespace cactfrontend {
 
+// Type check and constant evaluation visitor.
+// For each node in the AST, this visitor will check the type of the node and evaluate the constant expression.
+// This visitor will also check type and semantic errors.
 struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
-  std::any visitCompilationUnit(CactParser::CompilationUnitContext *ctx) override {
-    for (auto &child : ctx->children)
-      visit(child);
-    return {};
-  }
 
+  /**
+   * compilationUnit: (declaration | functionDefinition)*;
+   * declaration: constantDeclaration | variableDeclaration;
+   * constantDeclaration: Const basicType constantDefinition (Comma constantDefinition)* Semicolon;
+   * basicType: Int32 | Bool | Float | Double;
+   * constantDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
+   * constantInitialValue: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
+   * variableDeclaration: basicType variableDefinition (Comma variableDefinition)* Semicolon;
+   * variableDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
+   * functionDefinition: functionType Identifier LeftParenthesis (functionFormalParams)? RightParenthesis block;
+   * functionType: Void | Int32 | Float | Double | Bool;
+   * functionFormalParams: functionFormalParam (Comma functionFormalParam)*;
+   * functionFormalParam: basicType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
+   */
+  // // visit a compilation unit
+  // std::any visitCompilationUnit(CactParser::CompilationUnitContext *ctx) override {
+  //   for (auto &child : ctx->children)
+  //     visit(child);
+  //   return {};
+  // }
+
+  // visit a number
   std::any visitNumber(CactParser::NumberContext *ctx) override {
     if (ctx->IntegerConstant()) {
       return CompileTimeConstant(std::stoi(ctx->IntegerConstant()->getText()));
@@ -28,9 +49,11 @@ struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
     throw std::runtime_error("Invalid number context");
   }
 
+  // visit a function definition
   std::any visitFunctionDefinition(CactParser::FunctionDefinitionContext *ctx) override {
   }
 
+  // visit a primary expression
   std::any visitPrimaryExpression(CactParser::PrimaryExpressionContext *ctx) override {
     auto expr = ctx->expression();
     auto num = ctx->number();
@@ -46,6 +69,7 @@ struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
     return {};
   }
 
+  // visit a unary expression
   std::any visitUnaryExpression(CactParser::UnaryExpressionContext *ctx) override {
     auto primary_expr = ctx->primaryExpression();
     auto unary_expr = ctx->unaryExpression();
@@ -69,6 +93,7 @@ struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
     return ctx->expressionResult;
   }
 
+  // visit an additive expression
   std::any visitAddExpression(CactParser::AddExpressionContext *ctx) override {
     auto add_expr = ctx->addExpression();
     auto mul_expr = ctx->mulExpression();
@@ -88,6 +113,7 @@ struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
     return ctx->expressionResult;
   }
 
+  // visit a multiplicative expression
   std::any visitMulExpression(CactParser::MulExpressionContext *ctx) override {
     auto mul_expr = ctx->mulExpression();
     auto unary_expr = ctx->unaryExpression();
@@ -105,6 +131,8 @@ struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
     }
     return ctx->expressionResult;
   }
+
+  // visit a logical or expression
   std::any visitLogicalOrExpression(CactParser::LogicalOrExpressionContext *ctx) override {
     auto bool_const = ctx->BooleanConstant();
     if (bool_const) {
@@ -128,6 +156,8 @@ struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
     }
     return ctx->expressionResult;
   }
+
+  // visit a logical and expression
   std::any visitLogicalAndExpression(CactParser::LogicalAndExpressionContext *ctx) override {
     auto logical_and_expr = ctx->logicalAndExpression();
     auto logical_eq_expr = ctx->logicalEqualExpression();
@@ -146,6 +176,8 @@ struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
     }
     return {};
   }
+
+  // visit a relational expression
   std::any visitRelationalExpression(CactParser::RelationalExpressionContext *ctx) override {
     auto relational_expr = ctx->relationalExpression();
     auto add_expr = ctx->addExpression();
@@ -164,6 +196,8 @@ struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
     }
     return {};
   }
+
+  // visit a condition
   std::any visitCondition(CactParser::ConditionContext *ctx) override {
     auto logicalOrExpr = ctx->logicalOrExpression();
     assert(logicalOrExpr);
@@ -173,10 +207,12 @@ struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
       ctx->compileTimeResult = std::nullopt;
     else {
       assert(constEvalResultBasicType(result) == CactBasicType::Bool);
-      ctx->compileTimeResult = std::make_optional<bool>(get<bool>(result));
+      ctx->compileTimeResult = std::make_optional<bool>(std::get<bool>(result));
     }
     return {};
   }
+
+  // visit an if statement
   std::any visitIfStatement(CactParser::IfStatementContext *ctx) override {
     assert(ctx->statement().size() == 1 || ctx->statement().size() == 2);
     auto condition = ctx->condition();
