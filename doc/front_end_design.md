@@ -18,10 +18,10 @@ constantDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* Equal
 constantInitialValue: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
 variableDeclaration: dataType variableDefinition (Comma variableDefinition)* Semicolon;
 variableDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
-functionDefinition: functionType Identifier LeftParenthesis (functionFormalParams)? RightParenthesis block;
+functionDefinition: functionType Identifier LeftParenthesis (FunctionParams)? RightParenthesis block;
 functionType: Void | Int32 | Float | Double | Bool;
-functionFormalParams: functionFormalParam (Comma functionFormalParam)*;
-functionFormalParam: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
+FunctionParams: FunctionParam (Comma FunctionParam)*;
+FunctionParam: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
 
 /* statement & expression */
 block: LeftBrace (blockItem)* RightBrace;
@@ -41,8 +41,8 @@ leftValue: Identifier (LeftBracket expression RightBracket)*;
 primaryExpression: LeftParenthesis expression RightParenthesis | leftValue | number;
 number: IntegerConstant | FloatConstant | DoubleConstant;
 unaryExpression: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
-                | Identifier LeftParenthesis (functionRealParams)? RightParenthesis;
-functionRealParams: expression (Comma expression)*;
+                | Identifier LeftParenthesis (FunctionArgs)? RightParenthesis;
+FunctionArgs: expression (Comma expression)*;
 mulExpression: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression;
 addExpression: mulExpression | addExpression (Plus | Minus) mulExpression;
 relationalExpression: addExpression | relationalExpression (Less | LessEqual | Greater | GreaterEqual) addExpression;
@@ -104,11 +104,11 @@ Now we list some grammar variables related to the symbol table.
     - `constantInitialValue.(dim,currentDim,needType) = (dim,0,needType)`,
     <!-- - `value = constantInitialValue.value`, -->
   - register variables by `regVar(type, name, dim, initialized=true)`,
-- `functionDefinition: functionType Identifier LeftParenthesis (functionFormalParams)? RightParenthesis block`
+- `functionDefinition: functionType Identifier LeftParenthesis (FunctionParams)? RightParenthesis block`
   - **create a new scope**,
   - record `retType`, `name`,
-  - if `functionFormalParams` exists:
-    - visit it and get `params=functionFormalParams.params` (a vector),
+  - if `FunctionParams` exists:
+    - visit it and get `params=FunctionParams.params` (a vector),
   - if not:
     - `params=Vec()`,
   - **register** all formal parameters,
@@ -116,9 +116,9 @@ Now we list some grammar variables related to the symbol table.
   - `block.scope.parent = scope`,
 - `functionType: Void | Int32 | Float | Double | Bool`:
   - record `retType` for the variable,
-- `functionFormalParams: functionFormalParam (Comma functionFormalParam)*`:
-  - push back all `functionFormalParam.param` into `params`,
-- `functionFormalParam: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?`
+- `FunctionParams: FunctionParam (Comma FunctionParam)*`:
+  - push back all `FunctionParam.param` into `params`,
+- `FunctionParam: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?`
   - record `name` and `type`,
   - set `dim = Vec(IntegerConstant)`s, and set `dim[0]=0` if not specified (only `dim[0]` is allowed to be zero), 
   - set `param=(type, name, dim)`,
@@ -145,9 +145,8 @@ Now we list some grammar variables related to the symbol table.
   - record the `type`,
 - `constantExpression: number | BooleanConstant`:
   - record the `type`,
-  - check whether the `BooleanConstant` is constant,
 - `condition: logicalOrExpression`:
-  - check whether the `condition.type` is `Bool`,
+  - check whether `condition` is valid,
 - `leftValue: Identifier (LeftBracket expression RightBracket)*`:
   - record the `type` from `Identifier`,
   - check whether brackets match the dimension of the variable (no overflow is guaranteed by programmer),
@@ -156,9 +155,9 @@ Now we list some grammar variables related to the symbol table.
   - the `type` is the same as the `expression` or `leftValue` or `number`,
 - `number: IntegerConstant | FloatConstant | DoubleConstant`:
   - record the `type`,
-- `unaryExpression: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression | Identifier LeftParenthesis (functionRealParams)? RightParenthesis`:
+- `unaryExpression: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression | Identifier LeftParenthesis (FunctionArgs)? RightParenthesis`:
   - record the `type`,
-- `functionRealParams: expression (Comma expression)*`:
+- `FunctionArgs: expression (Comma expression)*`:
   - record the `type`,
 - `mulExpression: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression`:
   - record the `type`,

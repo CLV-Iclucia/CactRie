@@ -56,10 +56,10 @@ constantDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* Equal
 constantInitialValue: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
 variableDeclaration: dataType variableDefinition (Comma variableDefinition)* Semicolon;
 variableDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
-functionDefinition: functionType Identifier LeftParenthesis (functionFormalParams)? RightParenthesis block;
+functionDefinition: functionType Identifier LeftParenthesis (FunctionParams)? RightParenthesis block;
 functionType: Void | Int32 | Float | Double | Bool;
-functionFormalParams: functionFormalParam (Comma functionFormalParam)*;
-functionFormalParam: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
+FunctionParams: FunctionParam (Comma FunctionParam)*;
+FunctionParam: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
 
 /* statement & expression */
 block: LeftBrace (blockItem)* RightBrace;
@@ -79,8 +79,8 @@ leftValue: Identifier (LeftBracket expression RightBracket)*;
 primaryExpression: LeftParenthesis expression RightParenthesis | leftValue | number;
 number: IntegerConstant | FloatConstant | DoubleConstant;
 unaryExpression: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
-                | Identifier LeftParenthesis (functionRealParams)? RightParenthesis;
-functionRealParams: expression (Comma expression)*;
+                | Identifier LeftParenthesis (FunctionArgs)? RightParenthesis;
+FunctionArgs: expression (Comma expression)*;
 mulExpression: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression;
 addExpression: mulExpression | addExpression (Plus | Minus) mulExpression;
 relationalExpression: addExpression | relationalExpression (Less | LessEqual | Greater | GreaterEqual) addExpression;
@@ -100,8 +100,8 @@ variableDeclaration
 variableDefinition
 functionDefinition
 functionType
-functionFormalParams
-functionFormalParam
+FunctionParams
+FunctionParam
 
 /* statement & expression */
 block
@@ -121,7 +121,7 @@ leftValue
 primaryExpression
 number
 unaryExpression
-functionRealParams
+FunctionArgs
 mulExpression
 addExpression
 relationalExpression

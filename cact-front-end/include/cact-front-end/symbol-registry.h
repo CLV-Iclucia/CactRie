@@ -97,6 +97,12 @@ struct SymbolRegistry {
     functionID.insert({function.name, functions.size() - 1});
   }
 
+  // get a function by name
+  [[nodiscard]]
+  observer_ptr<CactFunction> getFunction(const std::string &name) {
+    return make_observer(&functions[functionID.at(name)]);
+  }
+
 private:
   observer_ptr<Scope> globalScope; // global scope
   std::map<std::string, int> scopeID; // function name to scope index

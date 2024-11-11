@@ -24,8 +24,8 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   void enterScope(observer_ptr<Scope> scope);
   void leaveScope();
   CactBasicType getFuncType(FunctionTypeCtx *ctx);
-  FuncParameters getFuncParams(FunctionFormalParamsCtx *ctx);
-  FuncParameter getFuncParam(FunctionFormalParamCtx *ctx);
+  FuncParameters getFuncParams(FunctionParametersCtx *ctx);
+  FuncParameter getFuncParam(FunctionParameterCtx *ctx);
 
   // Constructor: initialize the symbol registry
   SymbolRegistrationErrorCheckVisitor() : registry(std::make_unique<SymbolRegistry>()) {}
@@ -228,7 +228,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     function.name = ctx->Identifier()->getText();
 
     // visit the function's formal parameters
-    function.parameters = getFuncParams(ctx->functionFormalParams());
+    function.parameters = getFuncParams(ctx->functionParameters());
 
     // register all formal parameters in the scope
     for (auto &param : function.parameters) {
@@ -263,27 +263,27 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     return {};
   }
 
-  FuncParameters getFuncParams(FunctionFormalParamsCtx *ctx) {
+  FuncParameters getFuncParams(FunctionParametersCtx *ctx) {
     if (ctx == nullptr)
       return FuncParameters();
     return std::any_cast<FuncParameters>(visit(ctx));
   }
 
-  std::any visitFunctionFormalParams(FunctionFormalParamsCtx *ctx) override {
+  std::any visitFunctionParameters(FunctionParametersCtx *ctx) override {
     FuncParameters params;
-    for (auto &param : ctx->functionFormalParam()) {
+    for (auto &param : ctx->functionParameter()) {
       params.push_back(std::any_cast<FuncParameter>(visit(param)));
     }
     return params;
   }
 
-  FuncParameter getFuncParam(FunctionFormalParamCtx *ctx) {
+  FuncParameter getFuncParam(FunctionParameterCtx *ctx) {
     if (ctx == nullptr)
       return FuncParameter();
     return std::any_cast<FuncParameter>(visit(ctx));
   }
 
-  std::any visitFunctionFormalParam(FunctionFormalParamCtx *ctx) override {
+  std::any visitFunctionParameter(FunctionParameterCtx *ctx) override {
     // record basic type and name
     FuncParameter param;
     param.basicType = getDataType(ctx->dataType());
@@ -444,10 +444,175 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Continue statement not in a loop");
 
     // record the loop to continue
-    ctx->loopToBreak = whileLoopStack.top();
+    ctx->loopToContinue = whileLoopStack.top();
 
     return {};
   }
+
+  // visit an expression
+  std::any visitExpression(ExpressionCtx *ctx) override {
+    // visit the expression
+    if (ctx->addExpression()) {
+      visit(ctx->addExpression());
+      ctx->basicType = ctx->addExpression()->basicType;
+    }
+    // visit the logicalOrExpression
+    else if (ctx->BooleanConstant()) {
+      visit(ctx->BooleanConstant());
+      ctx->basicType = CactBasicType::Bool;
+    }
+    else {
+      throw std::runtime_error("Unknown error in expression");
+    }
+
+    return {};
+  }
+
+  // visit a constant expression
+  std::any visitConstantExpression(ConstantExpressionCtx *ctx) override {
+    // visit the expression
+    if (ctx->number()) {
+      visit(ctx->number());
+      ctx->basicType = ctx->number()->basicType;
+    }
+    // visit the logicalOrExpression
+    else if (ctx->BooleanConstant()) {
+      visit(ctx->BooleanConstant());
+      ctx->basicType = CactBasicType::Bool;
+    }
+    else {
+      throw std::runtime_error("Unknown error in expression");
+    }
+
+    return {};
+  }
+
+  // visitting a condition does not need to be overrided
+
+  // visit a left value
+  std::any visitLeftValue(LeftValueCtx *ctx) override {
+    // record the name of lvalue, and find corresponding variable
+    auto name = ctx->Identifier()->getText();
+    auto var = currentScope.get()->variable(name); // if not declared, throw an error in variable()
+    if (var.type().isConst)
+      throw std::runtime_error("Assign to a constant variable");
+
+    // visit children and check dimensions
+    int count = 0;
+    const int dimSize = var.type().arrayDims.size();
+    for (auto &expr : ctx->expression()) {
+      visit(expr);
+      if (expr->basicType != CactBasicType::Int32)
+        throw std::runtime_error("Invalid array index type");
+      count++; // count for dimensions
+      if (count > dimSize)
+        throw std::runtime_error("Indexing on a scalar");
+    }
+    if (count < dimSize)
+      throw std::runtime_error("Invalid right value: array is not fully indexed");
+
+    return {};
+  }
+
+  // visit primary expression
+  std::any visitPrimaryExpression(PrimaryExpressionCtx *ctx) override {
+    // visit the expression
+    if (ctx->expression()) {
+      visit(ctx->expression());
+      ctx->basicType = ctx->expression()->basicType;
+    }
+    // visit the left value
+    else if (ctx->leftValue()) {
+      visit(ctx->leftValue());
+      ctx->basicType = ctx->leftValue()->basicType;
+    }
+    // visit the number
+    else if (ctx->number()) {
+      visit(ctx->number());
+      ctx->basicType = ctx->number()->basicType;
+    }
+    else {
+      throw std::runtime_error("Unknown error in primary expression");
+    }
+
+    return {};
+  }
+
+  // visit a number
+  std::any visitNumber(NumberCtx *ctx) override {
+    // record the number
+    auto text = ctx->getText();
+    if (ctx->IntegerConstant()) {
+      ctx->basicType = CactBasicType::Int32;
+    }
+    else if (ctx->FloatConstant()) {
+      ctx->basicType = CactBasicType::Float;
+    }
+    else if (ctx->DoubleConstant()) {
+      ctx->basicType = CactBasicType::Double;
+    }
+    else {
+      throw std::runtime_error("Unknown error in number");
+    }
+
+    return {};
+  }
+
+  // visit a unary expression
+  std::any visitUnaryExpression(UnaryExpressionCtx *ctx) override {
+    // -> primaryExpression
+    auto primary = ctx->primaryExpression();
+    auto unary = ctx->unaryExpression();
+
+    // -> primary
+    if (primary) {
+      visit(primary);
+      ctx->basicType = primary->basicType;
+    }
+    // -> unaryExpression
+    else if (unary) {
+      visit(unary);
+      if (ctx->Plus() || ctx->Minus()) {
+        switch (unary->basicType) {
+          case CactBasicType::Int32:
+          case CactBasicType::Float:
+          case CactBasicType::Double:
+            ctx->basicType = unary->basicType;
+            break;
+          default:
+            throw std::runtime_error("Invalid type for sign operator");
+        }
+      }
+      else if (ctx->ExclamationMark()) {
+        switch (unary->basicType) {
+          case CactBasicType::Bool:
+            ctx->basicType = CactBasicType::Bool;
+            break;
+          default:
+            throw std::runtime_error("Invalid type for logical not");
+        }
+      }
+    }
+    // function call
+    else if (ctx->Identifier()) {
+      // find the function
+      auto name = ctx->Identifier()->getText();
+      auto func = registry->getFunction(name);
+      if (!func)
+        throw std::runtime_error("Function not found");
+
+      // check parameters inside functionArguments
+      ctx->functionArguments()->needParams = func->parameters;
+      visit(ctx->functionArguments());
+
+      ctx->basicType = func->returnType;
+    }
+    else {
+      throw std::runtime_error("Unknown error in unary expression");
+    }
+    return {};
+  }
+
 
 
 private:

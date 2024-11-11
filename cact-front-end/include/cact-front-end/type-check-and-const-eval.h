@@ -25,10 +25,10 @@ struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
    * constantInitialValue: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
    * variableDeclaration: basicType variableDefinition (Comma variableDefinition)* Semicolon;
    * variableDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
-   * functionDefinition: functionType Identifier LeftParenthesis (functionFormalParams)? RightParenthesis block;
+   * functionDefinition: functionType Identifier LeftParenthesis (FunctionParameters)? RightParenthesis block;
    * functionType: Void | Int32 | Float | Double | Bool;
-   * functionFormalParams: functionFormalParam (Comma functionFormalParam)*;
-   * functionFormalParam: basicType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
+   * FunctionParameters: FunctionParameter (Comma FunctionParameter)*;
+   * FunctionParameter: basicType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
    */
   // // visit a compilation unit
   // std::any visitCompilationUnit(CactParser::CompilationUnitContext *ctx) override {

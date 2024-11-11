@@ -76,17 +76,17 @@ functionDefinition
         // std::string functionName,
         // CactFunction function,
         // std::vector<std::pair<CactType, std::string>> formalParams,
-    ]: functionType Identifier LeftParenthesis (functionFormalParams)? RightParenthesis block;
+    ]: functionType Identifier LeftParenthesis (functionParameters)? RightParenthesis block;
 
 // function_type -> Void | Int32 | Float | Double | Bool
 functionType: Void | Int32 | Float | Double | Bool;
 
-// functionFormalParams is a list of functionFormalParam
+// functionParameters is a list of functionParameter
 // function_formal_params -> function_formal_param (, function_formal_param)*
-functionFormalParams: functionFormalParam (Comma functionFormalParam)*;
+functionParameters: functionParameter (Comma functionParameter)*;
 
 // function_formal_param -> basic_type Identifier ([IntegerConstant]?)* ( [IntegerConstant] )*
-functionFormalParam: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
+functionParameter: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
 
 /* statement & expression */
 // a block is a list of declarations and statements enclosed by braces
@@ -139,7 +139,7 @@ breakStatement
 // continue_statement -> continue ;
 continueStatement
     locals[
-        observer_ptr<WhileStatementContext> loopToBreak,
+        observer_ptr<WhileStatementContext> loopToContinue,
     ]: Continue Semicolon;
 
 // addExpression has the lowest precedence, so it's on the top of the parse tree above any other operators
@@ -160,7 +160,7 @@ constantExpression
 // logicalOrExpression has the lowest precedence
 // condition -> logical_or_expression
 condition
-    locals [
+    locals[
         std::optional<bool> compileTimeResult,
     ]: logicalOrExpression;
 
@@ -169,7 +169,7 @@ condition
 // it can either be a variable or an array element
 // left_value -> Identifier ([expression])*
 leftValue
-    locals [
+    locals[
         CactBasicType basicType,
         observer_ptr<Scope> scope,
     ]: Identifier (LeftBracket expression RightBracket)*;
@@ -179,7 +179,7 @@ leftValue
 // since it has the highest precedence, it should be deeper in the parse tree
 // primary_expression -> ( Identifier ) | left_value | number
 primaryExpression
-    locals [
+    locals[
         CactBasicType basicType,
         ExpressionResult expressionResult,
         // observer_ptr<Scope> scope,
@@ -196,20 +196,23 @@ number
 // it has the second highest precedence, so it can derive primaryExpression
 // unary_expression -> primary_expression | (+ | - | !) unary_expression | Identifier ( (function_real_params)? )
 unaryExpression
-    locals [
+    locals[
         CactBasicType basicType,
         ExpressionResult expressionResult,
     ]: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
-                | Identifier LeftParenthesis (functionRealParams)? RightParenthesis;
+                | Identifier LeftParenthesis (functionArguments)? RightParenthesis;
 
 // function_real_params -> expression (, expression)*
-functionRealParams: expression (Comma expression)*;
+functionArguments
+    locals[
+        FuncParameters needParams,
+    ]: expression (Comma expression)*;
 
 // mulExpression is an expression with multiplication, division, or modulo operators
 // if there isn't any operator, mulExpression is viewed as a unaryExpression
 // mul_expression -> unary_expression | mul_expression (* | / | %) unary_expression
 mulExpression
-    locals [
+    locals[
         CactBasicType basicType,
         ExpressionResult expressionResult,
     ]: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression;
@@ -218,7 +221,7 @@ mulExpression
 // if there isn't any operator, addExpression is viewed as a mulExpression
 // add_expression -> mul_expression | add_expression (+ | -) mul_expression
 addExpression
-    locals [
+    locals[
         CactBasicType basicType,
         ExpressionResult expressionResult,
     ]: mulExpression | addExpression (Plus | Minus) mulExpression;
