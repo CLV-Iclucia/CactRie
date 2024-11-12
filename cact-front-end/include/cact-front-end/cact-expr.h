@@ -16,19 +16,19 @@ namespace cactfrontend {
 
 using ConstEvalResult = std::variant<int32_t, float, double, bool>;
 
-// get a CactType based on the type of the variant
-inline CactType constEvalResultType(const ConstEvalResult &value) {
-  // return a CactType object based on the type of the variant
-  if (std::holds_alternative<int32_t>(value)) {
-    return CactType::constType(CactBasicType::Int32);
-  } else if (std::holds_alternative<float>(value)) {
-    return CactType::constType(CactBasicType::Float);
-  } else if (std::holds_alternative<double>(value)) {
-    return CactType::constType(CactBasicType::Double);
-  } else {
-    return CactType::constType(CactBasicType::Bool);
-  }
-}
+// // get a CactType based on the type of the variant
+// inline CactType constEvalResultType(const ConstEvalResult &value) {
+//   // return a CactType object based on the type of the variant
+//   if (std::holds_alternative<int32_t>(value)) {
+//     return CactType::constType(CactBasicType::Int32);
+//   } else if (std::holds_alternative<float>(value)) {
+//     return CactType::constType(CactBasicType::Float);
+//   } else if (std::holds_alternative<double>(value)) {
+//     return CactType::constType(CactBasicType::Double);
+//   } else {
+//     return CactType::constType(CactBasicType::Bool);
+//   }
+// }
 
 // get the basic type of the variant
 inline CactBasicType constEvalResultBasicType(const ConstEvalResult &value) {
@@ -68,11 +68,11 @@ struct CompileTimeConstant final : EvalResult {
   explicit CompileTimeConstant(double value) : value(value) {}
   explicit CompileTimeConstant(bool value) : value(value) {}
 
-  // get the type of the constant
-  [[nodiscard]]
-  CactType type() const override {
-    return constEvalResultType(value);
-  }
+  // // get the type of the constant
+  // [[nodiscard]]
+  // CactType type() const override {
+  //   return constEvalResultType(value);
+  // }
 
   // get the compile time evaluation result
   [[nodiscard]]
@@ -86,17 +86,17 @@ struct CompileTimeConstant final : EvalResult {
 struct ExpressionResult final : EvalResult {
   ExpressionResult() = default;
   explicit ExpressionResult(const CactType& type) : m_type(type) {}
-  explicit ExpressionResult(ConstEvalResult value)
-      : compileTimeEvaluationResult(value), m_type(constEvalResultType(value)) {}
+  // explicit ExpressionResult(ConstEvalResult value)
+  //     : compileTimeEvaluationResult(value), m_type(constEvalResultType(value)) {}
 
-  // get the type of the expression
-  [[nodiscard]]
-  CactType type() const override {
-    if (compileTimeEvaluationResult.has_value())
-      return constEvalResultType(*compileTimeEvaluationResult);
-    else
-      return m_type;
-  }
+  // // get the type of the expression
+  // [[nodiscard]]
+  // CactType type() const override {
+  //   if (compileTimeEvaluationResult.has_value())
+  //     return constEvalResultType(*compileTimeEvaluationResult);
+  //   else
+  //     return m_type;
+  // }
 
   // get the compile time evaluation result
   [[nodiscard]]

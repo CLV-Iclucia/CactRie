@@ -11,9 +11,14 @@ namespace cactfrontend {
 
 // a parameter in the function definition
 struct FuncParameter {
-  CactBasicType basicType{}; // basic type
+  CactConstVar paramVar; // parameter variable
   std::string name; // parameter name
-  std::vector<uint32_t> arrayDims{}; // array dimensions as a vector
+
+  // set up the parameter
+  void init(const std::string &name, CactBasicType basicType) {
+    this->paramVar.varInit(basicType);
+    this->name = name;
+  }
 
   // // check if the parameter type is valid
   // [[nodiscard]] bool valid() const {
@@ -30,7 +35,17 @@ struct CactFunction {
   CactBasicType returnType; // return type
   std::string name; // function name
   FuncParameters parameters; // parameters
-  // bool isPure{}; // is the function pure
+
+  // set up name and return type
+  void init(const std::string &name, CactBasicType retType) {
+    this->name = name;
+    this->returnType = retType;
+  }
+
+  // add a new parameter
+  void addParameter(FuncParameter &param) {
+    this->parameters.push_back(param);
+  }
 };
 
 

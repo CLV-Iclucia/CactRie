@@ -34,8 +34,9 @@ dataType: Int32 | Bool | Float | Double;
 constantDefinition
     locals[
         // observer_ptr<Scope> scope,
-        // CactType type,
         CactBasicType needType,
+        CactConstVar constant,
+        std::string name,
         std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
 
@@ -44,8 +45,7 @@ constantDefinition
 constantInitialValue
     locals[
         uint32_t currentDim,
-        CactBasicType basicType,
-        std::vector<uint32_t> arrayDims,
+        CactType type,
         std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
 
@@ -53,7 +53,6 @@ constantInitialValue
 variableDeclaration
     locals[
         // observer_ptr<Scope> scope,
-        CactType type,
         CactBasicType needType,
         std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: dataType variableDefinition (Comma variableDefinition)* Semicolon;
@@ -62,8 +61,9 @@ variableDeclaration
 variableDefinition
     locals[
         // observer_ptr<Scope> scope,
-        CactType type,
         CactBasicType needType,
+        CactConstVar variable,
+        std::string name,
         std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
 
@@ -72,10 +72,7 @@ variableDefinition
 functionDefinition
     locals[
         observer_ptr<Scope> scope,
-        // CactBasicType returnType,
-        // std::string functionName,
-        // CactFunction function,
-        // std::vector<std::pair<CactType, std::string>> formalParams,
+        observer_ptr<CactFunction> function,
     ]: functionType Identifier LeftParenthesis (functionParameters)? RightParenthesis block;
 
 // function_type -> Void | Int32 | Float | Double | Bool
@@ -83,10 +80,18 @@ functionType: Void | Int32 | Float | Double | Bool;
 
 // functionParameters is a list of functionParameter
 // function_formal_params -> function_formal_param (, function_formal_param)*
-functionParameters: functionParameter (Comma functionParameter)*;
+functionParameters
+    locals[
+        // observer_ptr<Scope> scope,
+        observer_ptr<CactFunction> function,
+    ]: functionParameter (Comma functionParameter)*;
 
 // function_formal_param -> basic_type Identifier ([IntegerConstant]?)* ( [IntegerConstant] )*
-functionParameter: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
+functionParameter
+    locals[
+        // observer_ptr<Scope> scope,
+        observer_ptr<CactFunction> function,
+    ]: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
 
 /* statement & expression */
 // a block is a list of declarations and statements enclosed by braces
@@ -146,7 +151,7 @@ continueStatement
 // expression -> logical_or_expression
 expression
     locals[
-        CactBasicType basicType,
+        CactType type,
     ]: addExpression | BooleanConstant;
 
 // constantExpression is an expression that can be evaluated at compile time
@@ -170,7 +175,8 @@ condition
 // left_value -> Identifier ([expression])*
 leftValue
     locals[
-        CactBasicType basicType,
+        CactType type,
+        bool validLeftValue,
         observer_ptr<Scope> scope,
     ]: Identifier (LeftBracket expression RightBracket)*;
 
@@ -180,7 +186,7 @@ leftValue
 // primary_expression -> ( Identifier ) | left_value | number
 primaryExpression
     locals[
-        CactBasicType basicType,
+        CactType type,
         ExpressionResult expressionResult,
         // observer_ptr<Scope> scope,
     ]: LeftParenthesis expression RightParenthesis | leftValue | number;
@@ -197,7 +203,7 @@ number
 // unary_expression -> primary_expression | (+ | - | !) unary_expression | Identifier ( (function_real_params)? )
 unaryExpression
     locals[
-        CactBasicType basicType,
+        CactType type,
         ExpressionResult expressionResult,
     ]: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
                 | Identifier LeftParenthesis (functionArguments)? RightParenthesis;
@@ -213,7 +219,7 @@ functionArguments
 // mul_expression -> unary_expression | mul_expression (* | / | %) unary_expression
 mulExpression
     locals[
-        CactBasicType basicType,
+        CactType type,
         ExpressionResult expressionResult,
     ]: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression;
 
@@ -222,35 +228,31 @@ mulExpression
 // add_expression -> mul_expression | add_expression (+ | -) mul_expression
 addExpression
     locals[
-        CactBasicType basicType,
+        CactType type,
         ExpressionResult expressionResult,
     ]: mulExpression | addExpression (Plus | Minus) mulExpression;
 
 // relational_expression -> add_expression | relational_expression (< | <= | > | >=) add_expression
 relationalExpression
     locals[
-        CactBasicType basicType,
         ExpressionResult expressionResult,
     ]: addExpression | relationalExpression (Less | LessEqual | Greater | GreaterEqual) addExpression;
 
 // logical_equal_expression -> relational_expression | logical_equal_expression (== | !=) relational_expression
 logicalEqualExpression
     locals[
-        CactBasicType basicType,
         ExpressionResult expressionResult,
     ]: relationalExpression | logicalEqualExpression (LogicalEqual | NotEqual) relationalExpression;
 
 // logical_and_expression -> logical_equal_expression | logical_and_expression && logical_equal_expression
 logicalAndExpression
     locals[
-        CactBasicType basicType,
         ExpressionResult expressionResult,
     ]: logicalEqualExpression | logicalAndExpression LogicalAnd logicalEqualExpression;
 
 // logical_or_expression -> Boolean_constant | logical_and_expression | logical_or_expression || logical_and_expression
 logicalOrExpression
     locals[
-        CactBasicType basicType,
         ExpressionResult expressionResult,
     ]: BooleanConstant | logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression;
 

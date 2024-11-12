@@ -25,14 +25,8 @@ enum class CactBasicType : uint8_t {
 
 // get the size of the basic type
 inline uint32_t sizeOf(CactBasicType type) {
-  // static std::array<uint32_t, 8> size ={
-  //     0, 0, 4, 4, 4, 8,
-  // };
-
   // setup a static dictionary from basic type to its size, with default value 0
   static std::map<CactBasicType, uint32_t> sizeOf = {
-      // {CactBasicType::Unknown, 0},
-      // {CactBasicType::Void   , 0},
       {CactBasicType::Int32  , 4},
       {CactBasicType::Bool   , 4},
       {CactBasicType::Float  , 4},
@@ -47,61 +41,68 @@ inline uint32_t sizeOf(CactBasicType type) {
 struct CactType {
   // attributes
   CactBasicType basicType{}; // basic type
-  bool isConst{}; // const type
-  bool initialized{}; // initialized or not
   std::vector<uint32_t> arrayDims{}; // array dimensions as a vector
   bool isParam{}; // is parameter of a function
 
-  // default constructor
+  // constructor
   explicit CactType() = default;
+  explicit CactType(CactBasicType basicType, bool isParam) : basicType(basicType), isParam(isParam) {}
+  explicit CactType(CactBasicType basicType, std::vector<uint32_t> arrayDims, bool isParam) :
+    basicType(basicType), arrayDims(arrayDims), isParam(isParam) {}
 
-  // constructor using basic type, const type
-  explicit CactType(CactBasicType basicType, bool isConst)
-    : basicType(basicType), isConst(isConst), initialized(isConst), arrayDims(std::vector<uint32_t>{}), isParam(false) {}
-
-  // constructor using basic type, const type, initialized or not, and array dimensions
-  explicit CactType(CactBasicType basicType, bool isConst, bool initialized, std::vector<uint32_t> arrayDims, bool isParam)
-    : basicType(basicType), isConst(isConst), initialized(initialized), arrayDims(std::move(arrayDims)), isParam(isParam) {}
-
-  // construct a constant type
-  [[nodiscard]]
-  static CactType constType(CactBasicType basicType) {
-    return CactType(basicType, true);
+  // initialize the type
+  void init(CactBasicType basicType, bool isParam) {
+    this->basicType = basicType;
+    this->isParam = isParam;
+    this->arrayDims.clear();
   }
 
-  // construct a variable type
-  [[nodiscard]]
-  static CactType varType(CactBasicType basicType) {
-    return CactType(basicType, false);
-  }
-
-  // construct a parameter type
-  [[nodiscard]]
-  static CactType paramType(CactBasicType basicType, std::vector<uint32_t> arrayDims) {
-    return CactType(basicType, false, true, arrayDims, true);
+  void addDim(uint32_t dim) {
+    this->arrayDims.push_back(dim);
   }
 
   // get the size of this basicType
   uint32_t size() {
-    uint32_t product = sizeOf(basicType);
-    for (auto dim : arrayDims)
+    uint32_t product = sizeOf(this->basicType);
+    for (auto dim : this->arrayDims)
       product *= dim;
     return product;
   }
 
   // check if this type is an array
-  [[nodiscard]] bool isArray() const {
-    return !arrayDims.empty();
+  [[nodiscard]]
+  bool isArray() const {
+    return !this->arrayDims.empty();
   }
 
   // check if this type is a valid operand
-  [[nodiscard]] bool validOperandType() const {
-    return basicType != CactBasicType::Unknown && basicType != CactBasicType::Void && !isArray();
+  [[nodiscard]]
+  bool validOperandType() const {
+    return this->basicType != CactBasicType::Unknown && this->basicType != CactBasicType::Void && !isArray();
+  }
+
+  // check if this type is a valid array index
+  [[nodiscard]]
+  bool validArrayIndex() const {
+    return this->basicType == CactBasicType::Int32 && !isArray();
+  }
+
+  // check if this type is a valid array index
+  [[nodiscard]]
+  bool validArrayIndex() const {
+    return this->basicType == CactBasicType::Int32 && !isArray();
   }
 
   // return the dimension of the array
-  [[nodiscard]] uint32_t dim() const {
-    return arrayDims.size();
+  [[nodiscard]]
+  uint32_t dim() const {
+    return this->arrayDims.size();
+  }
+
+  // compare two CactType for equality
+  [[nodiscard]]
+  bool operator==(const CactType &rhs) const {
+    return this->basicType == rhs.basicType && this->arrayDims == rhs.arrayDims;
   }
 };
 
