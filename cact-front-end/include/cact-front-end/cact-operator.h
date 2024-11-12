@@ -7,9 +7,53 @@
 #include <cact-front-end/CactParser.h>
 #include <cact-front-end/cact-expr.h>
 #include <functional>
+#include <set>
+
 namespace cactfrontend {
 
-struct UnaryOperator {
+const struct OperandTypeCheck {
+  const std::string errorMessage;
+  const std::set<CactBasicType> validOprandTypeSet;
+};
+
+const struct OperandTypeCheckIntFloat : OperandTypeCheck {
+  const std::string errorMessage = "expression must have integral or float-point type";
+  const std::set<CactBasicType> validOprandTypeSet = {
+    CactBasicType::Int32,
+    CactBasicType::Float,
+    CactBasicType::Double
+  };
+};
+
+const struct OperandTypeCheckInt : OperandTypeCheck {
+  const std::string errorMessage = "expression must have integral type";
+  const std::set<CactBasicType> validOprandTypeSet = {CactBasicType::Int32};
+};
+
+const struct OperandTypeCheckBool : OperandTypeCheck {
+  const std::string errorMessage = "expression must have boolean type";
+  const std::set<CactBasicType> validOprandTypeSet = {CactBasicType::Bool};
+};
+
+struct Operator {
+  [[nodiscard]]
+  bool validOperandTypeBasic(CactType type, OperandTypeCheck opTypeSet) const {
+    if (!type.validOperandType()){
+      throw std::runtime_error("expression must be a scalar");
+      return false;
+    }
+    if (!opTypeSet.validOprandTypeSet.contains(type.basicType)) {
+      throw std::runtime_error(opTypeSet.errorMessage);
+      return false;
+    }
+    return true;
+  }
+
+  virtual bool validOperandTypeCheck(CactType type) const = 0;
+
+};
+
+struct UnaryOperator : Operator {
   [[nodiscard]]
   virtual std::optional<ConstEvalResult> apply(const ConstEvalResult& x) const = 0;
 };
@@ -28,6 +72,10 @@ struct PlusOperator : UnaryOperator {
         return std::nullopt;
     }
   }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
+  }
 };
 
 struct NegOperator : UnaryOperator {
@@ -44,6 +92,10 @@ struct NegOperator : UnaryOperator {
         return std::nullopt;
     }
   }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
+  }
 };
 
 struct LogicalNotOperator : UnaryOperator {
@@ -53,13 +105,17 @@ struct LogicalNotOperator : UnaryOperator {
       return std::make_optional<ConstEvalResult>(!std::get<bool>(x));
     return std::nullopt;
   }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckBool());
+  }
 };
 
-struct BinaryOperator {
+struct BinaryOperator : Operator {
   [[nodiscard]]
   std::optional<ExpressionResult> evaluate(const EvalResult &lhs, const EvalResult &rhs) const {
-    if (!binaryArithmeticOperandCheck(lhs, rhs))
-      return std::nullopt;
+    // if (!binaryArithmeticOperandCheck(lhs, rhs))
+    //   return std::nullopt;
     auto lhs_value = lhs.compileTimeEvalResult();
     auto rhs_value = rhs.compileTimeEvalResult();
     if (!lhs_value.has_value() || !rhs_value.has_value())
@@ -71,6 +127,15 @@ struct BinaryOperator {
   [[nodiscard]]
   virtual std::optional<ConstEvalResult> apply(const ConstEvalResult &lhs,
                                                const ConstEvalResult &rhs) const = 0;
+
+  [[nodiscard]]
+  bool binaryOperandCheck(const CactType &lhs, const CactType &rhs) const {
+    if (lhs.basicType != rhs.basicType) {
+      throw std::runtime_error("operands must have the same type");
+      return false;
+    }
+    return validOperandTypeCheck(lhs) && validOperandTypeCheck(rhs);
+  }
 };
 
 struct AddOperator : BinaryOperator {
@@ -89,6 +154,10 @@ struct AddOperator : BinaryOperator {
     } else {
       return {};
     }
+  }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
   }
 };
 
@@ -109,6 +178,10 @@ struct SubOperator : BinaryOperator {
       return {};
     }
   }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
+  }
 };
 
 struct MulOperator : BinaryOperator {
@@ -127,6 +200,10 @@ struct MulOperator : BinaryOperator {
     } else {
       return {};
     }
+  }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
   }
 };
 
@@ -147,6 +224,10 @@ struct DivOperator : BinaryOperator {
       return {};
     }
   }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
+  }
 };
 
 struct ModOperator : BinaryOperator {
@@ -159,6 +240,10 @@ struct ModOperator : BinaryOperator {
     } else {
       return {};
     }
+  }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckInt());
   }
 };
 
@@ -173,6 +258,10 @@ struct LogicalOrOperator : BinaryOperator {
       return {};
     }
   }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckBool());
+  }
 };
 
 struct LogicalAndOperator : BinaryOperator {
@@ -185,6 +274,10 @@ struct LogicalAndOperator : BinaryOperator {
     } else {
       return {};
     }
+  }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckBool());
   }
 };
 
@@ -248,6 +341,10 @@ struct LessOperator : BinaryOperator {
       return {};
     }
   }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
+  }
 };
 
 struct GreaterOperator : BinaryOperator {
@@ -266,6 +363,10 @@ struct GreaterOperator : BinaryOperator {
     } else {
       return {};
     }
+  }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
   }
 };
 
@@ -286,6 +387,10 @@ struct LessEqualOperator : BinaryOperator {
       return {};
     }
   }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
+  }
 };
 
 struct GreaterEqualOperator : BinaryOperator {
@@ -304,6 +409,10 @@ struct GreaterEqualOperator : BinaryOperator {
     } else {
       return {};
     }
+  }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
   }
 };
 
@@ -324,6 +433,10 @@ struct EqualOperator : BinaryOperator {
       return {};
     }
   }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
+  }
 };
 
 struct NotEqualOperator : BinaryOperator {
@@ -343,13 +456,17 @@ struct NotEqualOperator : BinaryOperator {
       return {};
     }
   }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return validOperandTypeBasic(type, OperandTypeCheckIntFloat());
+  }
 };
 
-std::unique_ptr<BinaryOperator> binaryOperator(CactParser::MulExpressionContext &ctx);
-std::unique_ptr<BinaryOperator> binaryOperator(CactParser::AddExpressionContext &ctx);
-std::unique_ptr<BinaryOperator> binaryOperator(CactParser::RelationalExpressionContext &ctx);
-std::unique_ptr<BinaryOperator> binaryOperator(CactParser::LogicalEqualExpressionContext &ctx);
-std::unique_ptr<UnaryOperator> unaryOperator(CactParser::UnaryExpressionContext &ctx);
+// std::unique_ptr<BinaryOperator> binaryOperator(CactParser::MulExpressionContext &ctx);
+// std::unique_ptr<BinaryOperator> binaryOperator(CactParser::AddExpressionContext &ctx);
+// std::unique_ptr<BinaryOperator> binaryOperator(CactParser::RelationalExpressionContext &ctx);
+// std::unique_ptr<BinaryOperator> binaryOperator(CactParser::LogicalEqualExpressionContext &ctx);
+// std::unique_ptr<UnaryOperator> unaryOperator(CactParser::UnaryExpressionContext &ctx);
 
 }
 

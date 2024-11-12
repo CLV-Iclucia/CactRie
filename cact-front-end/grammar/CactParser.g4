@@ -1,6 +1,7 @@
 parser grammar CactParser;
 @header {
 #include <cact-front-end/cact-expr.h>
+#include <cact-front-end/cact-operator.h>
 #include <cact-front-end/mystl/observer_ptr.h>
 #include <cact-front-end/symbol-registry.h>
 }
@@ -205,6 +206,7 @@ unaryExpression
     locals[
         CactType type,
         ExpressionResult expressionResult,
+        observer_ptr<UnaryOperator> unaryOperator,
     ]: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
                 | Identifier LeftParenthesis (functionArguments)? RightParenthesis;
 
@@ -221,6 +223,7 @@ mulExpression
     locals[
         CactType type,
         ExpressionResult expressionResult,
+        observer_ptr<BinaryOperator> binaryOperator,
     ]: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression;
 
 // addExpression is an expression with addition or subtraction operators
@@ -230,30 +233,35 @@ addExpression
     locals[
         CactType type,
         ExpressionResult expressionResult,
+        observer_ptr<BinaryOperator> binaryOperator,
     ]: mulExpression | addExpression (Plus | Minus) mulExpression;
 
 // relational_expression -> add_expression | relational_expression (< | <= | > | >=) add_expression
 relationalExpression
     locals[
         ExpressionResult expressionResult,
+        observer_ptr<BinaryOperator> binaryOperator,
     ]: addExpression | relationalExpression (Less | LessEqual | Greater | GreaterEqual) addExpression;
 
 // logical_equal_expression -> relational_expression | logical_equal_expression (== | !=) relational_expression
 logicalEqualExpression
     locals[
         ExpressionResult expressionResult,
+        observer_ptr<BinaryOperator> binaryOperator,
     ]: relationalExpression | logicalEqualExpression (LogicalEqual | NotEqual) relationalExpression;
 
 // logical_and_expression -> logical_equal_expression | logical_and_expression && logical_equal_expression
 logicalAndExpression
     locals[
         ExpressionResult expressionResult,
+        observer_ptr<BinaryOperator> binaryOperator,
     ]: logicalEqualExpression | logicalAndExpression LogicalAnd logicalEqualExpression;
 
 // logical_or_expression -> Boolean_constant | logical_and_expression | logical_or_expression || logical_and_expression
 logicalOrExpression
     locals[
         ExpressionResult expressionResult,
+        observer_ptr<BinaryOperator> binaryOperator,
     ]: BooleanConstant | logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression;
 
 

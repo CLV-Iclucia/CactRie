@@ -16,19 +16,19 @@ namespace cactfrontend {
 
 using ConstEvalResult = std::variant<int32_t, float, double, bool>;
 
-// // get a CactType based on the type of the variant
-// inline CactType constEvalResultType(const ConstEvalResult &value) {
-//   // return a CactType object based on the type of the variant
-//   if (std::holds_alternative<int32_t>(value)) {
-//     return CactType::constType(CactBasicType::Int32);
-//   } else if (std::holds_alternative<float>(value)) {
-//     return CactType::constType(CactBasicType::Float);
-//   } else if (std::holds_alternative<double>(value)) {
-//     return CactType::constType(CactBasicType::Double);
-//   } else {
-//     return CactType::constType(CactBasicType::Bool);
-//   }
-// }
+// get a CactType based on the type of the variant
+inline CactType constEvalResultType(const ConstEvalResult &value) {
+  // return a CactType object based on the type of the variant
+  if (std::holds_alternative<int32_t>(value)) {
+    return CactType(CactBasicType::Int32, false);
+  } else if (std::holds_alternative<float>(value)) {
+    return CactType(CactBasicType::Float, false);
+  } else if (std::holds_alternative<double>(value)) {
+    return CactType(CactBasicType::Double, false);
+  } else {
+    return CactType(CactBasicType::Bool, false);
+  }
+}
 
 // get the basic type of the variant
 inline CactBasicType constEvalResultBasicType(const ConstEvalResult &value) {
@@ -86,17 +86,17 @@ struct CompileTimeConstant final : EvalResult {
 struct ExpressionResult final : EvalResult {
   ExpressionResult() = default;
   explicit ExpressionResult(const CactType& type) : m_type(type) {}
-  // explicit ExpressionResult(ConstEvalResult value)
-  //     : compileTimeEvaluationResult(value), m_type(constEvalResultType(value)) {}
+  explicit ExpressionResult(ConstEvalResult value)
+      : compileTimeEvaluationResult(value), m_type(constEvalResultType(value)) {}
 
-  // // get the type of the expression
-  // [[nodiscard]]
-  // CactType type() const override {
-  //   if (compileTimeEvaluationResult.has_value())
-  //     return constEvalResultType(*compileTimeEvaluationResult);
-  //   else
-  //     return m_type;
-  // }
+  // get the type of the expression
+  [[nodiscard]]
+  CactType type() const override {
+    if (compileTimeEvaluationResult.has_value())
+      return constEvalResultType(*compileTimeEvaluationResult);
+    else
+      return m_type;
+  }
 
   // get the compile time evaluation result
   [[nodiscard]]
@@ -132,20 +132,20 @@ struct CactExpr {
   std::vector<std::reference_wrapper<CactExpr>> sub_expressions; // sub expressions
 };
 
-// check if two operands are valid for binary operations
-inline bool binaryOperandCheck(const EvalResult &lhs, const EvalResult &rhs) {
-  return lhs.type().validOperandType() && rhs.type().validOperandType() && lhs.type().basicType == rhs.type().basicType;
-}
+// // check if two operands are valid for binary operations
+// inline bool binaryOperandCheck(const EvalResult &lhs, const EvalResult &rhs) {
+//   return lhs.type().validOperandType() && rhs.type().validOperandType() && lhs.type().basicType == rhs.type().basicType;
+// }
 
-// check if two operands are valid for binary arithmetic operations
-inline bool binaryArithmeticOperandCheck(const EvalResult &lhs, const EvalResult &rhs) {
-  return binaryOperandCheck(lhs, rhs) && lhs.type().basicType != CactBasicType::Bool;
-}
+// // check if two operands are valid for binary arithmetic operations
+// inline bool binaryArithmeticOperandCheck(const EvalResult &lhs, const EvalResult &rhs) {
+//   return binaryOperandCheck(lhs, rhs) && lhs.type().basicType != CactBasicType::Bool;
+// }
 
-// check if two operands are valid for binary conditional operations
-inline bool binaryConditionalOperandCheck(const EvalResult &lhs, const EvalResult &rhs) {
-  return binaryOperandCheck(lhs, rhs) && lhs.type().basicType == CactBasicType::Bool;
-}
+// // check if two operands are valid for binary conditional operations
+// inline bool binaryConditionalOperandCheck(const EvalResult &lhs, const EvalResult &rhs) {
+//   return binaryOperandCheck(lhs, rhs) && lhs.type().basicType == CactBasicType::Bool;
+// }
 
 }
 

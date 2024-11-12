@@ -7,7 +7,7 @@
 #include <cact-front-end/CactParserBaseVisitor.h>
 #include <cact-front-end/symbol-registry.h>
 #include <cact-front-end/cact-parser-context.h>
-
+#include <cact-front-end/cact-operator.h>
 #include <stack>
 
 
@@ -564,7 +564,6 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
   // visit a unary expression
   std::any visitUnaryExpression(UnaryExpressionCtx *ctx) override {
-    // -> primaryExpression
     auto primary = ctx->primaryExpression();
     auto unary = ctx->unaryExpression();
 
@@ -573,7 +572,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(primary);
       ctx->type = primary->type;
     }
-    // -> unaryExpression
+    // -> unaryOp unaryExpression
     else if (unary) {
       visit(unary);
 
@@ -581,26 +580,18 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       if (!unary->type.validOperandType())
         throw std::runtime_error("Invalid operator type");
 
-      if (ctx->Plus() || ctx->Minus()) {
-        switch (unary->type.basicType) {
-          case CactBasicType::Int32: case CactBasicType::Float: case CactBasicType::Double:
-            ctx->type = unary->type;
-            break;
-          default:
-            throw std::runtime_error("Invalid type for sign operator");
-        }
-      }
-      else if (ctx->ExclamationMark()) {
-        switch (unary->type.basicType) {
-          case CactBasicType::Bool:
-            ctx->type = unary->type;
-            break;
-          default:
-            throw std::runtime_error("Invalid type for logical not");
-        }
-      }
+      if (ctx->Plus())
+        ctx->unaryOperator = make_observer<UnaryOperator>(new PlusOperator);
+      else if (ctx->Minus())
+        ctx->unaryOperator = make_observer<UnaryOperator>(new NegOperator);
+      else if (ctx->ExclamationMark())
+        ctx->unaryOperator = make_observer<UnaryOperator>(new LogicalNotOperator);
+      else
+        throw std::runtime_error("Unknown error in unary expression");
+
+      ctx->unaryOperator.get()->validOperandTypeCheck(unary->type);
     }
-    // function call
+    // -> function call
     else if (ctx->Identifier()) {
       // find the function
       auto name = ctx->Identifier()->getText();
@@ -645,6 +636,43 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     return {};
   }
 
+  // visit a multiplicative expression
+  std::any visitMulExpression(MulExpressionCtx *ctx) override {
+    auto unary = ctx->unaryExpression();
+    auto mul = ctx->mulExpression();
+
+    // -> unaryExpression
+    if (unary) {
+      visit(unary);
+      ctx->type = unary->type;
+    }
+    // -> mulExpression OP unaryExpression
+    else if (mul) {
+      visit(mul);
+      visit(unary);
+
+      // check the type of mul expression
+      if (!mul->type.validOperandType())
+        throw std::runtime_error("Invalid operator type");
+
+      if (ctx->Asterisk())
+        ctx->binaryOperator = make_observer<BinaryOperator>(new MulOperator);
+      else if (ctx->Slash())
+        ctx->binaryOperator = make_observer<BinaryOperator>(new DivOperator);
+      else if (ctx->Percent())
+        ctx->binaryOperator = make_observer<BinaryOperator>(new ModOperator);
+      else
+        throw std::runtime_error("Unknown error in multiplicative expression");
+
+      ctx->binaryOperator.get()->binaryOperandCheck(mul->type, unary->type);
+      ctx->type = mul->type;
+    }
+    else {
+      throw std::runtime_error("Unknown error in multiplicative expression");
+    }
+
+    return {};
+  }
 
 private:
   std::unique_ptr<SymbolRegistry> registry;
