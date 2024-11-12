@@ -58,6 +58,28 @@ struct UnaryOperator : Operator {
   virtual std::optional<ConstEvalResult> apply(const ConstEvalResult& x) const = 0;
 };
 
+struct UnaryNopOperator : UnaryOperator {
+  [[nodiscard]]
+  std::optional<ConstEvalResult> apply(const ConstEvalResult& x) const override {
+    switch(constEvalResultBasicType(x)) {
+      case CactBasicType::Int32:
+        return std::make_optional<ConstEvalResult>(std::get<int32_t>(x));
+      case CactBasicType::Float:
+        return std::make_optional<ConstEvalResult>(std::get<float>(x));
+      case CactBasicType::Double:
+        return std::make_optional<ConstEvalResult>(std::get<double>(x));
+      case CactBasicType::Bool:
+        return std::make_optional<ConstEvalResult>(std::get<bool>(x));
+      default:
+        return std::nullopt;
+    }
+  }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return true;
+  }
+};
+
 struct PlusOperator : UnaryOperator {
   [[nodiscard]]
   std::optional<ConstEvalResult> apply(const ConstEvalResult& x) const override {
@@ -135,6 +157,28 @@ struct BinaryOperator : Operator {
       return false;
     }
     return validOperandTypeCheck(lhs) && validOperandTypeCheck(rhs);
+  }
+};
+
+struct BinaryNopOperator : BinaryOperator {
+  [[nodiscard]]
+  std::optional<ConstEvalResult> apply(const ConstEvalResult &lhs,
+                                       const ConstEvalResult &rhs) const override {
+    if (constEvalResultBasicType(lhs) == CactBasicType::Int32) {
+      return {std::get<int32_t>(lhs)};
+    } else if (constEvalResultBasicType(lhs) == CactBasicType::Float) {
+      return {std::get<float>(lhs)};
+    } else if (constEvalResultBasicType(lhs) == CactBasicType::Double) {
+      return {std::get<double>(lhs)};
+    } else if (constEvalResultBasicType(lhs) == CactBasicType::Bool) {
+      return {std::get<bool>(lhs)};
+    } else {
+      return {};
+    }
+  }
+
+  bool validOperandTypeCheck(CactType type) const override {
+    return true;
   }
 };
 

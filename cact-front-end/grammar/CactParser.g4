@@ -239,16 +239,17 @@ addExpression
 // relational_expression -> add_expression | relational_expression (< | <= | > | >=) add_expression
 relationalExpression
     locals[
+        CactBasicType basicType,
         ExpressionResult expressionResult,
         observer_ptr<BinaryOperator> binaryOperator,
-    ]: addExpression | relationalExpression (Less | LessEqual | Greater | GreaterEqual) addExpression;
+    ]: BooleanConstant | addExpression | addExpression (Less | LessEqual | Greater | GreaterEqual) addExpression;
 
 // logical_equal_expression -> relational_expression | logical_equal_expression (== | !=) relational_expression
 logicalEqualExpression
     locals[
         ExpressionResult expressionResult,
         observer_ptr<BinaryOperator> binaryOperator,
-    ]: relationalExpression | logicalEqualExpression (LogicalEqual | NotEqual) relationalExpression;
+    ]: relationalExpression | relationalExpression (LogicalEqual | NotEqual) relationalExpression;
 
 // logical_and_expression -> logical_equal_expression | logical_and_expression && logical_equal_expression
 logicalAndExpression
@@ -262,6 +263,6 @@ logicalOrExpression
     locals[
         ExpressionResult expressionResult,
         observer_ptr<BinaryOperator> binaryOperator,
-    ]: BooleanConstant | logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression;
+    ]: logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression;
 
 

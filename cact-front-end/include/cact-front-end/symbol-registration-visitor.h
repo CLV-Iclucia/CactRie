@@ -571,6 +571,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     if (primary) {
       visit(primary);
       ctx->type = primary->type;
+      ctx->unaryOperator = make_observer<UnaryOperator>(new UnaryNopOperator);
     }
     // -> unaryOp unaryExpression
     else if (unary) {
@@ -642,18 +643,15 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     auto mul = ctx->mulExpression();
 
     // -> unaryExpression
-    if (unary) {
+    if (unary && !mul) {
       visit(unary);
+      ctx->binaryOperator = make_observer<BinaryOperator>(new BinaryNopOperator);
       ctx->type = unary->type;
     }
-    // -> mulExpression OP unaryExpression
-    else if (mul) {
+    // -> mulExpression binary-OP unaryExpression
+    else if (unary && mul) {
       visit(mul);
       visit(unary);
-
-      // check the type of mul expression
-      if (!mul->type.validOperandType())
-        throw std::runtime_error("Invalid operator type");
 
       if (ctx->Asterisk())
         ctx->binaryOperator = make_observer<BinaryOperator>(new MulOperator);
@@ -672,6 +670,152 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     }
 
     return {};
+  }
+
+  // visit an additive expression
+  std::any visitAddExpression(AddExpressionCtx *ctx) override {
+    auto add = ctx->addExpression();
+    auto mul = ctx->mulExpression();
+
+    // -> mulExpression
+    if (mul && !add) {
+      visit(mul);
+      ctx->binaryOperator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->type = mul->type;
+    }
+    // -> addExpression binary-OP mulExpression
+    else if (mul && add) {
+      visit(add);
+      visit(mul);
+
+      if (ctx->Plus())
+        ctx->binaryOperator = make_observer<BinaryOperator>(new AddOperator);
+      else if (ctx->Minus())
+        ctx->binaryOperator = make_observer<BinaryOperator>(new SubOperator);
+      else
+        throw std::runtime_error("Unknown error in additive expression");
+
+      ctx->binaryOperator.get()->binaryOperandCheck(add->type, mul->type);
+      ctx->type = add->type;
+    }
+    else {
+      throw std::runtime_error("Unknown error in additive expression");
+    }
+
+    return {};
+  }
+
+  // visit a relational expression
+  std::any visitRelationalExpression(RelationalExpressionCtx *ctx) override {
+    auto add = ctx->addExpression();
+
+    // -> addExpression
+    if (add.size() == 1) {
+      visit(add[0]);
+      ctx->binaryOperator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->basicType = add[0]->type.basicType;
+    }
+    // -> addExpression binary-OP addExpression
+    else if (add.size() == 2) {
+      visit(add[0]);
+      visit(add[1]);
+
+      if (ctx->Less())
+        ctx->binaryOperator = make_observer<BinaryOperator>(new LessOperator);
+      else if (ctx->LessEqual())
+        ctx->binaryOperator = make_observer<BinaryOperator>(new LessEqualOperator);
+      else if (ctx->Greater())
+        ctx->binaryOperator = make_observer<BinaryOperator>(new GreaterOperator);
+      else if (ctx->GreaterEqual())
+        ctx->binaryOperator = make_observer<BinaryOperator>(new GreaterEqualOperator);
+      else
+        throw std::runtime_error("Unknown error in relational expression");
+
+      ctx->binaryOperator.get()->binaryOperandCheck(add[0]->type, add[1]->type);
+      ctx->basicType = CactBasicType::Bool;
+    }
+    else {
+      throw std::runtime_error("Unknown error in relational expression");
+    }
+
+    return {};
+  }
+
+  // visit a logical equal expression
+  std::any visitLogicalEqualExpression(LogicalEqualExpressionCtx *ctx) override {
+    auto relational = ctx->relationalExpression();
+
+    // -> relationalExpression
+    if (relational.size() == 1) {
+      visit(relational[0]);
+      ctx->binaryOperator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      if (relational[0]->basicType != CactBasicType::Bool)
+        throw std::runtime_error("expecting a boolean type");
+    }
+    // -> relationalExpression binary-OP relationalExpression
+    else if (relational.size() == 2) {
+      visit(relational[0]);
+      visit(relational[1]);
+
+      if (ctx->LogicalEqual())
+        ctx->binaryOperator = make_observer<BinaryOperator>(new EqualOperator);
+      else if (ctx->NotEqual())
+        ctx->binaryOperator = make_observer<BinaryOperator>(new NotEqualOperator);
+      else
+        throw std::runtime_error("Unknown error in logical equal expression");
+
+      ctx->binaryOperator.get()->binaryOperandCheck(CactType(relational[0]->basicType, false),
+                                                    CactType(relational[1]->basicType, false));
+    }
+    else {
+      throw std::runtime_error("Unknown error in logical equal expression");
+    }
+
+    return {};
+  }
+
+  // visit a logical and expression
+  std::any visitLogicalAndExpression(LogicalAndExpressionCtx *ctx) override {
+    auto logicalEqual = ctx->logicalEqualExpression();
+    auto logicalAnd = ctx->logicalAndExpression();
+
+    // -> logicalEqualExpression
+    if (logicalEqual && !logicalAnd) {
+      visit(logicalEqual);
+      ctx->binaryOperator = make_observer<BinaryOperator>(new BinaryNopOperator);
+    }
+    // -> logicalAndExpression && logicalEqualExpression
+    else if (logicalEqual && logicalAnd) {
+      visit(logicalAnd);
+      visit(logicalEqual);
+
+      ctx->binaryOperator = make_observer<BinaryOperator>(new LogicalAndOperator);
+    }
+    else {
+      throw std::runtime_error("Unknown error in logical and expression");
+    }
+  }
+
+  // visit a logical or expression
+  std::any visitLogicalOrExpression(LogicalOrExpressionCtx *ctx) override {
+    auto logicalAnd = ctx->logicalAndExpression();
+    auto logicalOr = ctx->logicalOrExpression();
+
+    // -> logicalAndExpression
+    if (logicalAnd && !logicalOr) {
+      visit(logicalAnd);
+      ctx->binaryOperator = make_observer<BinaryOperator>(new BinaryNopOperator);
+    }
+    // -> logicalOrExpression || logicalAndExpression
+    else if (logicalAnd && logicalOr) {
+      visit(logicalOr);
+      visit(logicalAnd);
+
+      ctx->binaryOperator = make_observer<BinaryOperator>(new LogicalOrOperator);
+    }
+    else {
+      throw std::runtime_error("Unknown error in logical or expression");
+    }
   }
 
 private:
