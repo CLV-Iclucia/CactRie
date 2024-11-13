@@ -3,6 +3,8 @@
 #include <cact-front-end/CactLexer.h>
 #include <cact-front-end/CactParser.h>
 #include <cact-front-end/cact-syntax-error-listener.h>
+#include <cact-front-end/symbol-registration-visitor.h>
+// #include <cact-front-end/cact-symbol-registration-visitor.h>
 #include <antlr-runtime/ANTLRInputStream.h>
 #include <antlr-runtime/CommonTokenStream.h>
 
@@ -16,6 +18,12 @@ int main(int argc, char *argv[]) {
     std::cerr << "Failed to open file: " << argv[1] << std::endl;
     return 1;
   }
+
+  // print the source file's content
+  std::ifstream streamCopy(argv[1]);
+  std::cout << "Source file content:" << std::endl;
+  std::cout << streamCopy.rdbuf() << std::endl;
+
   antlr4::ANTLRInputStream input(stream);
   cactfrontend::CactLexer lexer(&input);
   antlr4::CommonTokenStream tokens(&lexer);
@@ -29,10 +37,12 @@ int main(int argc, char *argv[]) {
     antlr4::tree::ParseTree *tree = parser.compilationUnit();
 
     // print the parse tree
-    std::cout << tree->toStringTree(&parser) << std::endl;
+    std::cout << tree->toStringTree(&parser) << std::endl << std::endl;
 
     // call function to check if there is any static syntax error
-    // auto *root = ;
+    cactfrontend::SymbolRegistrationErrorCheckVisitor visitor;
+    visitor.visit(tree);
+    std::cout << "Syntax check completed." << std::endl;
 
     
     if (cact_error_listener.hasSyntaxError()) {

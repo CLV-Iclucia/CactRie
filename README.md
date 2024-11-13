@@ -14,6 +14,7 @@ cmake ..
 make
 # compile the first stage
 make cact-rie
+cact-rie/cact-rie <input-file>
 ```
 
 ## Dependencies
@@ -128,3 +129,35 @@ relationalExpression
 logicalEqualExpression
 logicalAndExpression
 logicalOrExpression
+
+
+#0  cactfrontend::SymbolRegistrationErrorCheckVisitor::visitAddExpression (this=0x7fffffffd650, ctx=0x555555796e60)
+    at /home/junxiong/cplab/CactRie/cact-front-end/include/cact-front-end/symbol-registration-visitor.h:712
+#3  0x000055555557b40d in cactfrontend::SymbolRegistrationErrorCheckVisitor::visitRelationalExpression (this=0x7fffffffd650, ctx=0x555555786df0)
+    at /home/junxiong/cplab/CactRie/cact-front-end/include/cact-front-end/symbol-registration-visitor.h:757
+#6  0x000055555557b8f3 in cactfrontend::SymbolRegistrationErrorCheckVisitor::visitLogicalEqualExpression (this=0x7fffffffd650, ctx=0x55555578ce00)
+    at /home/junxiong/cplab/CactRie/cact-front-end/include/cact-front-end/symbol-registration-visitor.h:787
+#9  0x000055555557be57 in cactfrontend::SymbolRegistrationErrorCheckVisitor::visitLogicalAndExpression (this=0x7fffffffd650, ctx=0x55555578cd50)
+    at /home/junxiong/cplab/CactRie/cact-front-end/include/cact-front-end/symbol-registration-visitor.h:822
+#12 0x000055555557c137 in cactfrontend::SymbolRegistrationErrorCheckVisitor::visitLogicalOrExpression (this=0x7fffffffd650, ctx=0x55555578cca0)
+    at /home/junxiong/cplab/CactRie/cact-front-end/include/cact-front-end/symbol-registration-visitor.h:847
+#15 0x0000555555575460 in cactfrontend::CactParserBaseVisitor::visitCondition (this=0x7fffffffd650, ctx=0x555555782510)
+    at /home/junxiong/cplab/CactRie/cact-front-end/autogen/include/cact-front-end/CactParserBaseVisitor.h:123
+#18 0x0000555555578bda in cactfrontend::SymbolRegistrationErrorCheckVisitor::visitWhileStatement (this=0x7fffffffd650, ctx=0x555555786110)
+    at /home/junxiong/cplab/CactRie/cact-front-end/include/cact-front-end/symbol-registration-visitor.h:445
+#21 0x000055555557848d in cactfrontend::SymbolRegistrationErrorCheckVisitor::visitStatement (this=0x7fffffffd650, ctx=0x555555789bc0)
+    at /home/junxiong/cplab/CactRie/cact-front-end/include/cact-front-end/symbol-registration-visitor.h:363
+#24 0x00005555555783b0 in cactfrontend::SymbolRegistrationErrorCheckVisitor::visitBlockItem (this=0x7fffffffd650, ctx=0x555555789b60)
+    at /home/junxiong/cplab/CactRie/cact-front-end/include/cact-front-end/symbol-registration-visitor.h:352
+#27 0x000055555557820d in cactfrontend::SymbolRegistrationErrorCheckVisitor::visitBlock (this=0x7fffffffd650, ctx=0x555555783b80)
+    at /home/junxiong/cplab/CactRie/cact-front-end/include/cact-front-end/symbol-registration-visitor.h:332
+#30 0x0000555555577673 in cactfrontend::SymbolRegistrationErrorCheckVisitor::visitFunctionDefinition (this=0x7fffffffd650, ctx=0x555555783450)
+    at /home/junxiong/cplab/CactRie/cact-front-end/include/cact-front-end/symbol-registration-visitor.h:249
+#33 0x0000555555575c6a in cactfrontend::SymbolRegistrationErrorCheckVisitor::visitCompilationUnit (this=0x7fffffffd650, ctx=0x55555577dbe0)
+    at /home/junxiong/cplab/CactRie/cact-front-end/include/cact-front-end/symbol-registration-visitor.h:37
+#34 0x00005555555995a2 in cactfrontend::CactParser::CompilationUnitContext::accept (this=0x55555577dbe0, visitor=0x7fffffffd650)
+--Type <RET> for more, q to quit, c to continue without paging--
+    at /home/junxiong/cplab/CactRie/cact-front-end/autogen/src/CactParser.cpp:284
+#35 0x000055555556fdf2 in antlr4::tree::AbstractParseTreeVisitor::visit (this=0x7fffffffd650, tree=0x55555577dbe0)
+    at /home/junxiong/cplab/CactRie/deps/antlr-runtime/antlr-runtime/tree/AbstractParseTreeVisitor.h:19
+#36 0x000055555556f0b8 in main (argc=2, argv=0x7fffffffded8) at /home/junxiong/cplab/CactRie/cact-rie/apps/cact-rie.cc:44
