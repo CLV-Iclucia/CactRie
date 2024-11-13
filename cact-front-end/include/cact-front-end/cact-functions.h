@@ -44,6 +44,8 @@ struct CactFunction {
 
   // add a new parameter
   void addParameter(FuncParameter &param) {
+    // TODO: check if parameter name is used
+    
     this->parameters.push_back(param);
   }
 };

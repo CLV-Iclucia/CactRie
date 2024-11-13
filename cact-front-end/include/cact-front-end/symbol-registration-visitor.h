@@ -9,6 +9,7 @@
 #include <cact-front-end/cact-parser-context.h>
 #include <cact-front-end/cact-operator.h>
 #include <stack>
+#include <string>
 
 
 namespace cactfrontend {
@@ -30,17 +31,29 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   // Constructor: initialize the symbol registry
   SymbolRegistrationErrorCheckVisitor() : registry(std::make_unique<SymbolRegistry>()) {}
 
+  // print message: start semantic check
+  void startSemanticCheck(const char *functionName) {
+    // std::cout << "Semantic check starts: " + std::string(functionName) + "()" << std::endl;
+  }
+
+  // print message: complete semantic check
+  void completeSemanticCheck(const char *functionName) {
+    // std::cout << "Complete check starts: " + std::string(functionName) + "()" << std::endl;
+  }
+
   // visit a compilation unit
   std::any visitCompilationUnit(CompilationUnitCtx *ctx) override {
+    startSemanticCheck("CompilationUnit");
     currentScope = this->registry.get()->createGlobalScope();
     for (auto &child : ctx->children)
       visit(child);
-    std::cout << "visitCompilationUnit() syntax check completed." << std::endl;
+    completeSemanticCheck("CompilationUnit");
     return {};
   }
 
   std::any visitConstantDeclaration(ConstantDeclarationCtx *ctx) override {
     // record the basic type
+    startSemanticCheck("ConstantDeclaration");
     auto basicType = getDataType(ctx->dataType());
 
     // visit all constantDefinitions
@@ -48,18 +61,19 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       constDef->needType = basicType;
       visit(constDef);
     }
-    std::cout << "visitConstantDeclaration() syntax check completed." << std::endl;
+    completeSemanticCheck("ConstantDeclaration");
     return {};
   }
 
   std::any visitDataType(DataTypeCtx *ctx) override {
-    if (ctx->Int32())       return CactBasicType::Int32;
-    else if (ctx->Bool())   return CactBasicType::Bool;
-    else if (ctx->Float())  return CactBasicType::Float;
-    else if (ctx->Double()) return CactBasicType::Double;
+    startSemanticCheck("DataType");
+    if (ctx->Int32())       {std::cout << "Int32"  << std::endl; return CactBasicType::Int32; }
+    else if (ctx->Bool())   {std::cout << "Bool"   << std::endl; return CactBasicType::Bool;  }
+    else if (ctx->Float())  {std::cout << "Float"  << std::endl; return CactBasicType::Float; }
+    else if (ctx->Double()) {std::cout << "Double" << std::endl; return CactBasicType::Double;}
     else
       throw std::runtime_error("Invalid data type context");
-    std::cout << "visitDataType() syntax check completed." << std::endl;
+    completeSemanticCheck("DataType");
     return {};
   }
 
@@ -68,6 +82,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   }
 
   std::any visitConstantDefinition(ConstantDefinitionCtx *ctx) override {
+    startSemanticCheck("ConstantDefinition");
     // record name and type
     ctx->name = ctx->Identifier()->getText();
     ctx->constant.constInit(ctx->needType);
@@ -88,11 +103,12 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // register the constant
     currentScope.get()->registerVariable(ctx->name, ctx->constant);
 
-    std::cout << "visitConstantDefinition() syntax check completed." << std::endl;
+    completeSemanticCheck("ConstantDefinition");
     return {};
   }
 
   std::any visitConstantInitialValue(ConstantInitialValueCtx *ctx) override {
+    startSemanticCheck("ConstantInitialValue");
     // if it is a constant expression, check the value's type
     const uint32_t currentDim = ctx->currentDim;
     const CactType &type = ctx->type;
@@ -160,7 +176,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       }
 
     }
-    std::cout << "visitConstantInitialValue() syntax check completed." << std::endl;
+    completeSemanticCheck("ConstantInitialValue");
     return {};
   }
 
@@ -173,6 +189,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   // }
 
   std::any visitVariableDeclaration(VariableDeclarationCtx *ctx) override {
+    startSemanticCheck("VariableDeclaration");
     // record the basic type
     auto basicType = getDataType(ctx->dataType());
 
@@ -181,12 +198,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       varDef->needType = basicType;
       visit(varDef);
     }
-    std::cout << "visitVariableDeclaration() syntax check completed." << std::endl;
+    completeSemanticCheck("VariableDeclaration");
     return {};
   }
 
   // visit a variable definition
   std::any visitVariableDefinition(VariableDefinitionCtx *ctx) override {
+    startSemanticCheck("VariableDefinition");
     // record name and type
     ctx->name = ctx->Identifier()->getText();
     ctx->variable.varInit(ctx->needType);
@@ -212,15 +230,15 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // register the constant
     currentScope.get()->registerVariable(ctx->name, ctx->variable);
 
-    std::cout << "visitVariableDefinition() syntax check completed." << std::endl;
+    completeSemanticCheck("VariableDefinition");
     return {};
   }
 
   // enter a new scope
-  void enterScope(observer_ptr<Scope> scope) {
-    scope = this->registry.get()->newScope();
-    scope.get()->setParent(currentScope);
-    currentScope = scope;
+  void enterScope(observer_ptr<Scope> *scope) {
+    *scope = this->registry.get()->newScope();
+    scope->get()->setParent(currentScope);
+    currentScope = *scope;
   }
 
   // leave the current scope
@@ -230,8 +248,9 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
   // visit a function definition
   std::any visitFunctionDefinition(FunctionDefinitionCtx *ctx) override {
+    startSemanticCheck("FunctionDefinition");
     // create a new scope
-    enterScope(ctx->scope);
+    enterScope(&ctx->scope);
 
     // record the function's return data type and name 
     auto returnType = getFuncType(ctx->functionType());
@@ -246,10 +265,11 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     }
 
     // visit the block
+    ctx->block()->functionBlock = true;
     visit(ctx->block());
 
     leaveScope();
-    std::cout << "visitFunctionDefinition() syntax check completed." << std::endl;
+    completeSemanticCheck("FunctionDefinition");
     return {};
   }
 
@@ -259,6 +279,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   }
 
   std::any visitFunctionType(FunctionTypeCtx *ctx) override {
+    startSemanticCheck("FunctionType");
     if      (ctx->Void())   return CactBasicType::Void;
     else if (ctx->Int32())  return CactBasicType::Int32;
     else if (ctx->Bool())   return CactBasicType::Bool;
@@ -266,7 +287,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     else if (ctx->Double()) return CactBasicType::Double;
     else
       throw std::runtime_error("Invalid function type context");
-    std::cout << "visitFunctionType() syntax check completed." << std::endl;
+    completeSemanticCheck("FunctionType");
     return {};
   }
 
@@ -277,12 +298,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   // }
 
   std::any visitFunctionParameters(FunctionParametersCtx *ctx) override {
+    startSemanticCheck("FunctionParameters");
     auto func = ctx->function;
     for (auto &param : ctx->functionParameter()) {
       param->function = func;
       visit(param);
     }
-    std::cout << "visitFunctionParameters() syntax check completed." << std::endl;
+    completeSemanticCheck("FunctionParameters");
     return {};
   }
 
@@ -293,6 +315,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   // }
 
   std::any visitFunctionParameter(FunctionParameterCtx *ctx) override {
+    startSemanticCheck("FunctionParameter");
     // record basic type and name
     FuncParameter param;
     auto basicType = getDataType(ctx->dataType());
@@ -317,14 +340,16 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // register the parameter
     currentScope.get()->registerVariable(param.name, param.paramVar);
 
-    std::cout << "visitFunctionParameter() syntax check completed." << std::endl;
+    completeSemanticCheck("FunctionParameter");
     return {};
   }
 
   // visit a block
   std::any visitBlock(BlockCtx *ctx) override {
-    // create a new scope
-    enterScope(ctx->scope);
+    startSemanticCheck("Block");
+    // create a new scope if it is not a function block
+    if (!ctx->functionBlock)
+      enterScope(&ctx->scope);
 
     ctx->hasReturn = false;
     // visit all block items
@@ -334,18 +359,20 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
         ctx->hasReturn = true;
     }
 
-    leaveScope();
-    std::cout << "visitBlock() syntax check completed." << std::endl;
+    if (!ctx->functionBlock)
+      leaveScope();
+    completeSemanticCheck("Block");
     return {};
   }
 
   // visit a blockItem
   std::any visitBlockItem(BlockItemCtx *ctx) override {
-    ctx->hasReturn = false;
+    startSemanticCheck("BlockItem");
 
     // visit the declaration
     if (ctx->declaration()) {
       visit(ctx->declaration());
+      ctx->hasReturn = false;
     }
     // visit the statement
     else {
@@ -353,12 +380,18 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       ctx->hasReturn = ctx->statement()->hasReturn;
     }
 
-    std::cout << "visitBlockItem() syntax check completed." << std::endl;
+    completeSemanticCheck("BlockItem");
     return {};
   }
 
   // visitting a statement
   std::any visitStatement(StatementCtx *ctx) override {
+    startSemanticCheck("Statement");
+
+    // if it has a block as a child, set its functionBlock to false
+    if (ctx->block())
+      ctx->block()->functionBlock = false;
+
     // visit children[0] since statement has only one child
     visit(ctx->children[0]);
 
@@ -369,14 +402,16 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       ctx->hasReturn = ctx->ifStatement()->hasReturn;
     else if (ctx->returnStatement())
       ctx->hasReturn = true;
-    else
+    else // others
       ctx->hasReturn = false;
-    std::cout << "visitStatement() syntax check completed." << std::endl;
+
+    completeSemanticCheck("Statement");
     return {};
   }
 
   // visit a assign statement
   std::any visitAssignStatement(AssignStatementCtx *ctx) override {
+    startSemanticCheck("AssignStatement");
     LeftValueCtx *leftValue = ctx->leftValue();
     ExpressionCtx *expression = ctx->expression();
 
@@ -390,7 +425,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     if (leftValue->type != expression->type)
       throw std::runtime_error("Type mismatch in assignment");
 
-    std::cout << "visitAssignStatement() syntax check completed." << std::endl;
+    completeSemanticCheck("AssignStatement");
     return {};
   }
 
@@ -398,6 +433,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
   // visit a return statement
   std::any visitReturnStatement(ReturnStatementCtx *ctx) override {
+    startSemanticCheck("ReturnStatement");
     // visit the expression
     auto expr = ctx->expression();
     visit(expr);
@@ -415,12 +451,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // record function for return statement
     ctx->retFunction = currentFunction;
 
-    std::cout << "visitReturnStatement() syntax check completed." << std::endl;
+    completeSemanticCheck("ReturnStatement");
     return {};
   }
 
   // visit a if statement
   std::any visitIfStatement(IfStatementCtx *ctx) override {
+    startSemanticCheck("IfStatement");
     // visit the condition
     visit(ctx->condition());
 
@@ -435,12 +472,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       ctx->hasReturn = ctx->hasReturn && ctx->statement(1)->hasReturn;
     }
 
-    std::cout << "visitIfStatement() syntax check completed." << std::endl;
+    completeSemanticCheck("IfStatement");
     return {};
   }
 
   // visit while statement
   std::any visitWhileStatement(WhileStatementCtx *ctx) override {
+    startSemanticCheck("WhileStatement");
     // visit the condition
     visit(ctx->condition());
 
@@ -449,12 +487,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     visit(ctx->statement());
     whileLoopStack.pop();
 
-    std::cout << "visitWhileStatement() syntax check completed." << std::endl;
+    completeSemanticCheck("WhileStatement");
     return {};
   }
 
   // visit break statement
   std::any visitBreakStatement(BreakStatementCtx *ctx) override {
+    startSemanticCheck("BreakStatement");
     // check if the break statement is in a loop
     if (whileLoopStack.empty())
       throw std::runtime_error("Break statement not in a loop");
@@ -462,12 +501,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // record the loop to break
     ctx->loopToBreak = whileLoopStack.top();
 
-    std::cout << "visitBreakStatement() syntax check completed." << std::endl;
+    completeSemanticCheck("BreakStatement");
     return {};
   }
 
   // visit continue statement
   std::any visitContinueStatement(ContinueStatementCtx *ctx) override {
+    startSemanticCheck("ContinueStatement");
     // check if the continue statement is in a loop
     if (whileLoopStack.empty())
       throw std::runtime_error("Continue statement not in a loop");
@@ -475,12 +515,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // record the loop to continue
     ctx->loopToContinue = whileLoopStack.top();
 
-    std::cout << "visitContinueStatement() syntax check completed." << std::endl;
+    completeSemanticCheck("ContinueStatement");
     return {};
   }
 
   // visit an expression
   std::any visitExpression(ExpressionCtx *ctx) override {
+    startSemanticCheck("Expression");
     // visit the expression
     if (ctx->addExpression()) {
       visit(ctx->addExpression());
@@ -496,12 +537,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Unknown error in expression");
     }
 
-    std::cout << "visitExpression() syntax check completed." << std::endl;
+    completeSemanticCheck("Expression");
     return {};
   }
 
   // visit a constant expression
   std::any visitConstantExpression(ConstantExpressionCtx *ctx) override {
+    startSemanticCheck("ConstantExpression");
     // visit the expression
     if (ctx->number()) {
       visit(ctx->number());
@@ -516,7 +558,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Unknown error in expression");
     }
 
-    std::cout << "visitConstantExpression() syntax check completed." << std::endl;
+    completeSemanticCheck("ConstantExpression");
     return {};
   }
 
@@ -524,6 +566,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
   // visit a left value
   std::any visitLeftValue(LeftValueCtx *ctx) override {
+    startSemanticCheck("LeftValue");
     // record the name of lvalue, and find corresponding variable
     auto name = ctx->Identifier()->getText();
     auto var = currentScope.get()->variable(name); // if not declared, throw an error in variable()
@@ -544,12 +587,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     ctx->type.arrayDims.erase(ctx->type.arrayDims.begin(), ctx->type.arrayDims.begin() + count);
     ctx->validLeftValue = var.isValidLValue();
 
-    std::cout << "visitLeftValue() syntax check completed." << std::endl;
+    completeSemanticCheck("LeftValue");
     return {};
   }
 
   // visit primary expression
   std::any visitPrimaryExpression(PrimaryExpressionCtx *ctx) override {
+    startSemanticCheck("PrimaryExpression");
     // visit the expression
     if (ctx->expression()) {
       visit(ctx->expression());
@@ -569,12 +613,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Unknown error in primary expression");
     }
 
-    std::cout << "visitPrimaryExpression() syntax check completed." << std::endl;
+    completeSemanticCheck("PrimaryExpression");
     return {};
   }
 
   // visit a number
   std::any visitNumber(NumberCtx *ctx) override {
+    startSemanticCheck("Number");
     // record the number
     auto text = ctx->getText();
     if (ctx->IntegerConstant()) {
@@ -590,12 +635,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Unknown error in number");
     }
 
-    std::cout << "visitNumber() syntax check completed." << std::endl;
+    completeSemanticCheck("Number");
     return {};
   }
 
   // visit a unary expression
   std::any visitUnaryExpression(UnaryExpressionCtx *ctx) override {
+    startSemanticCheck("UnaryExpression");
     auto primary = ctx->primaryExpression();
     auto unary = ctx->unaryExpression();
 
@@ -642,12 +688,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Unknown error in unary expression");
     }
 
-    std::cout << "visitUnaryExpression() syntax check completed." << std::endl;
+    completeSemanticCheck("UnaryExpression");
     return {};
   }
 
   // visit a "function arguments"
   std::any visitFunctionArguments(FunctionArgumentsCtx *ctx) override {
+    startSemanticCheck("FunctionArguments");
     std::size_t numExpr = ctx->expression().size();
     std::size_t numParams = ctx->needParams.size();
 
@@ -667,12 +714,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
         throw std::runtime_error("Function argument type mismatch");
     }
 
-    std::cout << "visitFunctionArguments() syntax check completed." << std::endl;
+    completeSemanticCheck("FunctionArguments");
     return {};
   }
 
   // visit a multiplicative expression
   std::any visitMulExpression(MulExpressionCtx *ctx) override {
+    startSemanticCheck("MulExpression");
     auto unary = ctx->unaryExpression();
     auto mul = ctx->mulExpression();
 
@@ -703,12 +751,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Unknown error in multiplicative expression");
     }
 
-    std::cout << "visitMulExpression() syntax check completed." << std::endl;
+    completeSemanticCheck("MulExpression");
     return {};
   }
 
   // visit an additive expression
   std::any visitAddExpression(AddExpressionCtx *ctx) override {
+    startSemanticCheck("AddExpression");
     auto add = ctx->addExpression();
     auto mul = ctx->mulExpression();
 
@@ -737,12 +786,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Unknown error in additive expression");
     }
 
-    std::cout << "visitAddExpression() syntax check completed." << std::endl;
+    completeSemanticCheck("AddExpression");
     return {};
   }
 
   // visit a relational expression
   std::any visitRelationalExpression(RelationalExpressionCtx *ctx) override {
+    startSemanticCheck("RelationalExpression");
     auto add = ctx->addExpression();
 
     // -> addExpression
@@ -774,12 +824,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Unknown error in relational expression");
     }
 
-    std::cout << "visitRelationalExpression() syntax check completed." << std::endl;
+    completeSemanticCheck("RelationalExpression");
     return {};
   }
 
   // visit a logical equal expression
   std::any visitLogicalEqualExpression(LogicalEqualExpressionCtx *ctx) override {
+    startSemanticCheck("LogicalEqualExpression");
     auto relational = ctx->relationalExpression();
 
     // -> relationalExpression
@@ -808,12 +859,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Unknown error in logical equal expression");
     }
 
-    std::cout << "visitLogicalEqualExpression() syntax check completed." << std::endl;
+    completeSemanticCheck("LogicalEqualExpression");
     return {};
   }
 
   // visit a logical and expression
   std::any visitLogicalAndExpression(LogicalAndExpressionCtx *ctx) override {
+    startSemanticCheck("LogicalAndExpression");
     auto logicalEqual = ctx->logicalEqualExpression();
     auto logicalAnd = ctx->logicalAndExpression();
 
@@ -833,12 +885,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Unknown error in logical and expression");
     }
 
-    std::cout << "visitLogicalAndExpression() syntax check completed." << std::endl;
+    completeSemanticCheck("LogicalAndExpression");
     return {};
   }
 
   // visit a logical or expression
   std::any visitLogicalOrExpression(LogicalOrExpressionCtx *ctx) override {
+    startSemanticCheck("LogicalOrExpression");
     auto logicalAnd = ctx->logicalAndExpression();
     auto logicalOr = ctx->logicalOrExpression();
 
@@ -858,7 +911,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("Unknown error in logical or expression");
     }
 
-    std::cout << "visitLogicalOrExpression() syntax check completed." << std::endl;
+    completeSemanticCheck("LogicalOrExpression");
     return {};
   }
 
