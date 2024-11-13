@@ -1,8 +1,8 @@
 //
 // Created by creeper on 8/15/24.
 //
-#include <cact-front-end/type-check-and-const-eval.h>
-#include <cact-front-end/cact-variable.h>
+// #include <cact-front-end/type-check-and-const-eval.h>
+#include <cact-front-end/cact-constant-variable.h>
 #include <memory>
 namespace cactfrontend {
 

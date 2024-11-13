@@ -2,8 +2,8 @@
 // Created by creeper on 8/16/24.
 //
 
-#ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_LUT_H_
-#define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_LUT_H_
+#ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_REGISTRY_H_
+#define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_REGISTRY_H_
 #include <ranges>
 #include <vector>
 #include <map>
@@ -19,9 +19,11 @@ struct SymbolRegistry;
 // A scope in the symbol table
 struct Scope {
   std::string name; // the name of a function scope (if any)
-
   // register a variable in the scope
   void registerVariable(const std::string &name, const CactConstVar &symbol) {
+    // check if variable with same name is already in the scope
+    if (variableID.contains(name))
+      throw std::runtime_error("Redeclaration of variable: " + name);
     variables.emplace_back(symbol);
     variableID.insert({name, variables.size() - 1});
   }
@@ -94,6 +96,10 @@ struct SymbolRegistry {
 
   // create a new function
   observer_ptr<CactFunction> newFunction(std::string &name, CactBasicType returnType) {
+    // check if function with same name is already in the scope
+    if (functionID.contains(name))
+      throw std::runtime_error("Function: " + name + " cannot be overloaded");
+
     functions.push_back(std::make_unique<CactFunction>());
     functionID.insert({name, functions.size() - 1});
 
@@ -117,4 +123,4 @@ private:
 };
 
 }
-#endif //CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_LUT_H_
+#endif //CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_REGISTRY_H_

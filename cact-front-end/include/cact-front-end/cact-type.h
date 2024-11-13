@@ -87,12 +87,6 @@ struct CactType {
     return this->basicType == CactBasicType::Int32 && !isArray();
   }
 
-  // check if this type is a valid array index
-  [[nodiscard]]
-  bool validArrayIndex() const {
-    return this->basicType == CactBasicType::Int32 && !isArray();
-  }
-
   // return the dimension of the array
   [[nodiscard]]
   uint32_t dim() const {
