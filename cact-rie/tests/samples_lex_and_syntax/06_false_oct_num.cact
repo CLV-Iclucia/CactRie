@@ -1,5 +1,0 @@
-int main()
-{
-	int k = 0129;
-	return 0;
-}

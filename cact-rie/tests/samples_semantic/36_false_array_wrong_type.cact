@@ -1,8 +1,0 @@
-float a[2][3] = {
-    { 3.0f, -2.235E-3  }, {}
-};
-
-int main(){
-    print_float(a[1][0]);
-    return 0;
-}

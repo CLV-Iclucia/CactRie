@@ -1,7 +1,0 @@
-int main(){
-    int b;
-    b = a;
-    const int a = 0;
-    return b;
-}
-

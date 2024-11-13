@@ -13,3 +13,4 @@ chiisai-llvm/CMakeFiles
 chiisai-llvm/src/autogen
 chiisai-llvm/cmake_install.cmake
 chiisai-llvm/Makefile
+gen/
