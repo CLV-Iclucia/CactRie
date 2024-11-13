@@ -17,5 +17,11 @@ struct RAII {
   RAII(RAII &&) = delete;
 };
 
+struct Executor;
+struct Executable {
+  virtual void accept(Executor &executor) = 0;
+  virtual ~Executable() = default;
+};
+
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_PROPERTIES_H

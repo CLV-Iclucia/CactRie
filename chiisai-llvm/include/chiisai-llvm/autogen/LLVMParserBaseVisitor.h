@@ -169,6 +169,14 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitTerminatorInstruction(LLVMParser::TerminatorInstructionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitGepInstruction(LLVMParser::GepInstructionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
 
 };
 

@@ -5,12 +5,14 @@
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_BASIC_BLOCK_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_BASIC_BLOCK_H
 #include <chiisai-llvm/value.h>
+#include <chiisai-llvm/properties.h>
 namespace llvm {
 
 struct Module;
 struct Instruction;
 struct Function;
-struct BasicBlock {
+struct InstTransformer;
+struct BasicBlock : Executable {
   explicit BasicBlock(std::string name) : m_name(std::move(name)) {}
 
   template<typename Func> requires std::invocable<Func, Ref<Instruction>>
@@ -51,6 +53,7 @@ struct BasicBlock {
   BasicBlock& addInstruction(std::unique_ptr<Instruction>&& instruction);
 
   mystl::poly_list<Instruction> instructions;
+  void accept(Executor &executor) override;
 private:
   std::string m_name;
   std::unordered_map<std::string, Ref<Value>> m_localResultMap{};

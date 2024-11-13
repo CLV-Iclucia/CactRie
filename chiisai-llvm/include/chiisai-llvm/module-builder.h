@@ -73,43 +73,26 @@ struct ModuleBuilder : public LLVMParserVisitor {
       visitLoadInstruction(ctx->loadInstruction());
     if (ctx->storeInstruction())
       visitStoreInstruction(ctx->storeInstruction());
-
+    if (ctx->gepInstruction())
+      visitGepInstruction(ctx->gepInstruction());
   }
 
   std::any visitLoadInstruction(LLVMParser::LoadInstructionContext *ctx) override;
 
   std::any visitStoreInstruction(LLVMParser::StoreInstructionContext *ctx) override;
 
-  std::any visitAllocaInstruction(LLVMParser::AllocaInstructionContext *ctx) override {
-    auto varType = ctx->type();
-    visitType(varType);
-    auto varName = variableName(ctx->localIdentifier());
-    if (auto arg = currentFunction->arg(varName)) {
-      // ERROR
-      throw std::runtime_error("Variable name already exists in the function arguments");
-    }
-    IRBuilder(currentBasicBlock).createAllocaInst(varName, varType->typeRef);
-    return {};
-  }
+  std::any visitAllocaInstruction(LLVMParser::AllocaInstructionContext *ctx) override;
+
   std::any visitArithmeticInstruction(LLVMParser::ArithmeticInstructionContext *ctx) override;
+
   std::any visitVariable(LLVMParser::VariableContext *ctx) override {
     ctx->isGlobal = ctx->globalIdentifier() != nullptr;
     return {};
   }
-  std::any visitValue(LLVMParser::ValueContext *ctx) override {
-    auto var = ctx->variable();
-    auto number = ctx->number();
-    if (var) {
-      visitVariable(var);
-      ctx->isConstant = false;
-      ctx->isGlobal = var->isGlobal;
-    } else if (number) {
-      visitNumber(number);
-      ctx->isConstant = true;
-    } else
-      throw std::runtime_error("Value must be either a variable or a number");
-    return {};
-  }
+
+  std::any visitValue(LLVMParser::ValueContext *ctx) override;
+
+  std::any visitGepInstruction(LLVMParser::GepInstructionContext *ctx) override;
   std::unique_ptr<Module> module{};
   std::unique_ptr<LLVMContext> llvmContext{};
   Ref<Function> currentFunction{};
@@ -118,7 +101,7 @@ private:
   Ref<Value> resolveValueUsage(LLVMParser::ValueContext *ctx);
   template <typename T>
   std::string variableName(T* ctx) {
-    return ctx->getText().substr(1);
+    return ctx->getText();
   }
 };
 }

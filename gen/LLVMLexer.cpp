@@ -1,5 +1,5 @@
 
-// Generated from ./grammar/LLVMLexer.g4 by ANTLR 4.13.1
+// Generated from /home/creeper/CLionProjects/CactRie/chiisai-llvm/grammar/LLVMLexer.g4 by ANTLR 4.13.2
 
 
 #include "LLVMLexer.h"
@@ -7,7 +7,6 @@
 
 using namespace antlr4;
 
-using namespace llvm;
 
 
 using namespace antlr4;
@@ -46,7 +45,7 @@ struct LLVMLexerStaticData final {
 #if ANTLR4_USE_THREAD_LOCAL_CACHE
 static thread_local
 #endif
-LLVMLexerStaticData *llvmlexerLexerStaticData = nullptr;
+std::unique_ptr<LLVMLexerStaticData> llvmlexerLexerStaticData = nullptr;
 
 void llvmlexerLexerInitialize() {
 #if ANTLR4_USE_THREAD_LOCAL_CACHE
@@ -248,7 +247,7 @@ void llvmlexerLexerInitialize() {
   for (size_t i = 0; i < count; i++) { 
     staticData->decisionToDFA.emplace_back(staticData->atn->getDecisionState(i), i);
   }
-  llvmlexerLexerStaticData = staticData.release();
+  llvmlexerLexerStaticData = std::move(staticData);
 }
 
 }

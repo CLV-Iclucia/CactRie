@@ -10,49 +10,73 @@
 namespace llvm {
 
 struct IRBuilder {
-  explicit IRBuilder(Ref<BasicBlock> basicBlock) : basicBlock(basicBlock) {}
+  explicit IRBuilder(BasicBlock &basicBlock) : basicBlock(basicBlock) {}
 
-  CRef<AllocaInst> createAllocaInst(const std::string& name, CRef<Type> type) {
-    auto& function = basicBlock->function();
-    auto allocaInst = std::make_unique<AllocaInst>(name, type, basicBlock);
-    auto instRef = mystl::make_observer(allocaInst.get());
+  CRef<AllocaInst> createAllocaInst(const AllocaInstDetails& details) {
+    auto &function = basicBlock.function();
+    auto allocaInst = std::make_unique<AllocaInst>(basicBlock, details);
+    auto instRef = ref(*allocaInst);
     function.addLocalVar(instRef);
-    basicBlock->addInstruction(std::move(allocaInst));
+    basicBlock.addInstruction(std::move(allocaInst));
     return instRef;
   }
 
-  CRef<BinaryInst> createBinaryInst(uint8_t op, const BinaryInstDetails& details) {
+  CRef<BinaryInst> createBinaryInst(uint8_t op, const BinaryInstDetails &details) {
     auto binaryInst = std::make_unique<BinaryInst>(op, basicBlock, details);
-    auto instRef = mystl::make_observer(binaryInst.get());
-    basicBlock->addInstruction(std::move(binaryInst));
+    auto instRef = ref(*binaryInst);
+    basicBlock.addInstruction(std::move(binaryInst));
     addUse(instRef, instRef->lhs);
     addUse(instRef, instRef->rhs);
     return instRef;
   }
 
-  CRef<PhiInst> createPhiInst(const PhiInstDetails& details) {
+  CRef<PhiInst> createPhiInst(const PhiInstDetails &details) {
     auto phiInst = std::make_unique<PhiInst>(basicBlock, details);
-    auto instRef = mystl::make_observer(phiInst.get());
-    basicBlock->addInstruction(std::move(phiInst));
-    for (auto& [bb, value] : details.incomingValues)
+    auto instRef = ref(*phiInst);
+    basicBlock.addInstruction(std::move(phiInst));
+    for (auto &[bb, value] : details.incomingValues)
       addUse(instRef, value);
     return instRef;
   }
 
-  CRef<CmpInst> createCmpInst(uint8_t op, const CmpInstDetails& details) {
+  CRef<CmpInst> createCmpInst(uint8_t op, const CmpInstDetails &details) {
     auto cmpInst = std::make_unique<CmpInst>(op, basicBlock, details);
-    auto instRef = mystl::make_observer(cmpInst.get());
-    basicBlock->addInstruction(std::move(cmpInst));
+    auto instRef = ref(*cmpInst);
+    basicBlock.addInstruction(std::move(cmpInst));
     addUse(instRef, instRef->lhs);
     addUse(instRef, instRef->rhs);
     return instRef;
   }
 
-  CRef<CallInst> createCallInst(const CallInstDetails& details) {
-
+  CRef<CallInst> createCallInst(const CallInstDetails &details) {
+    auto callInst = std::make_unique<CallInst>(basicBlock, details);
+    auto instRef = ref(*callInst);
+    basicBlock.addInstruction(std::move(callInst));
+    for (const auto &arg : instRef->realArgs)
+      addUse(instRef, basicBlock.function().arg(arg));
+    return instRef;
   }
+
+  CRef<GepInst> createGepInst(const GepInstDetails &details) {
+    auto gepInst = std::make_unique<GepInst>(basicBlock, details);
+    auto instRef = ref(*gepInst);
+    basicBlock.addInstruction(std::move(gepInst));
+    addUse(instRef, instRef->pointer);
+    for (auto &index : instRef->indices)
+      addUse(instRef, index);
+    return instRef;
+  }
+
+  CRef<LoadInst> createLoadInst(const MemInstDetails &details) {
+    auto loadInst = std::make_unique<LoadInst>(basicBlock, details);
+    auto instRef = ref(*loadInst);
+    basicBlock.addInstruction(std::move(loadInst));
+    addUse(instRef, instRef->pointer);
+    return instRef;
+  }
+
 private:
-  Ref<BasicBlock> basicBlock;
+  BasicBlock &basicBlock;
 };
 
 }

@@ -3,7 +3,7 @@
 //
 #include <chiisai-llvm/user.h>
 #include <minilog/logger.h>
-#include "chiisai-llvm/value.h"
+#include <chiisai-llvm/value.h>
 
 namespace llvm {
 void addUse(Ref<User> user, Ref<Value> value) {

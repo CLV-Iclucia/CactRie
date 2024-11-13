@@ -104,21 +104,21 @@ basicBlock
 instruction
   locals [
       std::unique_ptr<Instruction> inst,
-]: returnInstruction
-    | branchInstruction
-    | callInstruction
+]:  callInstruction
     | arithmeticInstruction
     | loadInstruction
     | storeInstruction
     | phiInstruction
     | comparisonInstruction
     | allocaInstruction
+    | terminatorInstruction
+    | gepInstruction
     ;
 
 returnInstruction: Ret type value?;
 
-branchInstruction: Br I1 value Comma Label unamedIdentifier Comma Label unamedIdentifier
-                | Br Label unamedIdentifier;
+branchInstruction: Br I1 variable Comma Label localVariable Comma Label localVariable
+                | Br Label localVariable;
 
 callInstruction: (unamedIdentifier Equals)? Call type globalIdentifier functionArguments;
 
@@ -147,7 +147,7 @@ comparisonInstruction
     ;
 
 allocaInstruction
-    : localIdentifier Equals Alloca type
+    : localIdentifier Equals Alloca type (Comma IntegerLiteral)? (Comma Align IntegerLiteral)?
     ;
 
 binaryOperation
@@ -156,4 +156,13 @@ binaryOperation
 
 comparisonPredicate
     : Eq | Ne | Ugt | Uge | Ult | Ule | Sgt | Sge | Slt | Sle
+    ;
+
+terminatorInstruction
+    : returnInstruction
+    | branchInstruction
+    ;
+
+gepInstruction
+    : unamedIdentifier Equals GetElementPtr type Comma type Asterisk variable Comma value (Comma value)*
     ;

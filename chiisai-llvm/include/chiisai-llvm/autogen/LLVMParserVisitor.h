@@ -100,6 +100,10 @@ public:
 
     virtual std::any visitComparisonPredicate(LLVMParser::ComparisonPredicateContext *context) = 0;
 
+    virtual std::any visitTerminatorInstruction(LLVMParser::TerminatorInstructionContext *context) = 0;
+
+    virtual std::any visitGepInstruction(LLVMParser::GepInstructionContext *context) = 0;
+
 
 };
 

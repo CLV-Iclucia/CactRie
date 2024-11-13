@@ -66,7 +66,7 @@ Percent: '%';
 Asterisk: '*';
 Colon: ':';
 Cross: 'x';
-
+GetElementPtr: 'getelementptr';
 
 NumericIdentifier: [0-9]+;
 NamedIdentifier: [a-zA-Z_][a-zA-Z0-9_]*;

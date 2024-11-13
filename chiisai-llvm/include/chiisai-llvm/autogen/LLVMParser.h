@@ -30,8 +30,8 @@ public:
     Sgt = 42, Sge = 43, Slt = 44, Sle = 45, Equals = 46, Comma = 47, LeftParen = 48, 
     RightParen = 49, LeftBrace = 50, RightBrace = 51, LeftBracket = 52, 
     RightBracket = 53, At = 54, Percent = 55, Asterisk = 56, Colon = 57, 
-    Cross = 58, NumericIdentifier = 59, NamedIdentifier = 60, IntegerLiteral = 61, 
-    FloatLiteral = 62, Whitespace = 63, Comment = 64
+    Cross = 58, GetElementPtr = 59, NumericIdentifier = 60, NamedIdentifier = 61, 
+    IntegerLiteral = 62, FloatLiteral = 63, Whitespace = 64, Comment = 65
   };
 
   enum {
@@ -45,7 +45,8 @@ public:
     RuleBranchInstruction = 24, RuleCallInstruction = 25, RuleArithmeticInstruction = 26, 
     RuleLoadInstruction = 27, RuleStoreInstruction = 28, RulePhiInstruction = 29, 
     RulePhiValue = 30, RuleComparisonOperation = 31, RuleComparisonInstruction = 32, 
-    RuleAllocaInstruction = 33, RuleBinaryOperation = 34, RuleComparisonPredicate = 35
+    RuleAllocaInstruction = 33, RuleBinaryOperation = 34, RuleComparisonPredicate = 35, 
+    RuleTerminatorInstruction = 36, RuleGepInstruction = 37
   };
 
   explicit LLVMParser(antlr4::TokenStream *input);
@@ -100,7 +101,9 @@ public:
   class ComparisonInstructionContext;
   class AllocaInstructionContext;
   class BinaryOperationContext;
-  class ComparisonPredicateContext; 
+  class ComparisonPredicateContext;
+  class TerminatorInstructionContext;
+  class GepInstructionContext; 
 
   class  ScalarTypeContext : public antlr4::ParserRuleContext {
   public:
@@ -470,8 +473,6 @@ public:
     std::unique_ptr<Instruction> inst;
     InstructionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    ReturnInstructionContext *returnInstruction();
-    BranchInstructionContext *branchInstruction();
     CallInstructionContext *callInstruction();
     ArithmeticInstructionContext *arithmeticInstruction();
     LoadInstructionContext *loadInstruction();
@@ -479,6 +480,8 @@ public:
     PhiInstructionContext *phiInstruction();
     ComparisonInstructionContext *comparisonInstruction();
     AllocaInstructionContext *allocaInstruction();
+    TerminatorInstructionContext *terminatorInstruction();
+    GepInstructionContext *gepInstruction();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -508,13 +511,13 @@ public:
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *Br();
     antlr4::tree::TerminalNode *I1();
-    ValueContext *value();
+    VariableContext *variable();
     std::vector<antlr4::tree::TerminalNode *> Comma();
     antlr4::tree::TerminalNode* Comma(size_t i);
     std::vector<antlr4::tree::TerminalNode *> Label();
     antlr4::tree::TerminalNode* Label(size_t i);
-    std::vector<UnamedIdentifierContext *> unamedIdentifier();
-    UnamedIdentifierContext* unamedIdentifier(size_t i);
+    std::vector<LocalVariableContext *> localVariable();
+    LocalVariableContext* localVariable(size_t i);
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -682,6 +685,11 @@ public:
     antlr4::tree::TerminalNode *Equals();
     antlr4::tree::TerminalNode *Alloca();
     TypeContext *type();
+    std::vector<antlr4::tree::TerminalNode *> Comma();
+    antlr4::tree::TerminalNode* Comma(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> IntegerLiteral();
+    antlr4::tree::TerminalNode* IntegerLiteral(size_t i);
+    antlr4::tree::TerminalNode *Align();
 
 
     virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -727,6 +735,43 @@ public:
   };
 
   ComparisonPredicateContext* comparisonPredicate();
+
+  class  TerminatorInstructionContext : public antlr4::ParserRuleContext {
+  public:
+    TerminatorInstructionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    ReturnInstructionContext *returnInstruction();
+    BranchInstructionContext *branchInstruction();
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  TerminatorInstructionContext* terminatorInstruction();
+
+  class  GepInstructionContext : public antlr4::ParserRuleContext {
+  public:
+    GepInstructionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    UnamedIdentifierContext *unamedIdentifier();
+    antlr4::tree::TerminalNode *Equals();
+    antlr4::tree::TerminalNode *GetElementPtr();
+    std::vector<TypeContext *> type();
+    TypeContext* type(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> Comma();
+    antlr4::tree::TerminalNode* Comma(size_t i);
+    antlr4::tree::TerminalNode *Asterisk();
+    VariableContext *variable();
+    std::vector<ValueContext *> value();
+    ValueContext* value(size_t i);
+
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  GepInstructionContext* gepInstruction();
 
 
   bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;

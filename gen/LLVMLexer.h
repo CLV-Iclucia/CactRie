@@ -1,5 +1,5 @@
 
-// Generated from ./grammar/LLVMLexer.g4 by ANTLR 4.13.1
+// Generated from /home/creeper/CLionProjects/CactRie/chiisai-llvm/grammar/LLVMLexer.g4 by ANTLR 4.13.2
 
 #pragma once
 
@@ -7,7 +7,6 @@
 #include "antlr4-runtime.h"
 
 
-namespace llvm {
 
 
 class  LLVMLexer : public antlr4::Lexer {
@@ -58,4 +57,3 @@ private:
 
 };
 
-}  // namespace llvm

@@ -12,6 +12,7 @@ namespace llvm {
 
 std::any llvm::ModuleBuilder::visitModule(LLVMParser::ModuleContext *ctx) {
   llvmContext = std::make_unique<LLVMContext>();
+  module = std::make_unique<Module>();
   return {};
 }
 
@@ -74,6 +75,12 @@ static std::vector<CRef<Type>> formContainedTypes(CRef<Type> returnType, std::ve
 std::any ModuleBuilder::visitFunctionDefinition(LLVMParser::FunctionDefinitionContext *ctx) {
   auto returnTypeCtx = ctx->type();
   auto funcName = ctx->globalIdentifier()->NamedIdentifier()->getText();
+
+  if (module->hasFunction(funcName))
+    throw std::runtime_error("Function name already exists in the module");
+  if (module->hasGlobalVar(funcName))
+    throw std::runtime_error("Global variable name already exists in the module");
+
   visitType(returnTypeCtx);
   auto returnType = returnTypeCtx->typeRef;
   auto args = ctx->functionArguments();
@@ -95,10 +102,8 @@ std::any ModuleBuilder::visitFunctionDefinition(LLVMParser::FunctionDefinitionCo
 std::any ModuleBuilder::visitBasicBlock(LLVMParser::BasicBlockContext *ctx) {
   ctx->basicBlockInstance = std::make_unique<BasicBlock>(ctx->Label()->getText());
   const auto &instructions = ctx->instruction();
-  for (auto inst : instructions) {
+  for (auto inst : instructions)
     visitInstruction(inst);
-
-  }
   return {};
 }
 
@@ -135,13 +140,13 @@ std::any ModuleBuilder::visitArithmeticInstruction(LLVMParser::ArithmeticInstruc
     throw std::runtime_error("Binary instruction operands must have the same type");
 
   auto opcode = stoinst(ctx->binaryOperation()->getText());
-  IRBuilder(currentBasicBlock).createBinaryInst(opcode,
-                                                {
-                                                    .name = lhsName,
-                                                    .type = operandLeftRef->type(),
-                                                    .lhs = operandLeftRef,
-                                                    .rhs = operandRightRef,
-                                                });
+  IRBuilder(*currentBasicBlock).createBinaryInst(opcode,
+                                                 {
+                                                     .name = lhsName,
+                                                     .type = operandLeftRef->type(),
+                                                     .lhs = operandLeftRef,
+                                                     .rhs = operandRightRef,
+                                                 });
 
   return {};
 }
@@ -151,7 +156,7 @@ std::any ModuleBuilder::visitComparisonInstruction(LLVMParser::ComparisonInstruc
   auto predicateStr = ctx->comparisonPredicate()->getText();
   auto lhsRef = resolveValueUsage(ctx->value(0));
   auto rhsRef = resolveValueUsage(ctx->value(1));
-  IRBuilder(currentBasicBlock).createCmpInst(stoinst(cmpOp), {
+  IRBuilder(*currentBasicBlock).createCmpInst(stoinst(cmpOp), {
       .ctx = *llvmContext,
       .name = ctx->unamedIdentifier()->getText(),
       .lhs = lhsRef,
@@ -162,20 +167,84 @@ std::any ModuleBuilder::visitComparisonInstruction(LLVMParser::ComparisonInstruc
 }
 
 std::any ModuleBuilder::visitLoadInstruction(LLVMParser::LoadInstructionContext *ctx) {
-  auto loadVal = ctx->unamedIdentifier();
-  visitUnamedIdentifier(loadVal);
-  auto loadValName = variableName(loadVal);
+  auto dest = ctx->unamedIdentifier();
+  visitUnamedIdentifier(dest);
+  auto destName = variableName(dest);
 
-  if (currentFunction->localVar(loadValName))
+  if (currentFunction->localVar(destName))
     throw std::runtime_error("Variable name already exists in the function locals");
-  if (currentFunction->arg(loadValName))
+  if (currentFunction->arg(destName))
     throw std::runtime_error("Variable name already exists in the function arguments");
 
-  auto val = resolveValueUsage(ctx->variable());
+  auto src = resolveValueUsage(ctx->variable());
+  IRBuilder(*currentBasicBlock).createLoadInst({
+                                                   .name = destName,
+                                                   .type = src->type(),
+                                                   .pointer = src
+                                               });
 }
 
 std::any ModuleBuilder::visitStoreInstruction(LLVMParser::StoreInstructionContext *ctx) {
 
 }
 
+std::any ModuleBuilder::visitAllocaInstruction(LLVMParser::AllocaInstructionContext *ctx) {
+  auto varType = ctx->type();
+  visitType(varType);
+  auto varName = variableName(ctx->localIdentifier());
+  int hasAlign = ctx->Align() != nullptr;
+  // ctx should have hasAlign integer literals, if there is more, it should have size
+  int hasSize = ctx->IntegerLiteral().size() > hasAlign;
+  size_t size = hasSize ? std::stoul(ctx->IntegerLiteral(0)->getText()) : 1;
+  // 0 means no alignment required
+  size_t alignment = hasAlign ? std::stoul(ctx->IntegerLiteral().back()->getText()) : 0;
+  if (auto arg = currentFunction->arg(varName)) {
+    // ERROR
+    throw std::runtime_error("Variable name already exists in the function arguments");
+  }
+  IRBuilder(*currentBasicBlock).createAllocaInst({
+                                                     .name = varName,
+                                                     .type = varType->typeRef,
+                                                     .size = size,
+                                                     .alignment = alignment
+                                                 });
+  return {};
+}
+std::any ModuleBuilder::visitValue(LLVMParser::ValueContext *ctx) {
+  auto var = ctx->variable();
+  auto number = ctx->number();
+  if (var) {
+    visitVariable(var);
+    ctx->isConstant = false;
+    ctx->isGlobal = var->isGlobal;
+  } else if (number) {
+    visitNumber(number);
+    ctx->isConstant = true;
+  } else
+    throw std::runtime_error("Value must be either a variable or a number");
+  return {};
+}
+
+std::any ModuleBuilder::visitGepInstruction(LLVMParser::GepInstructionContext *ctx) {
+  auto gepVal = ctx->unamedIdentifier();
+  visitUnamedIdentifier(gepVal);
+  auto gepValName = variableName(gepVal);
+  if (currentFunction->localVar(gepValName))
+    throw std::runtime_error("Variable name already exists in the function locals");
+  if (currentFunction->arg(gepValName))
+    throw std::runtime_error("Variable name already exists in the function arguments");
+  auto val = resolveValueUsage(ctx->variable());
+  auto indices = ctx->value();
+  std::vector<Ref<Value>> indicesRef;
+  indicesRef.reserve(indices.size());
+  for (auto index : indices)
+    indicesRef.push_back(resolveValueUsage(index));
+  IRBuilder(*currentBasicBlock).createGepInst({
+                                                  .name = gepValName,
+                                                  .type = val->type(),
+                                                  .val = val,
+                                                  .indices = std::move(indicesRef)
+                                              });
+  return {};
+}
 }

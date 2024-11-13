@@ -13,22 +13,29 @@ namespace llvm {
 struct GlobalVariable;
 struct Function;
 
-struct Module {
+struct Module : Executable {
   [[nodiscard]] const std::string &name() const {
     return m_name;
   }
   mystl::manager_vector<GlobalVariable> globalVariables;
   mystl::manager_vector<Function> functions;
-  Ref<GlobalVariable> globalVariable(std::string_view name) {
-    return m_globalVariableMap[name];
+  Ref<GlobalVariable> globalVariable(const std::string& name) {
+    return m_globalVariableMap.at(name);
   }
-  Ref<Function> function(std::string_view name) {
-    return m_functionMap[name];
+  Ref<Function> function(const std::string& name) {
+    return m_functionMap.at(name);
+  }
+  bool hasFunction(const std::string& name) {
+    return m_functionMap.contains(name);
+  }
+  bool hasGlobalVar(const std::string& name) {
+    return m_globalVariableMap.contains(name);
   }
   Module& addFunction(std::unique_ptr<Function>&& function);
+  void accept(Executor &executor) override;
 private:
-  std::unordered_map<std::string_view, Ref<GlobalVariable>> m_globalVariableMap;
-  std::unordered_map<std::string_view, Ref<Function>> m_functionMap;
+  std::unordered_map<std::string, Ref<GlobalVariable>> m_globalVariableMap;
+  std::unordered_map<std::string, Ref<Function>> m_functionMap;
   std::string m_name;
 };
 
