@@ -3,6 +3,13 @@ cmake-*
 .vscode
 .vs
 deps/*.jar
-./cact-parser/grammar/*.tokens
-./cact-parser/grammar/*.interp
-./cact-rie/tests/*
+cact-front-end/grammar/*.tokens
+cact-front-end/grammar/*.interp
+cact-front-end/autogen
+cact-rie/tests/*
+build
+cact-front-end/grammar/.antlr
+chiisai-llvm/CMakeFiles
+chiisai-llvm/src/autogen
+chiisai-llvm/cmake_install.cmake
+chiisai-llvm/Makefile

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <fstream>
-#include <cact-parser/CactLexer.h>
-#include <cact-parser/CactParser.h>
-#include <cact-parser/cact-syntax-error-listener.h>
+#include <cact-front-end/CactLexer.h>
+#include <cact-front-end/CactParser.h>
+#include <cact-front-end/cact-syntax-error-listener.h>
 #include <antlr-runtime/ANTLRInputStream.h>
 #include <antlr-runtime/CommonTokenStream.h>
 
@@ -17,16 +17,24 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   antlr4::ANTLRInputStream input(stream);
-  cactparser::CactLexer lexer(&input);
+  cactfrontend::CactLexer lexer(&input);
   antlr4::CommonTokenStream tokens(&lexer);
-  cactparser::CactParser parser(&tokens);
+  cactfrontend::CactParser parser(&tokens);
   lexer.removeErrorListeners();
   parser.removeErrorListeners();
-  cactparser::CactSyntaxErrorListener cact_error_listener(argv[1]);
+  cactfrontend::CactSyntaxErrorListener cact_error_listener(argv[1]);
   lexer.addErrorListener(&cact_error_listener);
   parser.addErrorListener(&cact_error_listener);
   try {
     antlr4::tree::ParseTree *tree = parser.compilationUnit();
+
+    // print the parse tree
+    std::cout << tree->toStringTree(&parser) << std::endl;
+
+    // call function to check if there is any static syntax error
+    // auto *root = ;
+
+    
     if (cact_error_listener.hasSyntaxError()) {
       std::cerr << "Syntax error(s) found in the source file. Compilation failed." << std::endl;
       return 1;
