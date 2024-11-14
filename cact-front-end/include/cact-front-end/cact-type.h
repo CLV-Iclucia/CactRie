@@ -6,7 +6,7 @@
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_TYPE_H_
 #include <cstdint>
 #include <vector>
-#include <array>
+#include <string>
 #include <cassert>
 #include <map>
 
@@ -14,19 +14,19 @@ namespace cactfrontend {
 
 // the basic type of the Cact language
 enum class CactBasicType : uint8_t {
-  Unknown,  // unknown type
-  Void,     // void type
-  Int32,    // 32-bit signed integer
-  Bool,     // boolean
-  Float,    // 32-bit floating-point number
-  Double,   // 64-bit floating-point number
+  Unknown, // unknown type
+  Void,    // void type
+  Int32,   // 32-bit signed integer
+  Bool,    // boolean
+  Float,   // 32-bit floating-point number
+  Double,  // 64-bit floating-point number
 };
 
 
 // get the size of the basic type
-inline uint32_t sizeOf(CactBasicType type) {
+static inline uint32_t sizeOf(CactBasicType type) {
   // setup a static dictionary from basic type to its size, with default value 0
-  static std::map<CactBasicType, uint32_t> sizeOf = {
+  const static std::map<CactBasicType, uint32_t> sizeOf = {
       {CactBasicType::Int32  , 4},
       {CactBasicType::Bool   , 4},
       {CactBasicType::Float  , 4},
@@ -34,8 +34,21 @@ inline uint32_t sizeOf(CactBasicType type) {
   };
 
   assert(type != CactBasicType::Unknown && type != CactBasicType::Void);
-  return sizeOf[type];
+  return sizeOf.at(type);
 }
+
+static inline std::string type2String(CactBasicType basicType) {
+  const static std::map <CactBasicType, std::string> basicTypeToString = {
+      {CactBasicType::Int32,  "int"   },
+      {CactBasicType::Bool,   "bool"  },
+      {CactBasicType::Float,  "float" },
+      {CactBasicType::Double, "double"},
+  };
+
+  std::string result = basicTypeToString.at(basicType);
+  return std::move(result);
+}
+
 
 // the type of the Cact language
 struct CactType {
@@ -98,6 +111,25 @@ struct CactType {
   bool operator==(const CactType &rhs) const {
     return this->basicType == rhs.basicType && this->arrayDims == rhs.arrayDims;
   }
+
+  // generate std::string from type
+  [[nodiscard]]
+  std::string toStringFull() const {
+    std::string result = type2String(basicType);
+    for (auto dim : arrayDims) {
+      result += "[" + (dim > 0 ? std::to_string(dim) : "") + "]";
+    }
+    return std::move(result);
+  }
+
+  [[nodiscard]]
+  std::string toString() const {
+    std::string result = type2String(basicType);
+    if (isArray())
+      result += "[]";
+    return std::move(result);
+  }
+
 };
 
 }

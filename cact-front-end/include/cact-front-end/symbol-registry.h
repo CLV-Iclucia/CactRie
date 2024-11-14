@@ -97,7 +97,7 @@ struct SymbolRegistry {
   }
 
   // create a new function
-  observer_ptr<CactFunction> newFunction(std::string &name, CactBasicType returnType) {
+  observer_ptr<CactFunction> newFunction(std::string name, CactBasicType returnType) {
     // check if function with same name is already in the scope
     if (functionID.contains(name))
       throw std::runtime_error("Function: " + name + " cannot be overloaded");
@@ -113,6 +113,9 @@ struct SymbolRegistry {
   // get a function by name
   [[nodiscard]]
   observer_ptr<CactFunction> getFunction(const std::string &name) {
+    // check if function with same name is not defined
+    if (!functionID.contains(name))
+      throw std::runtime_error("Function " + name + "() not found");
     return make_observer(functions[functionID.at(name)].get());
   }
 

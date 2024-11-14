@@ -29,22 +29,52 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   // FuncParameter getFuncParam(FunctionParameterCtx *ctx);
 
   // Constructor: initialize the symbol registry
-  SymbolRegistrationErrorCheckVisitor() : registry(std::make_unique<SymbolRegistry>()) {}
+  SymbolRegistrationErrorCheckVisitor() : registry(std::make_unique<SymbolRegistry>()) {
+    // register built-in functions
+    // void print_int(int)
+    auto printIntFunc = registry->newFunction(std::string("print_int"), CactBasicType::Void);
+    printIntFunc->addParameter(FuncParameter(std::string("x"), CactBasicType::Int32));
+
+    // void print_float(float)
+    auto printFloatFunc = registry->newFunction(std::string("print_float"), CactBasicType::Void);
+    printFloatFunc->addParameter(FuncParameter(std::string("x"), CactBasicType::Float));
+
+    // void print_double(double)
+    auto printDoubleFunc = registry->newFunction(std::string("print_double"), CactBasicType::Void);
+    printDoubleFunc->addParameter(FuncParameter(std::string("x"), CactBasicType::Double));
+
+    // void print_bool(bool)
+    auto printBoolFunc = registry->newFunction(std::string("print_bool"), CactBasicType::Void);
+    printBoolFunc->addParameter(FuncParameter(std::string("x"), CactBasicType::Bool));
+
+    // int get_int()
+    registry->newFunction(std::string("get_int"), CactBasicType::Int32);
+
+    // float get_float()
+    registry->newFunction(std::string("get_float"), CactBasicType::Float);
+
+    // double get_double()
+    registry->newFunction(std::string("get_double"), CactBasicType::Double);
+  }
 
   // print message: start semantic check
   void startSemanticCheck(const char *functionName) {
-    // std::cout << "Semantic check starts: " + std::string(functionName) + "()" << std::endl;
+#ifdef LOG
+    std::cout << "Semantic check starts: " + std::string(functionName) + "()" << std::endl;
+#endif // LOG
   }
 
   // print message: complete semantic check
   void completeSemanticCheck(const char *functionName) {
-    // std::cout << "Complete check starts: " + std::string(functionName) + "()" << std::endl;
+#ifdef LOG
+    std::cout << "Semantic check completed: " + std::string(functionName) + "()" << std::endl;
+#endif // LOG
   }
 
   // visit a compilation unit
   std::any visitCompilationUnit(CompilationUnitCtx *ctx) override {
     startSemanticCheck("CompilationUnit");
-    currentScope = this->registry.get()->createGlobalScope();
+    currentScope = this->registry->createGlobalScope();
     for (auto &child : ctx->children)
       visit(child);
     completeSemanticCheck("CompilationUnit");
@@ -72,7 +102,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     else if (ctx->Float())  {std::cout << "Float"  << std::endl; return CactBasicType::Float; }
     else if (ctx->Double()) {std::cout << "Double" << std::endl; return CactBasicType::Double;}
     else
-      throw std::runtime_error("Invalid data type context");
+      throw std::runtime_error("IMPORTANT: unknown error in DataType");
     completeSemanticCheck("DataType");
     return {};
   }
@@ -90,7 +120,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     for (auto &dimCtx : ctx->IntegerConstant()) {
       int dim = std::stoi(dimCtx->getText());
       if (dim <= 0) // dimension should be positive
-        throw std::runtime_error("Invalid width of array dimension");
+        throw std::runtime_error("the size of an array must be greater than zero");
       ctx->constant.type.addDim((uint32_t)dim);
     }
 
@@ -101,7 +131,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     visit(constInitVal);
 
     // register the constant
-    currentScope.get()->registerVariable(ctx->name, ctx->constant);
+    currentScope->registerVariable(ctx->name, ctx->constant);
 
     completeSemanticCheck("ConstantDefinition");
     return {};
@@ -117,16 +147,20 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     auto constExpr = ctx->constantExpression();
     if (constExpr) {
       if (currentDim != typeDim)
-        throw std::runtime_error("Invalid array dimension");
+        throw std::runtime_error("invalid array initialization");
       visit(constExpr);
       if (type.basicType != constExpr->basicType)
-        throw std::runtime_error("Invalid type of constant expression");
+        throw std::runtime_error("a value of type \"" +
+                                 type2String(constExpr->basicType) +
+                                 "\" cannot be used to initialize an entity of type \"" +
+                                 type.toString() +
+                                 "\"");
     }
 
     // if it is an array
     else {
       if (currentDim >= typeDim)
-        throw std::runtime_error("Invalid array dimension");
+        throw std::runtime_error("too many initializer values");
 
       // count the number of child in constantInitialValue() array
       uint32_t count = ctx->constantInitialValue().size();
@@ -159,15 +193,15 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       // case (2): count result is exactly arrayDims[currentDim]
       else if (0 <= currentDim && currentDim < typeDim - 1) { // certain outer dimension
         if (count != type.arrayDims[currentDim])
-          throw std::runtime_error("Invalid array width of certain dimension");
+          throw std::runtime_error("invalid array width of certain dimension");
       }
       // case (3): count result is exactly arrayDims[currentDim]
       else if (currentDim == typeDim - 1) { // the innermost dimension
         if (count > type.arrayDims[currentDim])
-          throw std::runtime_error("Invalid array width of certain dimension");
+          throw std::runtime_error("invalid array width of certain dimension");
       }
       else {
-        throw std::runtime_error("Constant value initialization: unknown error");
+        throw std::runtime_error("IMPORTANT: unknown error in constant initial value");
       }
 
       // visit all children
@@ -212,7 +246,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     for (auto &dimCtx : ctx->IntegerConstant()) {
       int dim = std::stoi(dimCtx->getText());
       if (dim <= 0) // dimension should be positive
-        throw std::runtime_error("Invalid width of array dimension");
+        throw std::runtime_error("the size of an array must be greater than zero");
       ctx->variable.type.addDim((uint32_t)dim);
     }
 
@@ -228,7 +262,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     }
 
     // register the constant
-    currentScope.get()->registerVariable(ctx->name, ctx->variable);
+    currentScope->registerVariable(ctx->name, ctx->variable);
 
     completeSemanticCheck("VariableDefinition");
     return {};
@@ -236,14 +270,14 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
   // enter a new scope
   void enterScope(observer_ptr<Scope> *scope) {
-    *scope = this->registry.get()->newScope();
+    *scope = this->registry->newScope();
     scope->get()->setParent(currentScope);
     currentScope = *scope;
   }
 
   // leave the current scope
   void leaveScope() {
-    currentScope = currentScope.get()->getParent();
+    currentScope = currentScope->getParent();
   }
 
   // visit a function definition
@@ -255,7 +289,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // record the function's return data type and name 
     auto returnType = getFuncType(ctx->functionType());
     auto name = ctx->Identifier()->getText();
-    currentFunction = ctx->function = this->registry.get()->newFunction(name, returnType);
+    currentFunction = ctx->function = this->registry->newFunction(name, returnType);
 
     // visit the function's parameters
     auto paramsCtx = ctx->functionParameters();
@@ -286,7 +320,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     else if (ctx->Float())  return CactBasicType::Float;
     else if (ctx->Double()) return CactBasicType::Double;
     else
-      throw std::runtime_error("Invalid function type context");
+      throw std::runtime_error("invalid function type context");
     completeSemanticCheck("FunctionType");
     return {};
   }
@@ -319,8 +353,8 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // record basic type and name
     FuncParameter param;
     auto basicType = getDataType(ctx->dataType());
-    param.paramVar.paramInit(basicType);
-    param.name = ctx->Identifier()->getText();
+    auto name = ctx->Identifier()->getText();
+    param.init(name, basicType);
 
     // if the first pair of brackets is empty, push 0 to the arrayDims
     if (ctx->IntegerConstant().size() < ctx->LeftBracket().size())
@@ -330,15 +364,15 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     for (auto &dimCtx : ctx->IntegerConstant()) {
       int dim = std::stoi(dimCtx->getText());
       if (dim <= 0) // dimension should be positive
-        throw std::runtime_error("Invalid width of array dimension");
+        throw std::runtime_error("the size of an array must be greater than zero");
       param.paramVar.type.addDim((uint32_t)dim);
     }
 
     // add the parameter to the function
-    ctx->function.get()->addParameter(param);
+    ctx->function->addParameter(param);
 
     // register the parameter
-    currentScope.get()->registerVariable(param.name, param.paramVar);
+    currentScope->registerVariable(param.name, param.paramVar);
 
     completeSemanticCheck("FunctionParameter");
     return {};
@@ -418,12 +452,16 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // an array cannot become a valid left-hand-side value
     visit(leftValue);
     if (!leftValue->validLeftValue)
-      throw std::runtime_error("Variable is not a valid left value");
+      throw std::runtime_error("expression must be a modifiable lvalue");
 
     // Check type compatibility
     visit(expression);
     if (leftValue->type != expression->type)
-      throw std::runtime_error("Type mismatch in assignment");
+      throw std::runtime_error("a value of type \"" +
+                               expression->type.toString() +
+                               "cannot be assigned to an entity of type \"" +
+                               leftValue->type.toString() +
+                               "\"");
 
     completeSemanticCheck("AssignStatement");
     return {};
@@ -440,12 +478,12 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // check return type
     if (expr == nullptr) {
-      if (currentFunction.get()->returnType != CactBasicType::Void)
-        throw std::runtime_error("Return type mismatch");
+      if (currentFunction->returnType != CactBasicType::Void)
+        throw std::runtime_error("return value type does not match the function type");
     }
     else {
-      if (expr->type.isArray() || expr->type.basicType != currentFunction.get()->returnType)
-        throw std::runtime_error("Return type mismatch");
+      if (expr->type.isArray() || expr->type.basicType != currentFunction->returnType)
+        throw std::runtime_error("return value type does not match the function type");
     }
 
     // record function for return statement
@@ -496,7 +534,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("BreakStatement");
     // check if the break statement is in a loop
     if (whileLoopStack.empty())
-      throw std::runtime_error("Break statement not in a loop");
+      throw std::runtime_error("a break statement may only be used within a loop");
 
     // record the loop to break
     ctx->loopToBreak = whileLoopStack.top();
@@ -510,7 +548,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("ContinueStatement");
     // check if the continue statement is in a loop
     if (whileLoopStack.empty())
-      throw std::runtime_error("Continue statement not in a loop");
+      throw std::runtime_error("a continue statement may only be used within a loop");
 
     // record the loop to continue
     ctx->loopToContinue = whileLoopStack.top();
@@ -534,7 +572,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       ctx->type.arrayDims = {};
     }
     else {
-      throw std::runtime_error("Unknown error in expression");
+      throw std::runtime_error("IMPROTANT: unknown error in expression");
     }
 
     completeSemanticCheck("Expression");
@@ -555,7 +593,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       ctx->basicType = CactBasicType::Bool;
     }
     else {
-      throw std::runtime_error("Unknown error in expression");
+      throw std::runtime_error("IMPROTANT: unknown error in expression");
     }
 
     completeSemanticCheck("ConstantExpression");
@@ -569,7 +607,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("LeftValue");
     // record the name of lvalue, and find corresponding variable
     auto name = ctx->Identifier()->getText();
-    auto var = currentScope.get()->variable(name); // if not declared, throw an error in variable()
+    auto var = currentScope->variable(name); // if not declared, throw an error in variable()
     ctx->type = var.type;
 
     // visit children and check dimensions
@@ -577,10 +615,11 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     for (auto &expr : ctx->expression()) {
       visit(expr);
       if (!expr->type.validArrayIndex())
-        throw std::runtime_error("Invalid array index type");
+        throw std::runtime_error("expression must have integral type");
       count++; // count for dimensions
       if (count > var.type.dim())
-        throw std::runtime_error("Indexing on a scalar");
+        throw std::runtime_error("expression must have pointer-to-object type but it has type \"" +
+                                 type2String(var.type.basicType) + "\"");
     }
 
     // update the type of left value by indexing times, erasing the first count dimensions
@@ -610,7 +649,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       ctx->type.init(ctx->number()->basicType, false);
     }
     else {
-      throw std::runtime_error("Unknown error in primary expression");
+      throw std::runtime_error("IMPROTANT: unknown error in primary expression");
     }
 
     completeSemanticCheck("PrimaryExpression");
@@ -632,7 +671,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       ctx->basicType = CactBasicType::Double;
     }
     else {
-      throw std::runtime_error("Unknown error in number");
+      throw std::runtime_error("IMPROTANT: unknown error in number");
     }
 
     completeSemanticCheck("Number");
@@ -657,7 +696,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
       // check the type of unary expression
       if (!unary->type.validOperandType())
-        throw std::runtime_error("Invalid operator type");
+        throw std::runtime_error("expression must have arithmetic type");
 
       if (ctx->Plus())
         ctx->unaryOperator = make_observer<UnaryOperator>(new PlusOperator);
@@ -666,26 +705,36 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       else if (ctx->ExclamationMark())
         ctx->unaryOperator = make_observer<UnaryOperator>(new LogicalNotOperator);
       else
-        throw std::runtime_error("Unknown error in unary expression");
+        throw std::runtime_error("IMPROTANT: unknown error in unary expression");
 
-      ctx->unaryOperator.get()->validOperandTypeCheck(unary->type);
+      ctx->unaryOperator->validOperandTypeCheck(unary->type);
+      ctx->type = unary->type;
     }
     // -> function call
     else if (ctx->Identifier()) {
       // find the function
       auto name = ctx->Identifier()->getText();
-      auto func = this->registry.get()->getFunction(name);
+      auto func = this->registry->getFunction(name);
       if (!func)
-        throw std::runtime_error("Function not found");
+        throw std::runtime_error("identifier \"" + name + "\" is undefined");
 
       // check parameters inside functionArguments
-      ctx->functionArguments()->needParams = func->parameters;
-      visit(ctx->functionArguments());
+      if (!ctx->functionArguments()) { // no arguments
+        if (func->parameters.size() != 0)
+          throw std::runtime_error("too few arguments in function call");
+      }
+      else {
+        if (func->parameters.size() != 0)
+          ctx->functionArguments()->needParams = std::move(func->parameters);
+        else
+          ctx->functionArguments()->needParams = {};
+        visit(ctx->functionArguments());
+      }
 
       ctx->type.init(func->returnType, false);
     }
     else {
-      throw std::runtime_error("Unknown error in unary expression");
+      throw std::runtime_error("IMPROTANT: unknown error in unary expression");
     }
 
     completeSemanticCheck("UnaryExpression");
@@ -700,10 +749,10 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // too many arguments
     if (numExpr > numParams)
-      throw std::runtime_error("Too many arguments in function call");
+      throw std::runtime_error("too many arguments in function call");
 
     if (numExpr < numParams)
-      throw std::runtime_error("Expect more arguments in function call");
+      throw std::runtime_error("too few arguments in function call");
 
     // visit all functionArguments
     for (int idx = 0; idx < numExpr; idx++) {
@@ -711,7 +760,11 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
       // check if the argument is compatible with parameter[count]
       if (ctx->expression()[idx]->type != ctx->needParams[idx].paramVar.type)
-        throw std::runtime_error("Function argument type mismatch");
+        throw std::runtime_error("argument of type \"" +
+                                  ctx->expression()[idx]->type.toStringFull() +
+                                 "\" is incompatible with parameter of type \"" +
+                                  ctx->needParams[idx].paramVar.type.toStringFull() +
+                                 "\"");
     }
 
     completeSemanticCheck("FunctionArguments");
@@ -742,13 +795,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       else if (ctx->Percent())
         ctx->binaryOperator = make_observer<BinaryOperator>(new ModOperator);
       else
-        throw std::runtime_error("Unknown error in multiplicative expression");
+        throw std::runtime_error("IMPROTANT: unknown error in multiplicative expression");
 
-      ctx->binaryOperator.get()->binaryOperandCheck(mul->type, unary->type);
+      ctx->binaryOperator->binaryOperandCheck(mul->type, unary->type);
       ctx->type = mul->type;
     }
     else {
-      throw std::runtime_error("Unknown error in multiplicative expression");
+      throw std::runtime_error("IMPROTANT: unknown error in multiplicative expression");
     }
 
     completeSemanticCheck("MulExpression");
@@ -777,13 +830,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       else if (ctx->Minus())
         ctx->binaryOperator = make_observer<BinaryOperator>(new SubOperator);
       else
-        throw std::runtime_error("Unknown error in additive expression");
+        throw std::runtime_error("IMPROTANT: unknown error in additive expression");
 
-      ctx->binaryOperator.get()->binaryOperandCheck(add->type, mul->type);
+      ctx->binaryOperator->binaryOperandCheck(add->type, mul->type);
       ctx->type = add->type;
     }
     else {
-      throw std::runtime_error("Unknown error in additive expression");
+      throw std::runtime_error("IMPROTANT: unknown error in additive expression");
     }
 
     completeSemanticCheck("AddExpression");
@@ -815,13 +868,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       else if (ctx->GreaterEqual())
         ctx->binaryOperator = make_observer<BinaryOperator>(new GreaterEqualOperator);
       else
-        throw std::runtime_error("Unknown error in relational expression");
+        throw std::runtime_error("IMPROTANT: unknown error in relational expression");
 
-      ctx->binaryOperator.get()->binaryOperandCheck(add[0]->type, add[1]->type);
+      ctx->binaryOperator->binaryOperandCheck(add[0]->type, add[1]->type);
       ctx->basicType = CactBasicType::Bool;
     }
     else {
-      throw std::runtime_error("Unknown error in relational expression");
+      throw std::runtime_error("IMPROTANT: unknown error in relational expression");
     }
 
     completeSemanticCheck("RelationalExpression");
@@ -838,7 +891,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(relational[0]);
       ctx->binaryOperator = make_observer<BinaryOperator>(new BinaryNopOperator);
       if (relational[0]->basicType != CactBasicType::Bool)
-        throw std::runtime_error("expecting a boolean type");
+        throw std::runtime_error("expression must have boolean type");
     }
     // -> relationalExpression binary-OP relationalExpression
     else if (relational.size() == 2) {
@@ -850,13 +903,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       else if (ctx->NotEqual())
         ctx->binaryOperator = make_observer<BinaryOperator>(new NotEqualOperator);
       else
-        throw std::runtime_error("Unknown error in logical equal expression");
+        throw std::runtime_error("IMPROTANT: unknown error in logical equal expression");
 
-      ctx->binaryOperator.get()->binaryOperandCheck(CactType(relational[0]->basicType, false),
+      ctx->binaryOperator->binaryOperandCheck(CactType(relational[0]->basicType, false),
                                                     CactType(relational[1]->basicType, false));
     }
     else {
-      throw std::runtime_error("Unknown error in logical equal expression");
+      throw std::runtime_error("IMPROTANT: unknown error in logical equal expression");
     }
 
     completeSemanticCheck("LogicalEqualExpression");
@@ -882,7 +935,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       ctx->binaryOperator = make_observer<BinaryOperator>(new LogicalAndOperator);
     }
     else {
-      throw std::runtime_error("Unknown error in logical and expression");
+      throw std::runtime_error("IMPROTANT: unknown error in logical and expression");
     }
 
     completeSemanticCheck("LogicalAndExpression");
@@ -908,7 +961,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       ctx->binaryOperator = make_observer<BinaryOperator>(new LogicalOrOperator);
     }
     else {
-      throw std::runtime_error("Unknown error in logical or expression");
+      throw std::runtime_error("IMPROTANT: unknown error in logical or expression");
     }
 
     completeSemanticCheck("LogicalOrExpression");

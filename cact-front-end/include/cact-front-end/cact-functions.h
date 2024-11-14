@@ -5,6 +5,7 @@
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_FUNCTIONS_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_FUNCTIONS_H_
 #include <cact-front-end/cact-type.h>
+// #include <functional>
 #include <string>
 
 namespace cactfrontend {
@@ -14,10 +15,16 @@ struct FuncParameter {
   CactConstVar paramVar; // parameter variable
   std::string name; // parameter name
 
+  // constructor
+  explicit FuncParameter() = default;
+  explicit FuncParameter(std::string name, CactBasicType basicType) {
+    this->init(std::move(name), basicType);
+  }
+
   // set up the parameter
-  void init(const std::string &name, CactBasicType basicType) {
-    this->paramVar.varInit(basicType);
-    this->name = name;
+  void init(const std::string name, CactBasicType basicType) {
+    this->paramVar.paramInit(basicType);
+    this->name = std::move(name);
   }
 
   // // check if the parameter type is valid
@@ -38,14 +45,17 @@ struct CactFunction {
 
   // set up name and return type
   void init(const std::string &name, CactBasicType retType) {
-    this->name = name;
+    this->name = std::move(name);
     this->returnType = retType;
   }
 
   // add a new parameter
-  void addParameter(FuncParameter &param) {
-    // TODO: check if parameter name is used
-    
+  void addParameter(FuncParameter param) {
+    // check if parameter name is used
+    for (auto &p : this->parameters)
+      if (p.name == param.name)
+        throw std::runtime_error("Duplicate parameter name: " + param.name);
+
     this->parameters.push_back(param);
   }
 };
