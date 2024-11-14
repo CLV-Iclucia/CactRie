@@ -138,7 +138,7 @@ struct BinaryOperator : Operator {
   virtual std::optional<ConstEvalResult> apply(const ConstEvalResult &lhs,
                                                const ConstEvalResult &rhs) const = 0;
 
-  [[nodiscard]]
+  // [[nodiscard]]
   bool binaryOperandCheck(const CactType &lhs, const CactType &rhs) const {
     if (lhs.basicType != rhs.basicType) {
       throw std::runtime_error("operands must have the same type");

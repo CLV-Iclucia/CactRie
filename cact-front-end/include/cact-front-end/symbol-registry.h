@@ -22,10 +22,11 @@ struct Scope {
   // register a variable in the scope
   void registerVariable(const std::string &name, const CactConstVar &symbol) {
     // check if variable with same name is already in the scope
-    if (variableID.contains(name))
+    if (this->variableID.contains(name))
       throw std::runtime_error("Redeclaration of variable: " + name);
-    variables.emplace_back(symbol);
-    variableID.insert({name, variables.size() - 1});
+
+    this->variables.emplace_back(symbol);
+    this->variableID.insert({name, this->variables.size() - 1});
   }
 
   // set the parent scope
@@ -42,19 +43,20 @@ struct Scope {
   // find a variable in the scope
   [[nodiscard]]
   bool find(const std::string &name) const {
-    return variableID.contains(name);
+    return this->variableID.contains(name);
   }
 
   // get a variable in the scope
   [[nodiscard]]
   CactConstVar &variable(const std::string &name) {
     auto scope = make_observer(this);
-    while (scope->parent) {
-      if (variableID.contains(name))
-        return variables[variableID.at(name)];
+    // search for the variable in the current scope, its parent, grandparent, and so on, until the global scope
+    do {
+      if (scope.get()->variableID.contains(name))
+        return scope.get()->variables[scope.get()->variableID.at(name)];
       scope = scope->parent;
-    }
-    throw std::runtime_error("Variable not found");
+    } while (scope.get());
+    throw std::runtime_error("Variable not found: " + name);
   }
 
 private:

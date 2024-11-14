@@ -101,6 +101,7 @@ block
     locals[
         observer_ptr<Scope> scope,
         bool hasReturn,
+        bool functionBlock,
     ]: LeftBrace (blockItem)* RightBrace;
 
 // blockItem -> declaration | statement
