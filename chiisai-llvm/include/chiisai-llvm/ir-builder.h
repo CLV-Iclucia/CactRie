@@ -75,6 +75,13 @@ struct IRBuilder {
     return instRef;
   }
 
+  CRef<RetInst> createRetInst(CRef<Value> value) {
+    auto retInst = std::make_unique<RetInst>(basicBlock, value);
+    auto instRef = ref(*retInst);
+    basicBlock.addInstruction(std::move(retInst));
+    return instRef;
+  }
+
 private:
   BasicBlock &basicBlock;
 };

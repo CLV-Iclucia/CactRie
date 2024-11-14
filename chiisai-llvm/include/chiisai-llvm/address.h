@@ -8,9 +8,19 @@
 #include <chiisai-llvm/value.h>
 namespace llvm {
 
+struct ArrayAddress {
+  Ref<Value> array{};
+  size_t index{};
+};
+
 struct Address {
-  Ref<Value> value;
-  size_t index;
+  std::variant<Ref<Value>, ArrayAddress> value;
+  static Address fromValue(Ref<Value> value) {
+    return Address{value};
+  }
+  static Address fromArray(Ref<Value> array, size_t index) {
+    return {ArrayAddress{array, index}};
+  }
 };
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_ADDRESS_H

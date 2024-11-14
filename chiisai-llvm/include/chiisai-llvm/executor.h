@@ -50,7 +50,7 @@ struct Result {
       return std::get<double>(value);
     throw std::runtime_error("Cannot convert to floating point");
   }
-  Address toPointer() const {
+  [[nodiscard]] Address toPointer() const {
     return std::get<Address>(value);
   }
 };
@@ -81,8 +81,9 @@ struct Executor {
   Module &module;
   LLVMContext &ctx;
   std::string incomingBasicBlock{};
+  std::optional<Result> returnReg{};
 private:
-  std::stack<CallFrame> callFrames;
+  std::stack<CallFrame> callFrames{};
   std::unordered_map<std::string, Result> globalResults;
 };
 }

@@ -11,6 +11,7 @@ build
 cact-front-end/grammar/.antlr
 chiisai-llvm/CMakeFiles
 chiisai-llvm/src/autogen
+chiisai-llvm/include/chiisai-llvm/autogen
 chiisai-llvm/cmake_install.cmake
 chiisai-llvm/Makefile
 gen/

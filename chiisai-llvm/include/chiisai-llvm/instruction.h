@@ -345,5 +345,18 @@ struct GepInst : Instruction {
   Ref<Value> pointer;
 };
 
+struct RetInst : Instruction {
+  explicit RetInst(BasicBlock &basicBlock, CRef<Value> ret) : Instruction(TerminatorOps::Ret, {}, {}, basicBlock),
+                                                              ret(ret) {}
+  void accept(Executor &executor) override;
+  [[nodiscard]] uint64_t hash() const override {
+    uint64_t hashCode{};
+    mystl::hash_combine(hashCode, opCode);
+    mystl::hash_combine(hashCode, ret->name());
+    return hashCode;
+  }
+  CRef<Value> ret{};
+};
+
 }
 #endif //CACTRIE_CACT_RIE_INCLUDE_CACT_RIE_LLVM_INSTRUCTIONS_H

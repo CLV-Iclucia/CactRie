@@ -65,16 +65,36 @@ struct ModuleBuilder : public LLVMParserVisitor {
   std::any visitInstruction(LLVMParser::InstructionContext *ctx) override {
     if (ctx->arithmeticInstruction())
       visitArithmeticInstruction(ctx->arithmeticInstruction());
+
     if (ctx->allocaInstruction())
       visitAllocaInstruction(ctx->allocaInstruction());
+
     if (ctx->comparisonInstruction())
       visitComparisonInstruction(ctx->comparisonInstruction());
+
     if (ctx->loadInstruction())
       visitLoadInstruction(ctx->loadInstruction());
+
     if (ctx->storeInstruction())
       visitStoreInstruction(ctx->storeInstruction());
+
     if (ctx->gepInstruction())
       visitGepInstruction(ctx->gepInstruction());
+
+    if (ctx->terminatorInstruction())
+      visitTerminatorInstruction(ctx->terminatorInstruction());
+
+    return {};
+  }
+
+  std::any visitTerminatorInstruction(LLVMParser::TerminatorInstructionContext *ctx) override {
+    if (ctx->returnInstruction())
+      visitReturnInstruction(ctx->returnInstruction());
+
+    if (ctx->branchInstruction())
+      visitBranchInstruction(ctx->branchInstruction());
+
+    return {};
   }
 
   std::any visitLoadInstruction(LLVMParser::LoadInstructionContext *ctx) override;
@@ -97,10 +117,11 @@ struct ModuleBuilder : public LLVMParserVisitor {
   std::unique_ptr<LLVMContext> llvmContext{};
   Ref<Function> currentFunction{};
   Ref<BasicBlock> currentBasicBlock{};
+
 private:
   Ref<Value> resolveValueUsage(LLVMParser::ValueContext *ctx);
-  template <typename T>
-  std::string variableName(T* ctx) {
+  template<typename T>
+  std::string variableName(T *ctx) {
     return ctx->getText();
   }
 };

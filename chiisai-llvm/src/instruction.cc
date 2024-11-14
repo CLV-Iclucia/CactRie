@@ -96,11 +96,10 @@ void LoadInst::accept(Executor &executor) {
 void CallInst::accept(Executor &executor) {
   auto func = executor.module.function(function.name());
   executor.pushFrame();
-  for (auto arg : func->args()) {
+  for (auto arg : func->args())
     executor.reg(arg->name()) = executor.reg(arg->name());
-  }
   executor.execute(func);
-  executor.popFrame();
+  executor.reg(name()) = executor.returnReg.value();
 }
 
 uint64_t CallInst::hash() const {
@@ -190,4 +189,8 @@ void BrInst::accept(Executor &executor) {
   executor.incomingBasicBlock = basicBlock.name();
 }
 
+void RetInst::accept(Executor &executor) {
+  executor.returnReg = ret == nullptr ? std::nullopt : std::make_optional(executor.reg(ret->name()));
+  executor.popFrame();
+}
 }
