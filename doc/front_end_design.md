@@ -85,8 +85,8 @@ Now we list some grammar variables related to the symbol table.
   - **complex case: check initial value for array constant:**
     - `constantInitialValue.(dim,currentDim,needType) = (dim,currentDim+1,needType)`,
     - consider 3 cases of the number of `constantInitialValue` in the brace:
-      - it is ***exactly*** `dim[currentDim]`,
-      - it is ***no more than*** `\Pi_{i=currentDim}^{dim-1} dim[i]`,
+      - it is ***no more than*** `dim[currentDim]`,
+      - it is ***no more than*** `\Pi_i dim[i]` and **`currentDim==0`**,
         - now the initial value is a flattened array,
         - **modify** attributes for children, `constantInitialValue.currentDim = dim.size()`,
     - (use zero to fulfill the rest of the array in the future)

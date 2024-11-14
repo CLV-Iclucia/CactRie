@@ -35,6 +35,11 @@ int main(int argc, char *argv[]) {
   parser.addErrorListener(&cact_error_listener);
   try {
     antlr4::tree::ParseTree *tree = parser.compilationUnit();
+    // if error
+    if (cact_error_listener.hasSyntaxError()) {
+      std::cerr << "Syntax error(s) found in the source file. Compilation failed." << std::endl;
+      return 1;
+    }
 
     // print the parse tree
     std::cout << tree->toStringTree(&parser) << std::endl << std::endl;
