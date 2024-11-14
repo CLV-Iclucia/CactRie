@@ -1,8 +1,11 @@
 parser grammar CactParser;
 @header {
-#include <cact-front-end/cact-expr.h>
-#include <cact-front-end/cact-operator.h>
 #include <cact-front-end/mystl/observer_ptr.h>
+#include <cact-front-end/cact-constant-variable.h>
+#include <cact-front-end/cact-expr.h>
+#include <cact-front-end/cact-functions.h>
+#include <cact-front-end/cact-operator.h>
+#include <cact-front-end/cact-type.h>
 #include <cact-front-end/symbol-registry.h>
 }
 options {
@@ -36,8 +39,7 @@ constantDefinition
     locals[
         // observer_ptr<Scope> scope,
         CactBasicType needType,
-        CactConstVar constant,
-        std::string name,
+        CactConstant constant,
         std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
 
@@ -63,8 +65,7 @@ variableDefinition
     locals[
         // observer_ptr<Scope> scope,
         CactBasicType needType,
-        CactConstVar variable,
-        std::string name,
+        CactVariable variable,
         std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
 
@@ -81,18 +82,10 @@ functionType: Void | Int32 | Float | Double | Bool;
 
 // functionParameters is a list of functionParameter
 // function_formal_params -> function_formal_param (, function_formal_param)*
-functionParameters
-    locals[
-        // observer_ptr<Scope> scope,
-        observer_ptr<CactFunction> function,
-    ]: functionParameter (Comma functionParameter)*;
+functionParameters: functionParameter (Comma functionParameter)*;
 
 // function_formal_param -> basic_type Identifier ([IntegerConstant]?)* ( [IntegerConstant] )*
-functionParameter
-    locals[
-        // observer_ptr<Scope> scope,
-        observer_ptr<CactFunction> function,
-    ]: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
+functionParameter: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
 
 /* statement & expression */
 // a block is a list of declarations and statements enclosed by braces
@@ -265,5 +258,3 @@ logicalOrExpression
         ExpressionResult expressionResult,
         observer_ptr<BinaryOperator> binaryOperator,
     ]: logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression;
-
-

@@ -53,29 +53,29 @@ static inline std::string type2String(CactBasicType basicType) {
 // the type of the Cact language
 struct CactType {
   // attributes
-  CactBasicType basicType{}; // basic type
+  CactBasicType basicType; // basic type
   std::vector<uint32_t> arrayDims{}; // array dimensions as a vector
-  bool isParam{}; // is parameter of a function
+  bool isParam; // is parameter of a function
 
-  // constructor
+  // constructors
   explicit CactType() = default;
-  explicit CactType(CactBasicType basicType, bool isParam) : basicType(basicType), isParam(isParam) {}
-  explicit CactType(CactBasicType basicType, std::vector<uint32_t> arrayDims, bool isParam) :
-    basicType(basicType), arrayDims(arrayDims), isParam(isParam) {}
 
-  // initialize the type
-  void init(CactBasicType basicType, bool isParam) {
-    this->basicType = basicType;
-    this->isParam = isParam;
-    this->arrayDims.clear();
-  }
+  explicit CactType(const CactBasicType basicType) :
+    basicType(basicType), isParam(false) {}
 
-  void addDim(uint32_t dim) {
-    this->arrayDims.push_back(dim);
+  explicit CactType(const CactBasicType basicType, const bool isParam) :
+    basicType(basicType), isParam(isParam) {}
+
+  explicit CactType(const CactBasicType basicType, const std::vector<uint32_t> arrayDims, const bool isParam) :
+    basicType(basicType), arrayDims(std::move(arrayDims)), isParam(isParam) {}
+
+  void addDim(const uint32_t dim) {
+    this->arrayDims.emplace_back(dim);
   }
 
   // get the size of this basicType
-  uint32_t size() {
+  [[nodiscard]]
+  uint32_t size() const {
     uint32_t product = sizeOf(this->basicType);
     for (auto dim : this->arrayDims)
       product *= dim;
@@ -86,6 +86,12 @@ struct CactType {
   [[nodiscard]]
   bool isArray() const {
     return !this->arrayDims.empty();
+  }
+
+  // return the dimension of the array
+  [[nodiscard]]
+  uint32_t dim() const {
+    return this->arrayDims.size();
   }
 
   // check if this type is a valid operand
@@ -100,19 +106,13 @@ struct CactType {
     return this->basicType == CactBasicType::Int32 && !isArray();
   }
 
-  // return the dimension of the array
-  [[nodiscard]]
-  uint32_t dim() const {
-    return this->arrayDims.size();
-  }
-
   // compare two CactType for equality
   [[nodiscard]]
   bool operator==(const CactType &rhs) const {
     return this->basicType == rhs.basicType && this->arrayDims == rhs.arrayDims;
   }
 
-  // generate std::string from type
+  // generate string from type
   [[nodiscard]]
   std::string toStringFull() const {
     std::string result = type2String(basicType);

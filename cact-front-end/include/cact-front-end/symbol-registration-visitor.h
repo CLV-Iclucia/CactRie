@@ -11,6 +11,7 @@
 #include <stack>
 #include <string>
 
+// #define LOG
 
 namespace cactfrontend {
 
@@ -21,7 +22,6 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   // declarations
   // CactBasicType getDataType(DataTypeCtx *ctx);
   // std::vector<ConstEvalResult> getConstIniVal(ConstantInitialValueCtx *ctx);
-  // bool hasConstExpr(ConstantInitialValueCtx *ctx);
   // void enterScope(observer_ptr<Scope> scope);
   // void leaveScope();
   // CactBasicType getFuncType(FunctionTypeCtx *ctx);
@@ -75,8 +75,19 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   std::any visitCompilationUnit(CompilationUnitCtx *ctx) override {
     startSemanticCheck("CompilationUnit");
     currentScope = this->registry->createGlobalScope();
+
     for (auto &child : ctx->children)
       visit(child);
+
+    // check if main function exists, check its return data type and parameter
+    auto mainFunc = this->registry->getFunction("main");
+    if (!mainFunc)
+      throw std::runtime_error("function main() is undefined");
+    if (mainFunc->returnType != CactBasicType::Int32)
+      throw std::runtime_error("function main() must return an integer");
+    if (!mainFunc->parameters.empty())
+      throw std::runtime_error("function main() must have no parameter");
+
     completeSemanticCheck("CompilationUnit");
     return {};
   }
@@ -114,8 +125,8 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   std::any visitConstantDefinition(ConstantDefinitionCtx *ctx) override {
     startSemanticCheck("ConstantDefinition");
     // record name and type
-    ctx->name = ctx->Identifier()->getText();
-    ctx->constant.constInit(ctx->needType);
+    auto name = ctx->Identifier()->getText();
+    ctx->constant = CactConstant(name, ctx->needType);
 
     for (auto &dimCtx : ctx->IntegerConstant()) {
       int dim = std::stoi(dimCtx->getText());
@@ -131,7 +142,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     visit(constInitVal);
 
     // register the constant
-    currentScope->registerVariable(ctx->name, ctx->constant);
+    currentScope->registerVariable(ctx->constant);
 
     completeSemanticCheck("ConstantDefinition");
     return {};
@@ -146,8 +157,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     auto constExpr = ctx->constantExpression();
     if (constExpr) {
-      if (currentDim != typeDim)
-        throw std::runtime_error("invalid array initialization");
+      assert(currentDim == typeDim);
       visit(constExpr);
       if (type.basicType != constExpr->basicType)
         throw std::runtime_error("a value of type \"" +
@@ -159,11 +169,10 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // if it is an array
     else {
-      if (currentDim >= typeDim)
-        throw std::runtime_error("too many initializer values");
+      assert(currentDim < typeDim);
 
       // count the number of child in constantInitialValue() array
-      uint32_t count = ctx->constantInitialValue().size();
+      uint32_t initValCount = ctx->constantInitialValue().size();
 
       // set default attributes of children -- constant initial values
       for (auto &child : ctx->constantInitialValue()) {
@@ -172,32 +181,34 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       }
 
       // check if the initial value could be a flat array
-      bool flatFlag = false;
-      if (count == type.arrayDims[currentDim] && currentDim == 0) {
-        flatFlag = true;
-        // check for constant expressions among all children
-        for (auto &child : ctx->constantInitialValue()) {
-          if (!hasConstExpr(child)) {
-            flatFlag = false;
-            break;
-          }
+      // it would happen if all children are constant expressions
+      bool flatFlag = true;
+      for (auto &child : ctx->constantInitialValue()) {
+        if (!child->constantExpression()) {
+          flatFlag = false;
+          break;
         }
       }
 
-      // case (1): if the initial value is a flat array, reset currentDim of children and visit them
+      // case (1): if this initial value is a flat array, reset currentDim of children and visit them
       if (flatFlag) {
         for (auto &child : ctx->constantInitialValue()) {
           child->currentDim = typeDim;
         }
+
+        // count the maximum number of elements the flattened array could have
+        uint32_t maxCount = 1;
+        for (uint32_t i = currentDim; i < typeDim; i++) {
+          maxCount *= type.arrayDims[i];
+        }
+
+        // check if the number of elements is valid
+        if (initValCount > maxCount)
+          throw std::runtime_error("invalid array width of certain dimension");
       }
       // case (2): count result is exactly arrayDims[currentDim]
       else if (0 <= currentDim && currentDim < typeDim - 1) { // certain outer dimension
-        if (count != type.arrayDims[currentDim])
-          throw std::runtime_error("invalid array width of certain dimension");
-      }
-      // case (3): count result is exactly arrayDims[currentDim]
-      else if (currentDim == typeDim - 1) { // the innermost dimension
-        if (count > type.arrayDims[currentDim])
+        if (initValCount != type.arrayDims[currentDim])
           throw std::runtime_error("invalid array width of certain dimension");
       }
       else {
@@ -212,10 +223,6 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     }
     completeSemanticCheck("ConstantInitialValue");
     return {};
-  }
-
-  bool hasConstExpr(ConstantInitialValueCtx *ctx) {
-    return ctx->constantExpression() != nullptr;
   }
 
   // std::vector<ConstEvalResult> getConstIniVal(ConstantInitialValueCtx *ctx) {
@@ -240,8 +247,8 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   std::any visitVariableDefinition(VariableDefinitionCtx *ctx) override {
     startSemanticCheck("VariableDefinition");
     // record name and type
-    ctx->name = ctx->Identifier()->getText();
-    ctx->variable.varInit(ctx->needType);
+    auto name = ctx->Identifier()->getText();
+    ctx->variable = CactVariable(name, ctx->needType);
 
     for (auto &dimCtx : ctx->IntegerConstant()) {
       int dim = std::stoi(dimCtx->getText());
@@ -253,7 +260,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // set some attributes for constantInitialValue, visit it and get the result
     auto constInitVal = ctx->constantInitialValue();
     if (constInitVal) {
-      ctx->variable.initialized = true; // set initialized flag
+      ctx->variable.setInitialized(); // set initialized flag
 
       constInitVal->currentDim = 0;
       constInitVal->type = ctx->variable.type;
@@ -262,7 +269,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     }
 
     // register the constant
-    currentScope->registerVariable(ctx->name, ctx->variable);
+    currentScope->registerVariable(ctx->variable);
 
     completeSemanticCheck("VariableDefinition");
     return {};
@@ -294,7 +301,6 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // visit the function's parameters
     auto paramsCtx = ctx->functionParameters();
     if (paramsCtx) {
-      paramsCtx->function = ctx->function;
       visit(paramsCtx);
     }
 
@@ -333,9 +339,8 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
   std::any visitFunctionParameters(FunctionParametersCtx *ctx) override {
     startSemanticCheck("FunctionParameters");
-    auto func = ctx->function;
+    auto func = currentFunction;
     for (auto &param : ctx->functionParameter()) {
-      param->function = func;
       visit(param);
     }
     completeSemanticCheck("FunctionParameters");
@@ -350,29 +355,27 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
   std::any visitFunctionParameter(FunctionParameterCtx *ctx) override {
     startSemanticCheck("FunctionParameter");
-    // record basic type and name
-    FuncParameter param;
-    auto basicType = getDataType(ctx->dataType());
+    // record name and type
     auto name = ctx->Identifier()->getText();
-    param.init(name, basicType);
+    auto parameter = FuncParameter(name, getDataType(ctx->dataType()));
 
     // if the first pair of brackets is empty, push 0 to the arrayDims
     if (ctx->IntegerConstant().size() < ctx->LeftBracket().size())
-      param.paramVar.type.addDim(0);
+      parameter.type.addDim(0);
 
     // record the array dimensions
     for (auto &dimCtx : ctx->IntegerConstant()) {
       int dim = std::stoi(dimCtx->getText());
       if (dim <= 0) // dimension should be positive
         throw std::runtime_error("the size of an array must be greater than zero");
-      param.paramVar.type.addDim((uint32_t)dim);
+      parameter.type.addDim((uint32_t)dim);
     }
 
     // add the parameter to the function
-    ctx->function->addParameter(param);
+    currentFunction->addParameter(parameter);
 
     // register the parameter
-    currentScope->registerVariable(param.name, param.paramVar);
+    currentScope->registerVariable(parameter);
 
     completeSemanticCheck("FunctionParameter");
     return {};
@@ -474,7 +477,6 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("ReturnStatement");
     // visit the expression
     auto expr = ctx->expression();
-    visit(expr);
 
     // check return type
     if (expr == nullptr) {
@@ -482,6 +484,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
         throw std::runtime_error("return value type does not match the function type");
     }
     else {
+      visit(expr);
       if (expr->type.isArray() || expr->type.basicType != currentFunction->returnType)
         throw std::runtime_error("return value type does not match the function type");
     }
@@ -607,7 +610,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("LeftValue");
     // record the name of lvalue, and find corresponding variable
     auto name = ctx->Identifier()->getText();
-    auto var = currentScope->variable(name); // if not declared, throw an error in variable()
+    auto var = currentScope->getVariable(name); // if not declared, throw an error in variable()
     ctx->type = var.type;
 
     // visit children and check dimensions
@@ -624,7 +627,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // update the type of left value by indexing times, erasing the first count dimensions
     ctx->type.arrayDims.erase(ctx->type.arrayDims.begin(), ctx->type.arrayDims.begin() + count);
-    ctx->validLeftValue = var.isValidLValue();
+    ctx->validLeftValue = var.isModifiableLValue();
 
     completeSemanticCheck("LeftValue");
     return {};
@@ -646,7 +649,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // visit the number
     else if (ctx->number()) {
       visit(ctx->number());
-      ctx->type.init(ctx->number()->basicType, false);
+      ctx->type = CactType(ctx->number()->basicType);
     }
     else {
       throw std::runtime_error("IMPROTANT: unknown error in primary expression");
@@ -716,7 +719,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       auto name = ctx->Identifier()->getText();
       auto func = this->registry->getFunction(name);
       if (!func)
-        throw std::runtime_error("identifier \"" + name + "\" is undefined");
+        throw std::runtime_error("function identifier \"" + name + "\" is undefined");
 
       // check parameters inside functionArguments
       if (!ctx->functionArguments()) { // no arguments
@@ -731,7 +734,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
         visit(ctx->functionArguments());
       }
 
-      ctx->type.init(func->returnType, false);
+      ctx->type = CactType(func->returnType);
     }
     else {
       throw std::runtime_error("IMPROTANT: unknown error in unary expression");
@@ -759,11 +762,11 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(ctx->expression()[idx]);
 
       // check if the argument is compatible with parameter[count]
-      if (ctx->expression()[idx]->type != ctx->needParams[idx].paramVar.type)
+      if (ctx->expression()[idx]->type != ctx->needParams[idx].type)
         throw std::runtime_error("argument of type \"" +
                                   ctx->expression()[idx]->type.toStringFull() +
                                  "\" is incompatible with parameter of type \"" +
-                                  ctx->needParams[idx].paramVar.type.toStringFull() +
+                                  ctx->needParams[idx].type.toStringFull() +
                                  "\"");
     }
 
@@ -905,8 +908,8 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       else
         throw std::runtime_error("IMPROTANT: unknown error in logical equal expression");
 
-      ctx->binaryOperator->binaryOperandCheck(CactType(relational[0]->basicType, false),
-                                                    CactType(relational[1]->basicType, false));
+      ctx->binaryOperator->binaryOperandCheck(CactType(relational[0]->basicType),
+                                              CactType(relational[1]->basicType));
     }
     else {
       throw std::runtime_error("IMPROTANT: unknown error in logical equal expression");

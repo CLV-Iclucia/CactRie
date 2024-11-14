@@ -10,39 +10,52 @@
 namespace cactfrontend {
 
 // a constant or variable in the Cact language
+
 struct CactConstVar {
-  CactType type; // the type of the variable
-  bool isConst{}; // const type
-  bool initialized{}; // initialized or not
+  std::string name;
+  CactType type;
   // ExpressionResult value; // the type value
 
-  // construct a variable with a type
-  // explicit CactConstVar(const CactType& type) : value(type) {}
+  // basic constructor
+  explicit CactConstVar() = default;
+  float a = .1f + .0e-0f;
+  explicit CactConstVar(const std::string &_name, const CactBasicType _basicType, bool _isParam, bool _isConst) :
+    name(std::move(_name)), type(_basicType, _isParam), isConst(_isConst), initialized(_isConst) {}
 
-  // construct a constant
-  void constInit(CactBasicType basicType) {
-    this->type.init(basicType, false);
-    this->isConst = initialized = true;
-  }
-
-  // construct a variable
-  void varInit(CactBasicType basicType) {
-    this->type.init(basicType, false);
-    this->isConst = initialized = false;
-  }
-
-  void paramInit(CactBasicType basicType) {
-    this->type.init(basicType, true);
-    this->isConst = initialized = false;
-  }
-
-  // check if this type is a valid left value in an assignment statement
+  // check if this type is a modifiable left value
   [[nodiscard]]
-  bool isValidLValue() const {
+  bool isModifiableLValue() const {
     return this->type.validOperandType() && !this->isConst;
+  };
+
+  // convert the variable to a string
+  [[nodiscard]]
+  std::string toString() const {
+    return (this->isConst ? "const " : "") + this->type.toString() + " " + this->name;
   }
 
+protected:
+  bool isConst{}; // if is const type
+  bool initialized{}; // initialized or not, defaultly false for variable
+};
 
+struct CactConstant : CactConstVar {
+  // constructor
+  explicit CactConstant() = default;
+  explicit CactConstant(const std::string &constName, const CactBasicType basicType) :
+    CactConstVar(constName, basicType, false, true) {}
+};
+
+struct CactVariable : CactConstVar {
+  // constructor
+  explicit CactVariable() = default;
+  explicit CactVariable(const std::string &varName, const CactBasicType basicType) :
+    CactConstVar(varName, basicType, false, false) {}
+
+  // set the initialized flag for the variable
+  void setInitialized() {
+    this->initialized = true;
+  }
 };
 
 }
