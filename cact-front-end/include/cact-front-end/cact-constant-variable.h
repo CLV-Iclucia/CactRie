@@ -18,38 +18,38 @@ struct CactConstVar {
 
   // basic constructor
   explicit CactConstVar() = default;
-  explicit CactConstVar(const std::string &_name, const CactBasicType _basicType, bool _isParam, bool _isConst) :
-    name(std::move(_name)), type(_basicType, _isParam), isConst(_isConst), initialized(_isConst) {}
+  explicit CactConstVar(const std::string &_name, const CactBasicType _basic_type, bool _is_param, bool _is_const) :
+    name(std::move(_name)), type(_basic_type, _is_param), is_const(_is_const), initialized(_is_const) {}
 
   // check if this type is a modifiable left value
   [[nodiscard]]
   bool isModifiableLValue() const {
-    return this->type.validOperandType() && !this->isConst;
+    return this->type.validOperandType() && !this->is_const;
   };
 
   // convert the variable to a string
   [[nodiscard]]
   std::string toString() const {
-    return (this->isConst ? "const " : "") + this->type.toString() + " " + this->name;
+    return (this->is_const ? "const " : "") + this->type.toString() + " " + this->name;
   }
 
 protected:
-  bool isConst{}; // if is const type
+  bool is_const{}; // if is const type
   bool initialized{}; // initialized or not, defaultly false for variable
 };
 
 struct CactConstant : CactConstVar {
   // constructor
   explicit CactConstant() = default;
-  explicit CactConstant(const std::string &constName, const CactBasicType basicType) :
-    CactConstVar(constName, basicType, false, true) {}
+  explicit CactConstant(const std::string &const_name, const CactBasicType basic_type) :
+    CactConstVar(const_name, basic_type, false, true) {}
 };
 
 struct CactVariable : CactConstVar {
   // constructor
   explicit CactVariable() = default;
-  explicit CactVariable(const std::string &varName, const CactBasicType basicType) :
-    CactConstVar(varName, basicType, false, false) {}
+  explicit CactVariable(const std::string &var_name, const CactBasicType basic_type) :
+    CactConstVar(var_name, basic_type, false, false) {}
 
   // set the initialized flag for the variable
   void setInitialized() {

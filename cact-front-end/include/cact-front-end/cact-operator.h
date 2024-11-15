@@ -11,27 +11,27 @@
 namespace cactfrontend {
 
 struct OperandTypeCheck {
-  const std::string errorMessage;
-  const std::set<CactBasicType> validOprandTypeSet;
+  const std::string error_message;
+  const std::set<CactBasicType> valid_oprand_type_set;
 
   // constructor
-  explicit OperandTypeCheck(const std::string errorMessage, const std::set<CactBasicType> validOprandTypeSet) :
-    errorMessage(std::move(errorMessage)), validOprandTypeSet(std::move(validOprandTypeSet)) {}
+  explicit OperandTypeCheck(const std::string error_message, const std::set<CactBasicType> valid_oprand_type_set) :
+    error_message(std::move(error_message)), valid_oprand_type_set(std::move(valid_oprand_type_set)) {}
 };
 
-extern const OperandTypeCheck operandTypeCheckIntFloat;
-extern const OperandTypeCheck operandTypeCheckInt;
-extern const OperandTypeCheck operandTypeCheckBool;
+extern const OperandTypeCheck operand_type_check_int_float;
+extern const OperandTypeCheck operand_type_check_int;
+extern const OperandTypeCheck operand_type_check_bool;
 
 struct Operator {
   [[nodiscard]]
-  bool validOperandTypeBasic(const CactType type, const OperandTypeCheck &opTypeSet) const {
+  bool validOperandTypeBasic(const CactType type, const OperandTypeCheck &op_type_set) const {
     if (!type.validOperandType()){
       throw std::runtime_error("expression must be a scalar");
       return false;
     }
-    if (!opTypeSet.validOprandTypeSet.contains(type.basicType)) {
-      throw std::runtime_error(opTypeSet.errorMessage);
+    if (!op_type_set.valid_oprand_type_set.contains(type.basic_type)) {
+      throw std::runtime_error(op_type_set.error_message);
       return false;
     }
     return true;
@@ -84,7 +84,7 @@ struct PlusOperator : UnaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 
@@ -104,7 +104,7 @@ struct NegOperator : UnaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 
@@ -117,7 +117,7 @@ struct LogicalNotOperator : UnaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckBool);
+    return validOperandTypeBasic(type, operand_type_check_bool);
   }
 };
 
@@ -140,7 +140,7 @@ struct BinaryOperator : Operator {
 
   // [[nodiscard]]
   bool binaryOperandCheck(const CactType &lhs, const CactType &rhs) const {
-    if (lhs.basicType != rhs.basicType) {
+    if (lhs.basic_type != rhs.basic_type) {
       throw std::runtime_error("operands must have the same type");
       return false;
     }
@@ -189,7 +189,7 @@ struct AddOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 
@@ -212,7 +212,7 @@ struct SubOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 
@@ -235,7 +235,7 @@ struct MulOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 
@@ -258,7 +258,7 @@ struct DivOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 
@@ -275,7 +275,7 @@ struct ModOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckInt);
+    return validOperandTypeBasic(type, operand_type_check_int);
   }
 };
 
@@ -292,7 +292,7 @@ struct LogicalOrOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckBool);
+    return validOperandTypeBasic(type, operand_type_check_bool);
   }
 };
 
@@ -309,7 +309,7 @@ struct LogicalAndOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckBool);
+    return validOperandTypeBasic(type, operand_type_check_bool);
   }
 };
 
@@ -375,7 +375,7 @@ struct LessOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 
@@ -398,7 +398,7 @@ struct GreaterOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 
@@ -421,7 +421,7 @@ struct LessEqualOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 
@@ -444,7 +444,7 @@ struct GreaterEqualOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 
@@ -467,7 +467,7 @@ struct EqualOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 
@@ -490,7 +490,7 @@ struct NotEqualOperator : BinaryOperator {
   }
 
   bool validOperandTypeCheck(const CactType type) const override {
-    return validOperandTypeBasic(type, operandTypeCheckIntFloat);
+    return validOperandTypeBasic(type, operand_type_check_int_float);
   }
 };
 

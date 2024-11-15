@@ -87,13 +87,13 @@ struct ExpressionResult final : EvalResult {
   ExpressionResult() = default;
   explicit ExpressionResult(const CactType& type) : m_type(type) {}
   explicit ExpressionResult(ConstEvalResult value)
-      : compileTimeEvaluationResult(value), m_type(constEvalResultType(value)) {}
+      : compile_time_evaluation_result(value), m_type(constEvalResultType(value)) {}
 
   // get the type of the expression
   [[nodiscard]]
   CactType type() const override {
-    if (compileTimeEvaluationResult.has_value())
-      return constEvalResultType(*compileTimeEvaluationResult);
+    if (compile_time_evaluation_result.has_value())
+      return constEvalResultType(*compile_time_evaluation_result);
     else
       return m_type;
   }
@@ -101,23 +101,23 @@ struct ExpressionResult final : EvalResult {
   // get the compile time evaluation result
   [[nodiscard]]
   std::optional<ConstEvalResult> compileTimeEvalResult() const override {
-    return compileTimeEvaluationResult;
+    return compile_time_evaluation_result;
   }
 
-  std::optional<ConstEvalResult> compileTimeEvaluationResult{};
+  std::optional<ConstEvalResult> compile_time_evaluation_result{};
 
   // get the string representation of the expression
   [[nodiscard]]
   std::string toString() const {
-    if (compileTimeEvaluationResult.has_value()) {
-      if (std::holds_alternative<int32_t>(compileTimeEvaluationResult.value()))
-        return std::to_string(std::get<int32_t>(compileTimeEvaluationResult.value()));
-      else if (std::holds_alternative<float>(compileTimeEvaluationResult.value()))
-        return std::to_string(std::get<float>(compileTimeEvaluationResult.value()));
-      else if (std::holds_alternative<double>(compileTimeEvaluationResult.value()))
-        return std::to_string(std::get<double>(compileTimeEvaluationResult.value()));
+    if (compile_time_evaluation_result.has_value()) {
+      if (std::holds_alternative<int32_t>(compile_time_evaluation_result.value()))
+        return std::to_string(std::get<int32_t>(compile_time_evaluation_result.value()));
+      else if (std::holds_alternative<float>(compile_time_evaluation_result.value()))
+        return std::to_string(std::get<float>(compile_time_evaluation_result.value()));
+      else if (std::holds_alternative<double>(compile_time_evaluation_result.value()))
+        return std::to_string(std::get<double>(compile_time_evaluation_result.value()));
       else
-        return std::get<bool>(compileTimeEvaluationResult.value()) ? "true" : "false";
+        return std::get<bool>(compile_time_evaluation_result.value()) ? "true" : "false";
     } else {
       throw std::runtime_error("not a compile time constant");
     }

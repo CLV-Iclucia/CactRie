@@ -15,8 +15,8 @@ namespace cactfrontend {
 struct FuncParameter : CactConstVar {
   // constructor
   explicit FuncParameter() = default;
-  explicit FuncParameter(const std::string &funcName, const CactBasicType retType) :
-    CactConstVar(funcName, retType, true, false) {}
+  explicit FuncParameter(const std::string &function_name, const CactBasicType return_type) :
+    CactConstVar(function_name, return_type, true, false) {}
 };
 
 // a list of function parameters
@@ -29,19 +29,19 @@ struct CactFunction {
   FuncParameters parameters; // parameters
 
   // set up name and return type
-  void init(const std::string &funcName, CactBasicType retType) {
-    this->name = std::move(funcName);
-    this->return_type = retType;
+  void init(const std::string &function_name, CactBasicType return_type) {
+    this->name = std::move(function_name);
+    this->return_type = return_type;
   }
 
   // add a new parameter
-  void addParameter(FuncParameter newParam) {
+  void addParameter(FuncParameter new_parameter) {
     // check if parameter name is used
     for (auto &p : this->parameters)
-      if (p.name == newParam.name)
+      if (p.name == new_parameter.name)
         throw std::runtime_error("duplicate parameter name");
 
-    this->parameters.emplace_back(newParam);
+    this->parameters.emplace_back(new_parameter);
   }
 };
 
