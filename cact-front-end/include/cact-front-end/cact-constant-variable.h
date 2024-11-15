@@ -18,7 +18,6 @@ struct CactConstVar {
 
   // basic constructor
   explicit CactConstVar() = default;
-  float a = .1f + .0e-0f;
   explicit CactConstVar(const std::string &_name, const CactBasicType _basicType, bool _isParam, bool _isConst) :
     name(std::move(_name)), type(_basicType, _isParam), isConst(_isConst), initialized(_isConst) {}
 

@@ -24,14 +24,14 @@ typedef std::vector<FuncParameter> FuncParameters;
 
 // a function in the Cact language
 struct CactFunction {
-  CactBasicType returnType; // return type
+  CactBasicType return_type; // return type
   std::string name; // function name
   FuncParameters parameters; // parameters
 
   // set up name and return type
   void init(const std::string &funcName, CactBasicType retType) {
     this->name = std::move(funcName);
-    this->returnType = retType;
+    this->return_type = retType;
   }
 
   // add a new parameter

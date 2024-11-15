@@ -97,7 +97,7 @@ struct SymbolRegistry {
   }
 
   // create a new function
-  observer_ptr<CactFunction> newFunction(std::string name, CactBasicType returnType) {
+  observer_ptr<CactFunction> newFunction(std::string name, CactBasicType return_type) {
     // check if function with same name is already in the scope
     if (functionID.contains(name))
       throw std::runtime_error("‘" + func2String(name) + "’ cannot be overloaded");
@@ -106,7 +106,17 @@ struct SymbolRegistry {
     functionID.insert({name, functions.size() - 1});
 
     auto func = make_observer(functions.back().get());
-    func->init(name, returnType);
+    func->init(name, return_type);
+    return func;
+  }
+
+  // create a new function
+  observer_ptr<CactFunction> newFunction(std::string name, CactBasicType return_type, FuncParameters params) {
+    auto func = newFunction(name, return_type);
+
+    for (auto &param : params)
+      func->addParameter(param);
+
     return func;
   }
 
@@ -128,7 +138,7 @@ struct SymbolRegistry {
     if (!func)
       return nullptr;
 
-    std::string result = type2String(func->returnType) + " " + name + "(";
+    std::string result = type2String(func->return_type) + " " + name + "(";
     // print all parameters
     for (auto &param : func->parameters) {
       result += param.type.toStringFull() + param.name;

@@ -3,10 +3,14 @@
 #include <cact-front-end/CactLexer.h>
 #include <cact-front-end/CactParser.h>
 #include <cact-front-end/cact-syntax-error-listener.h>
-#include <cact-front-end/symbol-registration-visitor.h>
 // #include <cact-front-end/cact-symbol-registration-visitor.h>
 #include <antlr-runtime/ANTLRInputStream.h>
 #include <antlr-runtime/CommonTokenStream.h>
+
+// declarations
+extern bool lexical_syntax_analysis(antlr4::tree::ParseTree * &tree, cactfrontend::CactParser parser,
+                                    cactfrontend::CactSyntaxErrorListener cact_error_listener);
+extern bool semantic_analysis(antlr4::tree::ParseTree *tree);
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
@@ -30,34 +34,21 @@ int main(int argc, char *argv[]) {
   cactfrontend::CactParser parser(&tokens);
   lexer.removeErrorListeners();
   parser.removeErrorListeners();
+
   cactfrontend::CactSyntaxErrorListener cact_error_listener(argv[1]);
   lexer.addErrorListener(&cact_error_listener);
   parser.addErrorListener(&cact_error_listener);
-  try {
-    antlr4::tree::ParseTree *tree = parser.compilationUnit();
-    // if error
-    if (cact_error_listener.hasSyntaxError()) {
-      std::cerr << "Syntax error(s) found in the source file. Compilation failed." << std::endl;
-      return 1;
-    }
 
-    // print the parse tree
-    std::cout << tree->toStringTree(&parser) << std::endl << std::endl;
-
-    // call function to check if there is any static syntax error
-    cactfrontend::SymbolRegistrationErrorCheckVisitor visitor;
-    visitor.visit(tree);
-    std::cout << "Syntax check completed." << std::endl;
-
-    
-    if (cact_error_listener.hasSyntaxError()) {
-      std::cerr << "Syntax error(s) found in the source file. Compilation failed." << std::endl;
-      return 1;
-    }
-  } catch (const std::exception &ex) {
-    std::cerr << "Parsing failed: " << ex.what() << std::endl;
+  antlr4::tree::ParseTree * tree;
+  if (lexical_syntax_analysis(tree, parser, cact_error_listener))
     return 1;
-  }
+
+  // // print the parse tree
+  // std::cout << tree->toStringTree(&parser) << std::endl << std::endl;
+
+  // call function to perform semantic analysis
+  semantic_analysis(tree);
+
 
   return 0;
 }

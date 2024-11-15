@@ -18,43 +18,22 @@ namespace cactfrontend {
 
 // A visitor to register symbols
 struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
-
-  // declarations
-  // CactBasicType getDataType(DataTypeCtx *ctx);
-  // std::vector<ConstEvalResult> getConstIniVal(ConstantInitialValueCtx *ctx);
-  // void enterScope(observer_ptr<Scope> scope);
-  // void leaveScope();
-  // CactBasicType getFuncType(FunctionTypeCtx *ctx);
-  // FuncParameters getFuncParams(FunctionParametersCtx *ctx);
-  // FuncParameter getFuncParam(FunctionParameterCtx *ctx);
+  const std::set<std::tuple<std::string, CactBasicType, FuncParameters>> built_in_functions = {
+      std::tuple("print_int",    CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Int32)}),
+      std::tuple("print_float",  CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Float)}),
+      std::tuple("print_double", CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Double)}),
+      std::tuple("print_bool",   CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Bool)}),
+      std::tuple("get_int",      CactBasicType::Int32,  FuncParameters()),
+      std::tuple("get_float",    CactBasicType::Float,  FuncParameters()),
+      std::tuple("get_double",   CactBasicType::Double, FuncParameters()),
+  };
 
   // Constructor: initialize the symbol registry
   SymbolRegistrationErrorCheckVisitor() : registry(std::make_unique<SymbolRegistry>()) {
     // register built-in functions
-    // void print_int(int)
-    auto printIntFunc = registry->newFunction(std::string("print_int"), CactBasicType::Void);
-    printIntFunc->addParameter(FuncParameter(std::string("x"), CactBasicType::Int32));
-
-    // void print_float(float)
-    auto printFloatFunc = registry->newFunction(std::string("print_float"), CactBasicType::Void);
-    printFloatFunc->addParameter(FuncParameter(std::string("x"), CactBasicType::Float));
-
-    // void print_double(double)
-    auto printDoubleFunc = registry->newFunction(std::string("print_double"), CactBasicType::Void);
-    printDoubleFunc->addParameter(FuncParameter(std::string("x"), CactBasicType::Double));
-
-    // void print_bool(bool)
-    auto printBoolFunc = registry->newFunction(std::string("print_bool"), CactBasicType::Void);
-    printBoolFunc->addParameter(FuncParameter(std::string("x"), CactBasicType::Bool));
-
-    // int get_int()
-    registry->newFunction(std::string("get_int"), CactBasicType::Int32);
-
-    // float get_float()
-    registry->newFunction(std::string("get_float"), CactBasicType::Float);
-
-    // double get_double()
-    registry->newFunction(std::string("get_double"), CactBasicType::Double);
+    for (const auto &func : built_in_functions) {
+      registry->newFunction(std::get<0>(func), std::get<1>(func), std::get<2>(func));
+    }
   }
 
   // print message: start semantic check
@@ -74,18 +53,18 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   // visit a compilation unit
   std::any visitCompilationUnit(CompilationUnitCtx *ctx) override {
     startSemanticCheck("CompilationUnit");
-    currentScope = this->registry->createGlobalScope();
+    current_scope = this->registry->createGlobalScope();
 
     for (auto &child : ctx->children)
       visit(child);
 
     // check if main function exists, check its return data type and parameter
-    auto mainFunc = this->registry->getFunction("main");
-    if (!mainFunc)
+    auto main_function = this->registry->getFunction("main");
+    if (!main_function)
       throw std::runtime_error("function main() is undefined");
-    if (mainFunc->returnType != CactBasicType::Int32)
+    if (main_function->return_type != CactBasicType::Int32)
       throw std::runtime_error("function main() must return an integer");
-    if (!mainFunc->parameters.empty())
+    if (!main_function->parameters.empty())
       throw std::runtime_error("function main() must have no parameter");
 
     completeSemanticCheck("CompilationUnit");
@@ -108,10 +87,10 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
   std::any visitDataType(DataTypeCtx *ctx) override {
     startSemanticCheck("DataType");
-    if (ctx->Int32())       {std::cout << "Int32"  << std::endl; return CactBasicType::Int32; }
-    else if (ctx->Bool())   {std::cout << "Bool"   << std::endl; return CactBasicType::Bool;  }
-    else if (ctx->Float())  {std::cout << "Float"  << std::endl; return CactBasicType::Float; }
-    else if (ctx->Double()) {std::cout << "Double" << std::endl; return CactBasicType::Double;}
+    if (ctx->Int32())       return CactBasicType::Int32;
+    else if (ctx->Bool())   return CactBasicType::Bool;
+    else if (ctx->Float())  return CactBasicType::Float;
+    else if (ctx->Double()) return CactBasicType::Double;
     else
       throw std::runtime_error("IMPORTANT: unknown error in DataType");
     completeSemanticCheck("DataType");
@@ -142,7 +121,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     visit(constInitVal);
 
     // register the constant
-    currentScope->registerVariable(ctx->constant);
+    current_scope->registerVariable(ctx->constant);
 
     completeSemanticCheck("ConstantDefinition");
     return {};
@@ -276,7 +255,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     }
 
     // register the constant
-    currentScope->registerVariable(ctx->variable);
+    current_scope->registerVariable(ctx->variable);
 
     completeSemanticCheck("VariableDefinition");
     return {};
@@ -285,13 +264,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   // enter a new scope
   void enterScope(observer_ptr<Scope> *scope) {
     *scope = this->registry->newScope();
-    scope->get()->setParent(currentScope);
-    currentScope = *scope;
+    scope->get()->setParent(current_scope);
+    current_scope = *scope;
   }
 
   // leave the current scope
   void leaveScope() {
-    currentScope = currentScope->getParent();
+    current_scope = current_scope->getParent();
   }
 
   // visit a function definition
@@ -301,9 +280,9 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     enterScope(&ctx->scope);
 
     // record the function's return data type and name 
-    auto returnType = getFuncType(ctx->functionType());
+    auto return_type = getFuncType(ctx->functionType());
     auto name = ctx->Identifier()->getText();
-    currentFunction = ctx->function = this->registry->newFunction(name, returnType);
+    currentFunction = ctx->function = this->registry->newFunction(name, return_type);
 
     // visit the function's parameters
     auto paramsCtx = ctx->functionParameters();
@@ -316,7 +295,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     visit(ctx->block());
 
     // check if the function has a return statement
-    if (returnType != CactBasicType::Void && !ctx->block()->hasReturn)
+    if (return_type != CactBasicType::Void && !ctx->block()->hasReturn)
       throw std::runtime_error("function \"" + name + "\" has to return a value");
 
     leaveScope();
@@ -386,7 +365,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     currentFunction->addParameter(parameter);
 
     // register the parameter
-    currentScope->registerVariable(parameter);
+    current_scope->registerVariable(parameter);
 
     completeSemanticCheck("FunctionParameter");
     return {};
@@ -491,12 +470,12 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // check return type
     if (expr == nullptr) {
-      if (currentFunction->returnType != CactBasicType::Void)
+      if (currentFunction->return_type != CactBasicType::Void)
         throw std::runtime_error("return value type does not match the function type");
     }
     else {
       visit(expr);
-      if (expr->type.isArray() || expr->type.basicType != currentFunction->returnType)
+      if (expr->type.isArray() || expr->type.basicType != currentFunction->return_type)
         throw std::runtime_error("return value type does not match the function type");
     }
 
@@ -621,7 +600,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("LeftValue");
     // record the name of lvalue, and find corresponding variable
     auto name = ctx->Identifier()->getText();
-    auto var = currentScope->getVariable(name); // if not declared, throw an error in variable()
+    auto var = current_scope->getVariable(name); // if not declared, throw an error in variable()
     ctx->type = var.type;
 
     // visit children and check dimensions
@@ -745,7 +724,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
         visit(ctx->functionArguments());
       }
 
-      ctx->type = CactType(func->returnType);
+      ctx->type = CactType(func->return_type);
     }
     else {
       assert(0);
@@ -989,7 +968,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
 private:
   std::unique_ptr<SymbolRegistry> registry;
-  observer_ptr<Scope> currentScope;
+  observer_ptr<Scope> current_scope;
   std::stack<observer_ptr<WhileStatementCtx>> whileLoopStack;
   observer_ptr<CactFunction> currentFunction;
 };
