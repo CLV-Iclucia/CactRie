@@ -42,7 +42,7 @@ struct IRGenerator : public CactParserVisitor {
   // visit an add expression
   std::any visitAddExpression(CactParser::AddExpressionContext *ctx) override {
     // if the result is a compile time constant, return
-    if (ctx->expressionResult.compileTimeEvalResult().has_value())
+    if (ctx->expression_result.compileTimeEvalResult().has_value())
       return {};
     // visit the add expression, and then the mul expression
     if (ctx->addExpression())

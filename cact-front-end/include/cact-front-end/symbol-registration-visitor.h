@@ -18,7 +18,7 @@ namespace cactfrontend {
 
 // A visitor to register symbols
 struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
-  const std::set<std::tuple<std::string, CactBasicType, FuncParameters>> built_in_functions = {
+  const std::vector<std::tuple<std::string, CactBasicType, FuncParameters>> built_in_functions = {
       std::tuple("print_int",    CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Int32)}),
       std::tuple("print_float",  CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Float)}),
       std::tuple("print_double", CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Double)}),
@@ -115,10 +115,10 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     }
 
     // set some attributes for constantInitialValue, visit it and get the result
-    auto const_init_val = ctx->constantInitialValue();
-    const_init_val->current_dim = 0;
-    const_init_val->type = ctx->constant.type;
-    visit(const_init_val);
+    auto const_init_val_ctx = ctx->constantInitialValue();
+    const_init_val_ctx->current_dim = 0;
+    const_init_val_ctx->type = ctx->constant.type;
+    visit(const_init_val_ctx);
 
     // register the constant
     current_scope->registerVariable(ctx->constant);
@@ -134,16 +134,16 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     const CactType &type = ctx->type;
     const uint32_t type_dim = type.dim();
 
-    auto const_expr = ctx->constantExpression();
-    auto const_init_val = ctx->constantInitialValue();
+    auto const_expr_ctx = ctx->constantExpression();
+    auto const_init_val_ctx = ctx->constantInitialValue();
 
-    if (const_expr) {
+    if (const_expr_ctx) {
       if (current_dim != type_dim)
         throw std::runtime_error("expression expecting an array, but got a scalar");
-      visit(const_expr);
-      if (type.basic_type != const_expr->basic_type)
+      visit(const_expr_ctx);
+      if (type.basic_type != const_expr_ctx->basic_type)
         throw std::runtime_error("a value of type \"" +
-                                 type2String(const_expr->basic_type) +
+                                 type2String(const_expr_ctx->basic_type) +
                                  "\" cannot be used to initialize an entity of type \"" +
                                  type.toString() + "\"");
     }
@@ -155,10 +155,10 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
         throw std::runtime_error("expression expecting a scalar, but got an array");
 
       // count the number of child in constantInitialValue() array
-      uint32_t init_val_count = const_init_val.size();
+      uint32_t init_val_count = const_init_val_ctx.size();
 
       // set default attributes of children -- constant initial values
-      for (auto &child : const_init_val) {
+      for (auto &child : const_init_val_ctx) {
         child->current_dim = current_dim + 1;
         child->type = type;
       }
@@ -168,7 +168,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       bool flat_flag = false;
       if (current_dim == 0) {
         flat_flag = true;
-        for (auto &child : const_init_val) {
+        for (auto &child : const_init_val_ctx) {
           if (!child->constantExpression()) {
             flat_flag = false;
             break;
@@ -178,7 +178,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
       // case (1): if this initial value is a flat array, reset current_dim of children and visit them
       if (flat_flag) {
-        for (auto &child : const_init_val) {
+        for (auto &child : const_init_val_ctx) {
           child->current_dim = type_dim;
         }
 
@@ -201,7 +201,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       }
 
       // visit all children
-      for (auto &child : const_init_val) {
+      for (auto &child : const_init_val_ctx) {
         visit(child);
       }
 
@@ -244,14 +244,14 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     }
 
     // set some attributes for constantInitialValue, visit it and get the result
-    auto const_init_val = ctx->constantInitialValue();
-    if (const_init_val) {
+    auto const_init_val_ctx = ctx->constantInitialValue();
+    if (const_init_val_ctx) {
       ctx->variable.setInitialized(); // set initialized flag
 
-      const_init_val->current_dim = 0;
-      const_init_val->type = ctx->variable.type;
-      // auto value = getConstIniVal(const_init_val);
-      visit(const_init_val);
+      const_init_val_ctx->current_dim = 0;
+      const_init_val_ctx->type = ctx->variable.type;
+      // auto value = getConstIniVal(const_init_val_ctx);
+      visit(const_init_val_ctx);
     }
 
     // register the constant
@@ -439,21 +439,21 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   // visit a assign statement
   std::any visitAssignStatement(AssignStatementCtx *ctx) override {
     startSemanticCheck("AssignStatement");
-    LeftValueCtx *left_value = ctx->leftValue();
-    ExpressionCtx *expression = ctx->expression();
+    LeftValueCtx *left_value_ctx = ctx->leftValue();
+    ExpressionCtx *expr_ctx = ctx->expression();
 
     // an array cannot become a valid left-hand-side value
-    visit(left_value);
-    if (!left_value->modifiable_left_value)
+    visit(left_value_ctx);
+    if (!left_value_ctx->modifiable_left_value)
       throw std::runtime_error("expression must be a modifiable lvalue");
 
     // Check type compatibility
-    visit(expression);
-    if (left_value->type != expression->type)
+    visit(expr_ctx);
+    if (left_value_ctx->type != expr_ctx->type)
       throw std::runtime_error("a value of type \"" +
-                               expression->type.toString() +
+                               expr_ctx->type.toString() +
                                "cannot be assigned to an entity of type \"" +
-                               left_value->type.toString() +
+                               left_value_ctx->type.toString() +
                                "\"");
 
     completeSemanticCheck("AssignStatement");
@@ -466,16 +466,16 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   std::any visitReturnStatement(ReturnStatementCtx *ctx) override {
     startSemanticCheck("ReturnStatement");
     // visit the expression
-    auto expr = ctx->expression();
+    auto expr_ctx = ctx->expression();
 
     // check return type
-    if (expr == nullptr) {
+    if (expr_ctx == nullptr) {
       if (current_function->return_type != CactBasicType::Void)
         throw std::runtime_error("return value type does not match the function type");
     }
     else {
-      visit(expr);
-      if (expr->type.isArray() || expr->type.basic_type != current_function->return_type)
+      visit(expr_ctx);
+      if (expr_ctx->type.isArray() || expr_ctx->type.basic_type != current_function->return_type)
         throw std::runtime_error("return value type does not match the function type");
     }
 
@@ -917,18 +917,18 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   // visit a logical and expression
   std::any visitLogicalAndExpression(LogicalAndExpressionCtx *ctx) override {
     startSemanticCheck("LogicalAndExpression");
-    auto logicalEqual = ctx->logicalEqualExpression();
-    auto logicalAnd = ctx->logicalAndExpression();
+    auto logical_equal_ctx = ctx->logicalEqualExpression();
+    auto logical_and_ctx = ctx->logicalAndExpression();
 
     // -> logicalEqualExpression
-    if (logicalEqual && !logicalAnd) {
-      visit(logicalEqual);
+    if (logical_equal_ctx && !logical_and_ctx) {
+      visit(logical_equal_ctx);
       ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
     }
     // -> logicalAndExpression && logicalEqualExpression
-    else if (logicalEqual && logicalAnd) {
-      visit(logicalAnd);
-      visit(logicalEqual);
+    else if (logical_equal_ctx && logical_and_ctx) {
+      visit(logical_and_ctx);
+      visit(logical_equal_ctx);
 
       ctx->binary_operator = make_observer<BinaryOperator>(new LogicalAndOperator);
     }
@@ -943,18 +943,18 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   // visit a logical or expression
   std::any visitLogicalOrExpression(LogicalOrExpressionCtx *ctx) override {
     startSemanticCheck("LogicalOrExpression");
-    auto logicalAnd = ctx->logicalAndExpression();
-    auto logicalOr = ctx->logicalOrExpression();
+    auto logical_and_ctx = ctx->logicalAndExpression();
+    auto logical_or_ctx = ctx->logicalOrExpression();
 
     // -> logicalAndExpression
-    if (logicalAnd && !logicalOr) {
-      visit(logicalAnd);
+    if (logical_and_ctx && !logical_or_ctx) {
+      visit(logical_and_ctx);
       ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
     }
     // -> logicalOrExpression || logicalAndExpression
-    else if (logicalAnd && logicalOr) {
-      visit(logicalOr);
-      visit(logicalAnd);
+    else if (logical_and_ctx && logical_or_ctx) {
+      visit(logical_or_ctx);
+      visit(logical_and_ctx);
 
       ctx->binary_operator = make_observer<BinaryOperator>(new LogicalOrOperator);
     }

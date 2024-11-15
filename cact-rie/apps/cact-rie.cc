@@ -3,20 +3,20 @@
 #include <cact-front-end/CactLexer.h>
 #include <cact-front-end/CactParser.h>
 #include <cact-front-end/cact-syntax-error-listener.h>
-// #include <cact-front-end/cact-symbol-registration-visitor.h>
+#include <cact-front-end/symbol-registration-visitor.h>
 #include <antlr-runtime/ANTLRInputStream.h>
 #include <antlr-runtime/CommonTokenStream.h>
 
 // declarations
-extern bool lexical_syntax_analysis(antlr4::tree::ParseTree * &tree, cactfrontend::CactParser parser,
-                                    cactfrontend::CactSyntaxErrorListener cact_error_listener);
-extern bool semantic_analysis(antlr4::tree::ParseTree *tree);
+// extern bool lexical_syntax_analysis(antlr4::tree::ParseTree * &tree, std::ifstream &stream, std::string source_file_name);
+// extern bool semantic_analysis(antlr4::tree::ParseTree *tree);
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " <input file>" << std::endl;
     return 1;
   }
+  
   std::ifstream stream(argv[1]);
   if (!stream) {
     std::cerr << "Failed to open file: " << argv[1] << std::endl;
@@ -27,6 +27,9 @@ int main(int argc, char *argv[]) {
   std::ifstream streamCopy(argv[1]);
   std::cout << "Source file content:" << std::endl;
   std::cout << streamCopy.rdbuf() << std::endl;
+
+
+  antlr4::tree::ParseTree * tree;
 
   antlr4::ANTLRInputStream input(stream);
   cactfrontend::CactLexer lexer(&input);
@@ -39,15 +42,38 @@ int main(int argc, char *argv[]) {
   lexer.addErrorListener(&cact_error_listener);
   parser.addErrorListener(&cact_error_listener);
 
-  antlr4::tree::ParseTree * tree;
-  if (lexical_syntax_analysis(tree, parser, cact_error_listener))
+  try {
+    tree = parser.compilationUnit();
+
+    // if error
+    if (cact_error_listener.hasSyntaxError()) {
+      std::cerr << "Syntax error(s) found in the source file. Compilation failed." << std::endl;
+      return 1;
+    }
+    // return 0;
+  } catch (const std::exception &ex) {
+    std::cerr << "Parsing failed: " << ex.what() << std::endl;
     return 1;
+  }
 
   // // print the parse tree
   // std::cout << tree->toStringTree(&parser) << std::endl << std::endl;
 
   // call function to perform semantic analysis
-  semantic_analysis(tree);
+
+
+  cactfrontend::SymbolRegistrationErrorCheckVisitor visitor;
+  
+  // check if there is any syntax error
+  try {
+    visitor.visit(tree);
+    std::cout << "Syntax check completed." << std::endl;
+    // return 0;
+  } catch (const std::exception &ex) {
+    std::cerr << "Syntax error(s) found in the source file. Compilation failed." << std::endl;
+    std::cerr << ex.what() << std::endl;
+    return 1;
+  }
 
 
   return 0;

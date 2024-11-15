@@ -19,6 +19,7 @@ struct OperandTypeCheck {
     error_message(std::move(error_message)), valid_oprand_type_set(std::move(valid_oprand_type_set)) {}
 };
 
+// in cact-operator.cc
 extern const OperandTypeCheck operand_type_check_int_float;
 extern const OperandTypeCheck operand_type_check_int;
 extern const OperandTypeCheck operand_type_check_bool;
