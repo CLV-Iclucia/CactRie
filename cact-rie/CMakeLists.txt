@@ -7,7 +7,7 @@ target_include_directories(cactrie PUBLIC include)
 target_link_libraries(cactrie cact-front-end)
 
 add_executable(cact-rie apps/cact-rie.cc)
-target_link_libraries(cact-rie cactrie)
+target_link_libraries(cact-rie cactrie cxxopts)
 
 set(CACTRIE_TEST_SUITES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 add_executable(cact-rie-tests tests/cact-rie-tests.cc)

@@ -6,17 +6,35 @@
 #include <cact-front-end/symbol-registration-visitor.h>
 #include <antlr-runtime/ANTLRInputStream.h>
 #include <antlr-runtime/CommonTokenStream.h>
-
+#include <cxxopts.hpp>
 // declarations
 // extern bool lexical_syntax_analysis(antlr4::tree::ParseTree * &tree, std::ifstream &stream, std::string source_file_name);
 // extern bool semantic_analysis(antlr4::tree::ParseTree *tree);
+
+auto parseArgs(int argc, char *argv[]) {
+  cxxopts::Options options(argv[0], "Cact frontend compiler");
+  options.add_options()
+      ("h,help", "Print usage")
+      ("i,input", "Input file", cxxopts::value<std::string>());
+  auto result = options.parse(argc, argv);
+  if (result.count("help")) {
+    std::cout << options.help() << std::endl;
+    exit(0);
+  }
+  if (!result.count("input")) {
+    std::cerr << "Input file is required" << std::endl;
+    std::cout << options.help() << std::endl;
+    exit(1);
+  }
+  return result;
+}
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " <input file>" << std::endl;
     return 1;
   }
-  
+
   std::ifstream stream(argv[1]);
   if (!stream) {
     std::cerr << "Failed to open file: " << argv[1] << std::endl;
@@ -28,8 +46,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Source file content:" << std::endl;
   std::cout << streamCopy.rdbuf() << std::endl;
 
-
-  antlr4::tree::ParseTree * tree;
+  antlr4::tree::ParseTree *tree;
 
   antlr4::ANTLRInputStream input(stream);
   cactfrontend::CactLexer lexer(&input);
@@ -63,7 +80,7 @@ int main(int argc, char *argv[]) {
 
 
   cactfrontend::SymbolRegistrationErrorCheckVisitor visitor;
-  
+
   // check if there is any syntax error
   try {
     visitor.visit(tree);
@@ -74,7 +91,6 @@ int main(int argc, char *argv[]) {
     std::cerr << ex.what() << std::endl;
     return 1;
   }
-
 
   return 0;
 }

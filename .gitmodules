@@ -4,3 +4,6 @@
 [submodule "deps/minilog"]
 	path = deps/minilog
 	url = git@github.com:CLV-Iclucia/minilog.git
+[submodule "deps/cxxopts"]
+	path = deps/cxxopts
+	url = git@github.com:jarro2783/cxxopts.git
