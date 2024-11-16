@@ -99,6 +99,7 @@ void CallInst::accept(Executor &executor) {
   for (auto arg : func->args())
     executor.reg(arg->name()) = executor.reg(arg->name());
   executor.execute(func);
+  executor.returnFlag = false;
   executor.reg(name()) = executor.returnReg.value();
 }
 
@@ -167,7 +168,7 @@ void CmpInst::accept(Executor &executor) {
 }
 
 void PhiInst::accept(Executor &executor) {
-  const auto &incoming = executor.incomingBasicBlock;
+  const auto &incoming = executor.prvBasicBlock;
   for (const auto &[bb, value] : incomingValues)
     if (bb->name() == incoming) {
       executor.reg(name()) = executor.reg(value->name());
@@ -179,18 +180,19 @@ void BrInst::accept(Executor &executor) {
   if (isConditional()) {
     if (executor.reg(cond().name()).isBool()) {
       if (std::get<bool>(executor.reg(cond().name()).value))
-        executor.execute(thenBranch());
+        executor.nxtBasicBlock = thenBranch().name();
       else
-        executor.execute(elseBranch());
+        executor.nxtBasicBlock = elseBranch().name();
     } else
       throw std::runtime_error("Branch condition must be a boolean");
   } else
-    executor.execute(std::get<CRef<BasicBlock>>(dest));
-  executor.incomingBasicBlock = basicBlock.name();
+    executor.nxtBasicBlock = std::get<CRef<BasicBlock>>(dest)->name();
+  executor.prvBasicBlock = basicBlock.name();
 }
 
 void RetInst::accept(Executor &executor) {
   executor.returnReg = ret == nullptr ? std::nullopt : std::make_optional(executor.reg(ret->name()));
+  executor.returnFlag = true;
   executor.popFrame();
 }
 }

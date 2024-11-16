@@ -38,6 +38,7 @@ public:
   [[nodiscard]] CRef<IntegerType> intType() const;
   [[nodiscard]] CRef<IntegerType> longType() const;
   [[nodiscard]] Ref<Constant> constant(CRef<Type> type, const std::string& str);
+  [[nodiscard]] CRef<PointerType> castFromArrayType(CRef<ArrayType> arrayType) const;
 private:
   std::unique_ptr<TypeSystem> typeSystem{};
   std::unique_ptr<ConstantPool> constantPool{};

@@ -70,18 +70,22 @@ struct Executor {
     value.accept(*this);
   }
   void pushFrame() {
+    returnFlag = false;
     callFrames.emplace();
   }
   void popFrame() {
     callFrames.pop();
+    returnFlag = false;
   }
   Result &reg(const std::string &name) {
     return callFrames.top().regs.at(name);
   }
   Module &module;
   LLVMContext &ctx;
-  std::string incomingBasicBlock{};
+  std::string prvBasicBlock{};
+  std::string nxtBasicBlock{};
   std::optional<Result> returnReg{};
+  bool returnFlag{};
 private:
   std::stack<CallFrame> callFrames{};
   std::unordered_map<std::string, Result> globalResults;

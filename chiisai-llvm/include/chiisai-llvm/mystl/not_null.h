@@ -11,6 +11,8 @@ namespace llvm::mystl {
 
 template<typename Ptr>
 struct not_null {
+  template <typename P>
+  requires std::is_convertible_v<P, Ptr>
   not_null(Ptr ptr) : ptr(ptr) {
     if (ptr == nullptr)
       throw std::invalid_argument("null pointer passed to not_null");

@@ -9,128 +9,196 @@
 #include <vector>
 #include <list>
 namespace llvm::mystl {
-template<typename Base>
+template <typename Base>
 struct poly_list {
 public:
-  template<typename Derived>
+  template <typename Derived, typename... Args>
   requires std::is_base_of_v<Base, Derived>
-  void emplace_back() {
-    container.emplace_back(std::make_unique<Derived>());
-  }
-  template<typename Derived, typename... Args>
-  requires std::is_base_of_v<Base, Derived>
-  void emplace_back(Args &&... args) {
+  void emplace_back(Args&&... args) {
     container.emplace_back(std::make_unique<Derived>(std::forward<Args>(args)...));
   }
-  template<typename Derived>
-  void emplace_back(std::unique_ptr<Derived>&& ptr) {
-    container.emplace_back(std::move(ptr));
-  }
-  template<typename Derived>
-  void emplace_front() {
-    container.emplace_front(std::make_unique<Derived>());
-  }
-  template<typename Derived, typename... Args>
-  void emplace_front(Args &&... args) {
+
+  template <typename Derived, typename... Args>
+  requires std::is_base_of_v<Base, Derived>
+  void emplace_front(Args&&... args) {
     container.emplace_front(std::make_unique<Derived>(std::forward<Args>(args)...));
   }
-  template<typename Derived>
+
+  template <typename Derived>
+  requires std::is_base_of_v<Base, Derived>
   void push_back(std::unique_ptr<Derived> ptr) {
     container.push_back(std::move(ptr));
   }
-  template<typename Derived>
+
+  template <typename Derived>
+  requires std::is_base_of_v<Base, Derived>
   void push_front(std::unique_ptr<Derived> ptr) {
     container.push_front(std::move(ptr));
   }
 
   struct iterator {
-    using container_iterator = typename std::list<std::unique_ptr<Base>>::iterator;
-    explicit iterator(container_iterator it) : it(it) {}
-    observer_ptr<Base> operator*() {
-      return make_observer(it->get());
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = observer_ptr<Base>;
+    using difference_type = std::ptrdiff_t;
+    using pointer = observer_ptr<Base>*;
+    using reference = observer_ptr<Base>&;
+
+    explicit iterator(typename std::list<std::unique_ptr<Base>>::iterator it)
+        : it_(it) {}
+
+    observer_ptr<Base> operator*() const {
+      return observer_ptr<Base>(it_->get());
     }
-    observer_ptr<Base> operator->() {
-      return it->get();
+
+    observer_ptr<Base> operator->() const {
+      return observer_ptr<Base>(it_->get());
     }
-    iterator &operator++() {
-      ++it;
+
+    iterator& operator++() {
+      ++it_;
       return *this;
     }
-    iterator &operator--() {
-      --it;
+
+    iterator operator++(int) {
+      iterator temp = *this;
+      ++(*this);
+      return temp;
+    }
+
+    iterator& operator--() {
+      --it_;
       return *this;
     }
-    bool operator==(const iterator &other) const {
-      return it == other.it;
+
+    iterator operator--(int) {
+      iterator temp = *this;
+      --(*this);
+      return temp;
     }
-    bool operator!=(const iterator &other) const {
-      return it != other.it;
+
+    bool operator==(const iterator& other) const {
+      return it_ == other.it_;
     }
+
+    bool operator!=(const iterator& other) const {
+      return !(*this == other);
+    }
+
   private:
-    container_iterator it;
+    typename std::list<std::unique_ptr<Base>>::iterator it_;
   };
-  iterator begin() const {
+
+  iterator begin() {
     return iterator(container.begin());
   }
-  iterator end() const {
+
+  iterator end() {
     return iterator(container.end());
   }
+
   iterator erase(iterator it) {
-    return iterator(container.erase(it.it));
+    return iterator(container.erase(it.it_));
+  }
+
+  [[nodiscard]] bool empty() const {
+    return container.empty();
+  }
+
+  [[nodiscard]] size_t size() const {
+    return container.size();
   }
 private:
-  std::list<std::unique_ptr<Base>> container{};
+  std::list<std::unique_ptr<Base>> container;
 };
+
 
 template <typename Base>
 struct poly_view_list {
 public:
-  template<typename Derived>
+  template <typename Derived>
   requires std::is_base_of_v<Base, Derived>
   void push_back(observer_ptr<Derived> ptr) {
-    container.push_back(ptr);
+    container.push_back(static_cast<observer_ptr<Base>>(ptr));
   }
-  template<typename Derived>
+
+  template <typename Derived>
   requires std::is_base_of_v<Base, Derived>
   void push_front(observer_ptr<Derived> ptr) {
-    container.push_front(ptr);
+    container.push_front(static_cast<observer_ptr<Base>>(ptr));
   }
 
   struct iterator {
-    using container_iterator = typename std::vector<std::unique_ptr<Base>>::iterator;
-    explicit iterator(container_iterator it) : it(it) {}
-    observer_ptr<Base> operator*() {
-      return make_observer(it->get());
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = observer_ptr<Base>;
+    using difference_type = std::ptrdiff_t;
+    using pointer = observer_ptr<Base>*;
+    using reference = observer_ptr<Base>&;
+
+    explicit iterator(typename std::list<observer_ptr<Base>>::iterator it)
+        : it_(it) {}
+
+    observer_ptr<Base> operator*() const {
+      return *it_;
     }
-    observer_ptr<Base> operator->() {
-      return it->get();
+
+    observer_ptr<Base> operator->() const {
+      return *it_;
     }
-    iterator &operator++() {
-      ++it;
+
+    iterator& operator++() {
+      ++it_;
       return *this;
     }
-    iterator &operator--() {
-      --it;
+
+    iterator operator++(int) {
+      iterator temp = *this;
+      ++(*this);
+      return temp;
+    }
+
+    iterator& operator--() {
+      --it_;
       return *this;
     }
-    bool operator==(const iterator &other) const {
-      return it == other.it;
+
+    iterator operator--(int) {
+      iterator temp = *this;
+      --(*this);
+      return temp;
     }
-    bool operator!=(const iterator &other) const {
-      return it != other.it;
+
+    bool operator==(const iterator& other) const {
+      return it_ == other.it_;
     }
+
+    bool operator!=(const iterator& other) const {
+      return !(*this == other);
+    }
+
   private:
-    container_iterator it;
+    typename std::list<observer_ptr<Base>>::iterator it_;
   };
-  iterator begin() const {
+
+  iterator begin() {
     return iterator(container.begin());
   }
-  iterator end() const {
+
+  iterator end() {
     return iterator(container.end());
   }
+
   iterator erase(iterator it) {
-    return iterator(container.erase(it.it));
+    return iterator(container.erase(it.it_));
   }
+
+  [[nodiscard]] bool empty() const {
+    return container.empty();
+  }
+
+  [[nodiscard]] size_t size() const {
+    return container.size();
+  }
+
 private:
   std::list<observer_ptr<Base>> container{};
 };

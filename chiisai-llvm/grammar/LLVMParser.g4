@@ -61,12 +61,10 @@ module: (globalDeclaration | functionDefinition)*;
 
 initializer
 locals[
-    Literal result,
 ]: IntegerLiteral | FloatLiteral | constantArray;
 
 constantArray
 locals[
-    CRef<ConstantArray> constArray,
 ]: LeftBracket type IntegerLiteral Cross value (Comma value)* RightBracket;
 
 globalDeclaration : Global type globalIdentifier (Comma Align initializer)?;

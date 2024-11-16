@@ -7,9 +7,9 @@
 #include "observer_ptr.h"
 namespace llvm::mystl {
 
-template <typename Base, typename Derived>
+template <typename Derived, typename Base>
 observer_ptr<Derived> dynCast(observer_ptr<Base> base) {
-  return make_observer(dynamic_cast<Derived>(base.get()));
+  return make_observer(dynamic_cast<Derived*>(base.get()));
 }
 
 template <typename S, typename T>

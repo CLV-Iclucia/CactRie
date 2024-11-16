@@ -11,6 +11,11 @@ namespace llvm {
 struct Module;
 struct LLVMContext;
 
+struct BuildResult {
+  std::unique_ptr<Module> module;
+  std::unique_ptr<LLVMContext> llvmContext;
+};
+
 struct ModuleBuilder : public LLVMParserVisitor {
   std::any visitType(LLVMParser::TypeContext *ctx) override;
 
@@ -113,13 +118,21 @@ struct ModuleBuilder : public LLVMParserVisitor {
   std::any visitValue(LLVMParser::ValueContext *ctx) override;
 
   std::any visitGepInstruction(LLVMParser::GepInstructionContext *ctx) override;
-  std::unique_ptr<Module> module{};
-  std::unique_ptr<LLVMContext> llvmContext{};
+
+  void addExternalFunctions() {
+
+  }
+
+  BuildResult build(LLVMParser::ModuleContext *ctx);
+
   Ref<Function> currentFunction{};
   Ref<BasicBlock> currentBasicBlock{};
-
 private:
+  std::unique_ptr<Module> module{};
+  std::unique_ptr<LLVMContext> llvmContext{};
   Ref<Value> resolveValueUsage(LLVMParser::ValueContext *ctx);
+  Ref<Value> resolveVariableUsage(LLVMParser::VariableContext *ctx);
+  Ref<Value> resolveVariableUsageAfterVisit(LLVMParser::VariableContext *ctx) const;
   template<typename T>
   std::string variableName(T *ctx) {
     return ctx->getText();

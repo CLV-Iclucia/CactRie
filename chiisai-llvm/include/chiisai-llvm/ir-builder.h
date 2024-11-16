@@ -13,10 +13,8 @@ struct IRBuilder {
   explicit IRBuilder(BasicBlock &basicBlock) : basicBlock(basicBlock) {}
 
   CRef<AllocaInst> createAllocaInst(const AllocaInstDetails& details) {
-    auto &function = basicBlock.function();
     auto allocaInst = std::make_unique<AllocaInst>(basicBlock, details);
     auto instRef = ref(*allocaInst);
-    function.addLocalVar(instRef);
     basicBlock.addInstruction(std::move(allocaInst));
     return instRef;
   }
@@ -53,7 +51,7 @@ struct IRBuilder {
     auto instRef = ref(*callInst);
     basicBlock.addInstruction(std::move(callInst));
     for (const auto &arg : instRef->realArgs)
-      addUse(instRef, basicBlock.function().arg(arg));
+      addUse(instRef, ref(basicBlock.function().arg(arg)));
     return instRef;
   }
 

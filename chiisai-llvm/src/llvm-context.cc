@@ -81,5 +81,8 @@ CRef<IntegerType> LLVMContext::longType() const {
 Ref<Constant> LLVMContext::constant(CRef<Type> type, const std::string &str) {
   return constantPool->constant(type, str);
 }
+CRef<PointerType> LLVMContext::castFromArrayType(CRef<ArrayType> arrayType) const {
+  return typeSystem->pointerType(arrayType->elementType());
+}
 
 }  // namespace llvm

@@ -30,32 +30,43 @@ struct Function : Value {
     m_argMap[name] = m_args.back();
     return *this;
   }
-  Function& addLocalVar(Ref<AllocaInst> allocaInst) {
-    m_localVars.emplace_back(allocaInst);
-    m_localVarMap[allocaInst->name()] = allocaInst;
-    return *this;
-  }
-  Ref<AllocaInst> localVar(const std::string& name) {
-    if (m_localVarMap.contains(name))
-      return m_localVarMap[name];
-    return nullptr;
-  }
   [[nodiscard]]
-  Ref<Argument> arg(const std::string& name) {
+  Argument& arg(const std::string& name) {
     if (m_argMap.contains(name))
-      return m_argMap[name];
-    return nullptr;
+      return *m_argMap[name];
+    throw std::runtime_error("argument not found");
   }
+  bool hasArg(const std::string& name) const {
+    return m_argMap.contains(name);
+  }
+  bool hasBasicBlock(const std::string& name) const {
+    return m_basicBlockMap.contains(name);
+  }
+  bool hasIdentifier(const std::string& name) const {
+    return m_idBlockMap.contains(name);
+  }
+  BasicBlock& basicBlock(const std::string& name) {
+    if (m_basicBlockMap.contains(name))
+      return *m_basicBlockMap[name];
+    throw std::runtime_error("basic block not found");
+  }
+  Value& identifier(const std::string& name) const;
   const mystl::manager_vector<Argument>& args() const { return m_args; }
   std::list<BasicBlock> basicBlocks{};
+  Module& module() {return const_cast<Module&>(m_module);}
   [[nodiscard]] const Module& module() const { return m_module; }
   void accept(Executor& executor) override;
 private:
   mystl::manager_vector<Argument> m_args{};
-  std::vector<Ref<AllocaInst>> m_localVars{};
   const Module& m_module;
   std::unordered_map<std::string, Ref<Argument>> m_argMap{};
-  std::unordered_map<std::string, Ref<AllocaInst>> m_localVarMap{};
+  std::unordered_map<std::string, Ref<BasicBlock>> m_basicBlockMap{};
+  // design tips:
+  // first find the basic block where the identifier is defined
+  // then forward the query to the block
+  // this design makes sure that function doesn't reference the identifiers directly
+  // so that we can safely make modifications in basic blocks
+  std::unordered_map<std::string, Ref<BasicBlock>> m_idBlockMap{};
 };
 
 }

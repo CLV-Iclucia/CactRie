@@ -11,8 +11,7 @@
 namespace llvm {
 
 std::any llvm::ModuleBuilder::visitModule(LLVMParser::ModuleContext *ctx) {
-  llvmContext = std::make_unique<LLVMContext>();
-  module = std::make_unique<Module>();
+
   return {};
 }
 
@@ -47,21 +46,32 @@ std::any ModuleBuilder::visitPointerType(LLVMParser::PointerTypeContext *ctx) {
 
 Ref<Value> ModuleBuilder::resolveValueUsage(LLVMParser::ValueContext *ctx) {
   visitValue(ctx);
-  auto var = ctx->variable();
   if (ctx->number()) {
     auto type = llvmContext->stobt(ctx->number()->scalarType()->getText());
     const auto &str = ctx->number()->literal()->getText();
     return llvmContext->constant(type, str);
-  } else if (ctx->isGlobal)
-    return module->globalVariable(var->name);
+  } else {
+    auto var = ctx->variable();
+    return resolveVariableUsageAfterVisit(var);
+  }
+}
+Ref<Value> ModuleBuilder::resolveVariableUsageAfterVisit(LLVMParser::VariableContext *ctx) const {
+  if (ctx->isGlobal)
+    return module->globalVariable(ctx->name);
 
-  if (auto arg = currentFunction->arg(var->name))
-    return arg;
+  if (currentFunction->hasArg(ctx->name))
+    return ref(currentFunction->arg(ctx->name));
 
-  if (auto localVar = currentFunction->localVar(var->name))
-    return localVar;
+  if (currentFunction->hasIdentifier(ctx->name))
+    return ref(currentFunction->identifier(ctx->name));
 
   // ERROR: cannot find the symbol
+  throw std::runtime_error("Cannot find the symbol");
+}
+
+Ref<Value> ModuleBuilder::resolveVariableUsage(LLVMParser::VariableContext *ctx) {
+  visitVariable(ctx);
+  return resolveVariableUsageAfterVisit(ctx);
 }
 
 static std::vector<CRef<Type>> formContainedTypes(CRef<Type> returnType, std::vector<CRef<Type>> &&argTypes) {
@@ -127,12 +137,13 @@ std::any ModuleBuilder::visitType(LLVMParser::TypeContext *ctx) {
 std::any ModuleBuilder::visitArithmeticInstruction(LLVMParser::ArithmeticInstructionContext *ctx) {
   auto lhs = ctx->unamedIdentifier();
   auto lhsName = variableName(lhs);
-  if (auto arg = currentFunction->arg(lhsName))
+  if (currentFunction->hasArg(lhsName))
     throw std::runtime_error("Variable name already exists in the function arguments");
   const auto &operands = ctx->value();
 
   if (operands.size() != 2)
     throw std::runtime_error("Arithmetic instruction must have exactly two operands");
+
   auto operandLeftRef = resolveValueUsage(operands[0]);
   auto operandRightRef = resolveValueUsage(operands[1]);
 
@@ -171,17 +182,19 @@ std::any ModuleBuilder::visitLoadInstruction(LLVMParser::LoadInstructionContext 
   visitUnamedIdentifier(dest);
   auto destName = variableName(dest);
 
-  if (currentFunction->localVar(destName))
+  if (currentFunction->hasIdentifier(destName))
     throw std::runtime_error("Variable name already exists in the function locals");
-  if (currentFunction->arg(destName))
+  if (currentFunction->hasArg(destName))
     throw std::runtime_error("Variable name already exists in the function arguments");
 
-  auto src = resolveValueUsage(ctx->variable());
-  IRBuilder(*currentBasicBlock).createLoadInst({
-                                                   .name = destName,
-                                                   .type = src->type(),
-                                                   .pointer = src
-                                               });
+  auto src = resolveVariableUsage(ctx->variable());
+  IRBuilder(*currentBasicBlock).createLoadInst(
+      {
+          .name = destName,
+          .type = src->type(),
+          .pointer = src
+      });
+  return {};
 }
 
 std::any ModuleBuilder::visitStoreInstruction(LLVMParser::StoreInstructionContext *ctx) {
@@ -198,13 +211,13 @@ std::any ModuleBuilder::visitAllocaInstruction(LLVMParser::AllocaInstructionCont
   size_t size = hasSize ? std::stoul(ctx->IntegerLiteral(0)->getText()) : 1;
   // 0 means no alignment required
   size_t alignment = hasAlign ? std::stoul(ctx->IntegerLiteral().back()->getText()) : 0;
-  if (auto arg = currentFunction->arg(varName)) {
+  if (currentFunction->hasArg(varName)) {
     // ERROR
     throw std::runtime_error("Variable name already exists in the function arguments");
   }
   IRBuilder(*currentBasicBlock).createAllocaInst({
                                                      .name = varName,
-                                                     .type = varType->typeRef,
+                                                     .type = llvmContext->pointerType(varType->typeRef),
                                                      .size = size,
                                                      .alignment = alignment
                                                  });
@@ -229,22 +242,38 @@ std::any ModuleBuilder::visitGepInstruction(LLVMParser::GepInstructionContext *c
   auto gepVal = ctx->unamedIdentifier();
   visitUnamedIdentifier(gepVal);
   auto gepValName = variableName(gepVal);
-  if (currentFunction->localVar(gepValName))
-    throw std::runtime_error("Variable name already exists in the function locals");
-  if (currentFunction->arg(gepValName))
+  if (currentFunction->hasIdentifier(gepValName))
+    throw std::runtime_error("Variable name already exists in the function identifiers");
+  if (currentFunction->hasArg(gepValName))
     throw std::runtime_error("Variable name already exists in the function arguments");
-  auto val = resolveValueUsage(ctx->variable());
+  auto var = resolveVariableUsage(ctx->variable());
   auto indices = ctx->value();
   std::vector<Ref<Value>> indicesRef;
   indicesRef.reserve(indices.size());
   for (auto index : indices)
     indicesRef.push_back(resolveValueUsage(index));
-  IRBuilder(*currentBasicBlock).createGepInst({
-                                                  .name = gepValName,
-                                                  .type = val->type(),
-                                                  .val = val,
-                                                  .indices = std::move(indicesRef)
-                                              });
+
+  CRef<PointerType> pointerType{};
+  if (var->type()->isPointer())
+    pointerType = dynCast<PointerType>(var->type());
+  else if (var->type()->isArray())
+    pointerType = llvmContext->castFromArrayType(dynCast<ArrayType>(var->type()));
+  else
+    throw std::runtime_error("GEP instruction must have a pointer or an array type as the first operand");
+  IRBuilder(*currentBasicBlock).createGepInst(
+      {
+          .name = gepValName,
+          .type = pointerType,
+          .val = var,
+          .indices = std::move(indicesRef)
+      });
   return {};
 }
+BuildResult ModuleBuilder::build(LLVMParser::ModuleContext *ctx) {
+  llvmContext = std::make_unique<LLVMContext>();
+  module = std::make_unique<Module>();
+  visitModule(ctx);
+  return {std::move(module), std::move(llvmContext)};
+}
+
 }

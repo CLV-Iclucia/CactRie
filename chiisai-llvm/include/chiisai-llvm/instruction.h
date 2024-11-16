@@ -9,6 +9,7 @@
 #include <chiisai-llvm/basic-block.h>
 #include <chiisai-llvm/predicate.h>
 #include <chiisai-llvm/mystl/hash.h>
+#include <chiisai-llvm/pointer-type.h>
 namespace llvm {
 
 struct Instruction : User {
@@ -137,7 +138,7 @@ struct BinaryInst final : Instruction {
 
 struct AllocaInstDetails {
   const std::string &name;
-  CRef<Type> type;
+  CRef<PointerType> type;
   size_t size;
   size_t alignment;
 };
@@ -145,7 +146,9 @@ struct AllocaInstDetails {
 struct AllocaInst : Instruction {
   explicit AllocaInst(BasicBlock &basicBlock, const AllocaInstDetails &details) : Instruction(
       MemoryOps::Alloca, details.name, details.type, basicBlock), alignment(details.alignment) {}
+
   size_t alignment{};
+  size_t size{};
   [[nodiscard]] uint64_t hash() const override {
     uint64_t hashCode{};
     mystl::hash_combine(hashCode, name());
@@ -166,7 +169,9 @@ struct StoreInst : Instruction {
                                                                                           details.name,
                                                                                           details.type,
                                                                                           basicBlock),
-                                                                              pointer(details.pointer) {}
+                                                                              pointer(details.pointer) {
+    assert(pointer->type()->isPointer());
+  }
   Ref<Value> pointer;
   void accept(Executor &executor) override;
   [[nodiscard]] uint64_t hash() const override {
@@ -183,7 +188,9 @@ struct LoadInst : Instruction {
                                                                                          details.name,
                                                                                          details.type,
                                                                                          basicBlock),
-                                                                             pointer(details.pointer) {}
+                                                                             pointer(details.pointer) {
+    assert(pointer->type()->isPointer());
+  }
   Ref<Value> pointer;
   void accept(Executor &executor) override;
   [[nodiscard]] uint64_t hash() const override {
@@ -302,7 +309,7 @@ struct BrInst : Instruction {
       return *std::get<Conditional>(dest).cond;
     throw std::runtime_error("unconditional branch");
   }
-  void accept(Executor &executor);
+  void accept(Executor &executor) override;
   [[nodiscard]] uint64_t hash() const {
     uint64_t hashCode{};
     mystl::hash_combine(hashCode, isConditional());

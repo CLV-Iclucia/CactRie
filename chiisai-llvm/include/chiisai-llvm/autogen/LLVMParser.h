@@ -323,7 +323,6 @@ public:
 
   class  InitializerContext : public antlr4::ParserRuleContext {
   public:
-    Literal result;
     InitializerContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *IntegerLiteral();
@@ -339,7 +338,6 @@ public:
 
   class  ConstantArrayContext : public antlr4::ParserRuleContext {
   public:
-    CRef<ConstantArray> constArray;
     ConstantArrayContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *LeftBracket();

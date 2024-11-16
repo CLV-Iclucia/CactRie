@@ -9,6 +9,9 @@ namespace llvm {
 
 struct User : Value {
   explicit User(const std::string &name, CRef<Type> type) : Value(name, type) {}
+  mystl::poly_view_list<Value> &usedValues() {
+    return m_usedValues;
+  }
 private:
   friend struct Module;
 
@@ -17,7 +20,5 @@ private:
 };
 
 void addUse(Ref<User> user, Ref<Value> value);
-
-
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_USER_H
