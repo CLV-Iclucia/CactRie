@@ -8,13 +8,15 @@
 namespace llvm::mystl {
 
 template <typename Derived, typename Base>
-observer_ptr<Derived> dynCast(observer_ptr<Base> base) {
-  return make_observer(dynamic_cast<Derived*>(base.get()));
+observer_ptr<std::conditional_t<std::is_const_v<Base>, const Derived, Derived>>
+dyn_cast_ref(observer_ptr<Base> base) {
+  using element_type = std::conditional_t<std::is_const_v<Base>, const Derived, Derived>;
+  return make_observer(dynamic_cast<element_type*>(base.get()));
 }
 
-template <typename S, typename T>
-observer_ptr<S> staticCast(observer_ptr<T> t) {
-  return make_observer(static_cast<S*>(t.get()));
+template <typename T, typename U>
+observer_ptr<T> static_cast_ref(observer_ptr<U> ptr) {
+  return observer_ptr<T>(static_cast<T *>(ptr.get()));
 }
 
 }

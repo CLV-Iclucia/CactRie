@@ -255,9 +255,9 @@ std::any ModuleBuilder::visitGepInstruction(LLVMParser::GepInstructionContext *c
 
   CRef<PointerType> pointerType{};
   if (var->type()->isPointer())
-    pointerType = dynCast<PointerType>(var->type());
+    pointerType = dyn_cast_ref<PointerType>(var->type());
   else if (var->type()->isArray())
-    pointerType = llvmContext->castFromArrayType(dynCast<ArrayType>(var->type()));
+    pointerType = llvmContext->castFromArrayType(dyn_cast_ref<ArrayType>(var->type()));
   else
     throw std::runtime_error("GEP instruction must have a pointer or an array type as the first operand");
   IRBuilder(*currentBasicBlock).createGepInst(
@@ -274,6 +274,9 @@ BuildResult ModuleBuilder::build(LLVMParser::ModuleContext *ctx) {
   module = std::make_unique<Module>();
   visitModule(ctx);
   return {std::move(module), std::move(llvmContext)};
+}
+std::any ModuleBuilder::visitInitializer(LLVMParser::InitializerContext *ctx) {
+
 }
 
 }

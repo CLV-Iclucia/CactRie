@@ -14,7 +14,7 @@ struct ArrayType : Type {
     return containedTypes[0];
   }
   [[nodiscard]] size_t dim() const {
-    return elementType()->isArray() ? 1 + dynCast<ArrayType>(elementType())->dim() : 1;
+    return elementType()->isArray() ? 1 + dyn_cast_ref<ArrayType>(elementType())->dim() : 1;
   }
 
 };

@@ -24,8 +24,7 @@ template <typename T>
 CRef<T> cref(const T& t) {
   return mystl::make_observer(&t);
 }
-using mystl::staticCast;
-using mystl::dynCast;
+
 template <typename Ptr>
 using NotNull = mystl::not_null<Ptr>;
 }

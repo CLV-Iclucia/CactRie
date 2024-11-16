@@ -9,6 +9,7 @@
 #include <functional>
 namespace llvm::mystl {
 template<typename T>
+requires (!std::is_pointer_v<T>)
 class observer_ptr {
 public:
   observer_ptr() = default;
@@ -19,14 +20,12 @@ public:
   observer_ptr(const observer_ptr<U> &other) : m_ptr(other.get()) {}
   observer_ptr(std::nullptr_t) : m_ptr(nullptr) {}
   T *operator->() const {
-    if (!m_ptr)
-      throw std::runtime_error("observer_ptr is null");
+    assert(m_ptr);
     return m_ptr;
   }
 
   T &operator*() const {
-    if (!m_ptr)
-      throw std::runtime_error("observer_ptr is null");
+    assert(m_ptr);
     return *m_ptr;
   }
 
@@ -47,6 +46,7 @@ public:
   }
 private:
   template<typename U>
+  requires (!std::is_pointer_v<U>)
   friend class observer_ptr;
   T *m_ptr{};
 };

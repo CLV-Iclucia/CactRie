@@ -10,8 +10,8 @@
 namespace llvm {
 
 void BinaryInst::accept(Executor &executor) {
-  const auto &lhsReg = executor.reg(lhs->name());
-  const auto &rhsReg = executor.reg(rhs->name());
+  const auto &lhsReg = executor.reg(lhs);
+  const auto &rhsReg = executor.reg(rhs);
   if (!lhsReg.canOperateWith(rhsReg))
     throw std::runtime_error("Binary instruction operands must have the same type and cannot be an address or a boolean");
 
@@ -82,7 +82,7 @@ void BinaryInst::accept(Executor &executor) {
 }
 
 void StoreInst::accept(Executor &executor) {
-  auto src = executor.reg(pointer->name());
+  auto src = executor.reg(pointer);
   if (src.isPointer())
     throw std::runtime_error("Store instruction cannot store a pointer");
 
@@ -90,14 +90,14 @@ void StoreInst::accept(Executor &executor) {
 }
 
 void LoadInst::accept(Executor &executor) {
-  executor.reg(name()) = executor.reg(pointer->name());
+  executor.reg(name()) = executor.reg(pointer);
 }
 
 void CallInst::accept(Executor &executor) {
   auto func = executor.module.function(function.name());
   executor.pushFrame();
   for (auto arg : func->args())
-    executor.reg(arg->name()) = executor.reg(arg->name());
+    executor.reg(arg) = executor.reg(arg);
   executor.execute(func);
   executor.returnFlag = false;
   executor.reg(name()) = executor.returnReg.value();
@@ -153,8 +153,8 @@ void CmpInst::accept(Executor &executor) {
        [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::less_equal<>(), lhs, rhs); }},
   };
 
-  const auto &lhsReg = executor.reg(lhs->name());
-  const auto &rhsReg = executor.reg(rhs->name());
+  const auto &lhsReg = executor.reg(lhs);
+  const auto &rhsReg = executor.reg(rhs);
 
   if (!lhsReg.canOperateWith(rhsReg))
     throw std::runtime_error("Binary instruction operands must have the same type and cannot be an address or a boolean");
@@ -171,7 +171,7 @@ void PhiInst::accept(Executor &executor) {
   const auto &incoming = executor.prvBasicBlock;
   for (const auto &[bb, value] : incomingValues)
     if (bb->name() == incoming) {
-      executor.reg(name()) = executor.reg(value->name());
+      executor.reg(name()) = executor.reg(value);
       return;
     }
 }

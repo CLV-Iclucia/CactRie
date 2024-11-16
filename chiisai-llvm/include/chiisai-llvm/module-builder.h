@@ -17,6 +17,9 @@ struct BuildResult {
 };
 
 struct ModuleBuilder : public LLVMParserVisitor {
+
+  std::any visitInitializer(LLVMParser::InitializerContext *ctx) override;
+
   std::any visitType(LLVMParser::TypeContext *ctx) override;
 
   std::any visitBasicType(LLVMParser::BasicTypeContext *ctx) override;

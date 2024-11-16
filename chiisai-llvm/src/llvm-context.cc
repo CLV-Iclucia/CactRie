@@ -6,6 +6,7 @@
 #include <chiisai-llvm/instruction.h>
 #include <chiisai-llvm/type-system.h>
 #include <chiisai-llvm/constant-pool.h>
+#include <chiisai-llvm/constant-scalar.h>
 namespace llvm {
 
 uint8_t stoinst(const std::string &str) {
@@ -78,11 +79,32 @@ CRef<IntegerType> LLVMContext::longType() const {
   return cref(typeSystem->longInstance);
 }
 
-Ref<Constant> LLVMContext::constant(CRef<Type> type, const std::string &str) {
+CRef<Constant> LLVMContext::constant(CRef<Type> type, const std::string &str) {
   return constantPool->constant(type, str);
 }
+
 CRef<PointerType> LLVMContext::castFromArrayType(CRef<ArrayType> arrayType) const {
   return typeSystem->pointerType(arrayType->elementType());
+}
+
+Scalar LLVMContext::evalConstScalar(CRef<ConstantScalar> constScalar) const {
+  if (constScalar->type() == intType())
+    return {std::stoi(constScalar->name())};
+  if (constScalar->type() == longType())
+    return {std::stoll(constScalar->name())};
+  if (constScalar->type() == floatType())
+    return {std::stof(constScalar->name())};
+  if (constScalar->type() == doubleType())
+    return {std::stod(constScalar->name())};
+  if (constScalar->type() == boolType()) {
+    auto intVal = std::stoi(constScalar->name());
+    if (intVal == 0)
+      return {false};
+    else if (intVal == 1)
+      return {true};
+    throw std::runtime_error("Invalid boolean value");
+  }
+  throw std::runtime_error("Invalid constant scalar type");
 }
 
 }  // namespace llvm

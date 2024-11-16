@@ -13,6 +13,7 @@
 #include <chiisai-llvm/pointer-type.h>
 #include <chiisai-llvm/function-type.h>
 #include <chiisai-llvm/constant.h>
+#include <chiisai-llvm/constant-scalar.h>
 namespace llvm {
 
 struct Type;
@@ -37,8 +38,9 @@ public:
   [[nodiscard]] CRef<IntegerType> boolType() const;
   [[nodiscard]] CRef<IntegerType> intType() const;
   [[nodiscard]] CRef<IntegerType> longType() const;
-  [[nodiscard]] Ref<Constant> constant(CRef<Type> type, const std::string& str);
+  [[nodiscard]] CRef<Constant> constant(CRef<Type> type, const std::string& str);
   [[nodiscard]] CRef<PointerType> castFromArrayType(CRef<ArrayType> arrayType) const;
+  [[nodiscard]] Scalar evalConstScalar(CRef<ConstantScalar> constScalar) const;
 private:
   std::unique_ptr<TypeSystem> typeSystem{};
   std::unique_ptr<ConstantPool> constantPool{};

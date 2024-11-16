@@ -11,7 +11,7 @@
 namespace llvm {
 
 struct ConstantPool : RAII {
-  Ref<Constant> constant(CRef<Type> type, const std::string& str) {
+  CRef<Constant> constant(CRef<Type> type, const std::string& str) {
     if (m_constants.contains({type, str}))
       return mystl::make_observer(m_constants.at({type, str}).get());
     m_constants.insert({std::pair{type, str}, std::make_unique<Constant>(str, type)});

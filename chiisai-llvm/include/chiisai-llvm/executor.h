@@ -8,23 +8,23 @@
 #include <chiisai-llvm/ref.h>
 #include <chiisai-llvm/value.h>
 #include <chiisai-llvm/address.h>
+#include <chiisai-llvm/constant-scalar.h>
 namespace llvm {
 
 struct Result {
   using Integer = std::variant<int32_t, int64_t>;
   using Floating = std::variant<float, double>;
 
-  explicit Result(Integer value) {
-    if (std::holds_alternative<int32_t>(value))
-      this->value = std::get<int32_t>(value);
-    this->value = std::get<int64_t>(value);
+  template<typename... Ts>
+  explicit Result(std::variant<Ts...> value) {
+    bool matched = ((std::holds_alternative<Ts>(value) ? (this->value = value, true) : false) || ...);
+    if (!matched) {
+      throw std::invalid_argument("Invalid type for std::variant");
+    }
   }
 
-  explicit Result(Floating value) {
-    if (std::holds_alternative<float>(value))
-      this->value = std::get<float>(value);
-    this->value = std::get<double>(value);
-  }
+  explicit Result(bool value) : value(value) {}
+  explicit Result(Address value) : value(value) {}
 
   std::variant<bool, int32_t, int64_t, float, double, Address> value;
   [[nodiscard]] bool isBool() const {
@@ -77,6 +77,7 @@ struct Executor {
     callFrames.pop();
     returnFlag = false;
   }
+  Result &reg(CRef<Value> value);
   Result &reg(const std::string &name) {
     return callFrames.top().regs.at(name);
   }
