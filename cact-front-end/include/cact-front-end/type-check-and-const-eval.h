@@ -129,6 +129,111 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
    * This visitor is responsible for constant evaluation.
    */
 
+  // ---------------------------------------
+  /**
+   * constantDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
+   */
+  std::any visitConstantDefinition(CactParser::ConstantDefinitionContext *ctx) override {
+    auto name = ctx->Identifier()->getText();
+    auto type = visitDataType(ctx->dataType());
+    auto value = visitConstantInitialValue(ctx->constantInitialValue());
+    return CactConstant(name, type, value);
+    // TODO: finish this function
+  }
+
+  // constantInitialValue: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
+  std::any visitConstantInitialValue(CactParser::ConstantInitialValueContext *ctx) override {
+    // If it is a constant expression, return the value's type by visiting constant expression and return the result
+    if (ctx->constantExpression()) {
+      return visitConstantExpression(ctx->constantExpression());
+    }
+    // If it is a list of constant values, return a vector of constant values.
+    // The return value is a vector of constant values with the same type.
+    // The width of vector is (size(current_dim) / size(basic_type))
+    else {
+      std::vector<ConstEvalResult> values;
+
+      uint32_t width = ctx->type.width(ctx->current_dim); // width of the current dimension
+      assert(width != 0);
+      uint32_t size_of_basic_type = sizeOf(ctx->type.basic_type); // size of the basic type
+      uint32_t child_num = ctx->constantInitialValue().size(); // number of children in the list
+      uint32_t expected_child_num; // expected number of children in the list
+      uint32_t child_width; // width of the children
+
+      // if flat_flag is set, the values are stored in a flat array at dim-0
+      if (ctx->flat_flag) {
+        assert(ctx->current_dim == 0);
+        expected_child_num = ctx->type.size() / size_of_basic_type;
+        child_width = 1u;
+      }
+      else {
+       expected_child_num = width;
+       child_width = ctx->type.size(ctx->current_dim + 1) / size_of_basic_type;
+      }
+      assert(child_num <= expected_child_num); // the number of children is no more than expected
+
+      for (auto &child : ctx->constantInitialValue()) {
+        auto value = getConstInitVal(child);
+        values.insert(values.end(), value.begin(), value.end());
+      }
+      assert(values.size() == child_width * child_num); // check if the number of values inputed is correct
+
+      // pad the values with 0 if the number of values is less than expected
+      values.resize(child_width * expected_child_num, 0);
+
+      return values;
+    }
+  }
+
+  // get the value vector after visiting a constant expression
+  std::vector<ConstEvalResult> getConstInitVal(CactParser::ConstantInitialValueContext *ctx) {
+    return std::any_cast<std::vector<ConstEvalResult>>(visit(ctx));
+  }
+  
+
+  /**
+   * variableDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
+   * functionParameter: dataType Identifier (LeftBracket IntegerConstant? RightBracket
+   *                      (LeftBracket IntegerConstant RightBracket)*)?;
+   */
+
+  /**
+   * assignStatement: leftValue Equal expression Semicolon;
+  xxx * returnStatement: Return expression? Semicolon;
+   * ifStatement: If LeftParenthesis condition RightParenthesis statement (Else statement)?;
+   * whileStatement: While LeftParenthesis condition RightParenthesis statement;
+  xxx * breakStatement: Break Semicolon;
+  xxx * continueStatement: Continue Semicolon;
+   */
+
+  /**
+   *   [COULD HAVE CONSTANT VALUE]
+   * expression: addExpression | BooleanConstant;
+   * constantExpression: number | BooleanConstant;
+   * condition: logicalOrExpression;
+   * leftValue: Identifier (LeftBracket expression RightBracket)*;
+   * primaryExpression: LeftParenthesis expression RightParenthesis | leftValue | number;
+   * number: IntegerConstant | FloatConstant | DoubleConstant;
+   * unaryExpression: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
+   *                 | Identifier LeftParenthesis (functionArguments)? RightParenthesis;
+   */
+
+  /**
+   * functionArguments: expression (Comma expression)*;
+   */
+
+  /**
+   *   [COULD HAVE CONSTANT VALUE]
+   * mulExpression: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression;
+   * addExpression: mulExpression | addExpression (Plus | Minus) mulExpression;
+   * relationalExpression: BooleanConstant | addExpression
+   *                     | addExpression (Less | LessEqual | Greater | GreaterEqual) addExpression;
+   * logicalEqualExpression: relationalExpression | relationalExpression (LogicalEqual | NotEqual) relationalExpression;
+   * logicalAndExpression: logicalEqualExpression | logicalAndExpression LogicalAnd logicalEqualExpression;
+   * logicalOrExpression: logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression;
+   */
+  // ---------------------------------------
+
   // visit a number
   std::any visitNumber(CactParser::NumberContext *ctx) override {
     if (ctx->IntegerConstant()) {

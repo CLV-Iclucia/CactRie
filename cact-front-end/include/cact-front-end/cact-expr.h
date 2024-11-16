@@ -6,6 +6,7 @@
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_EXPR_H_
 #include <cact-front-end/mystl/observer_ptr.h>
 #include <cact-front-end/cact-type.h>
+#include <cact-front-end/cact-operator.h>
 #include <utility>
 #include <variant>
 #include <memory>
@@ -16,6 +17,27 @@ namespace cactfrontend {
 // an alias for std::variant<int32_t, float, double>
 
 using ConstEvalResult = std::variant<int32_t, float, double, bool>;
+
+// A reference to an expression. Contains a pointer to different sub-expressions and an operator
+struct CactExpr {
+  observer_ptr<CactExpr> left_expr; // the left expression
+  observer_ptr<CactExpr> right_expr; // the right expression
+  observer_ptr<BinaryOperator> binary_operator; // the operator
+
+  bool is_variable; // if the expression is a variable, var/param
+  std::string variable_name; // the name of the variable
+
+  // default constructor
+  explicit CactExpr() = default;
+  explicit CactExpr(observer_ptr<CactExpr> left_expr, observer_ptr<CactExpr> right_expr,
+                    observer_ptr<BinaryOperator> binary_operator) {
+    is_variable = false;
+    left_expr = left_expr;
+    right_expr = right_expr;
+    binary_operator = binary_operator;
+  }
+  explicit CactExpr(const std::string &variable_name) : is_variable(true), variable_name(variable_name) {}
+};
 
 // get a CactType based on the type of the variant
 inline CactType constEvalResultType(const ConstEvalResult &value) {
@@ -93,14 +115,14 @@ private:
 // An expression result, attribute in the AST
 struct ExpressionResult final : EvalResult {
   // use a value to generate an ExpressionResult object
-  explicit ExpressionResult(CactType exprType) : exprType(exprType), expr(expr) {
+  explicit ExpressionResult(CactType expr_type) : expr_type(expr_type), expr(expr) {
     this->is_compile_time_constant = false;
   }
 
   // return the type of the value
   [[nodiscard]]
   CactType type() const override {
-    return exprType;
+    return expr_type;
   }
 
   [[nodiscard]]
@@ -109,21 +131,10 @@ struct ExpressionResult final : EvalResult {
   }
 
 private:
-  CactType exprType;
+  CactType expr_type;
   CactExpr expr;
 };
 
-// A reference to an expression. Contains a pointer to different sub-expressions and an operator
-struct CactExpr {
-  observer_ptr<CactExpr> left_expr; // the left expression 
-  observer_ptr<CactExpr> right_expr; // the right expression 
-  observer_ptr<BinaryOperator> binary_operator; // the operator 
-
-  // default constructor
-  explicit CactExpr() = default;
-  explicit CactExpr(observer_ptr<CactExpr> left_expr, observer_ptr<CactExpr> right_expr,
-                    observer_ptr<BinaryOperator> binary_operator) : left_expr(left_expr), right_expr(right_expr), binary_operator(binary_operator) {}
-};
 }
 
 #endif //CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_EXPR_H_

@@ -73,13 +73,31 @@ struct CactType {
     this->array_dims.emplace_back(dim);
   }
 
-  // get the size of this basic_type
+  // get the size of this whole type
   [[nodiscard]]
   uint32_t size() const {
     uint32_t product = sizeOf(this->basic_type);
     for (auto dim : this->array_dims)
       product *= dim;
     return product;
+  }
+
+  // Get the size of the type inner than given dimension.
+  // e.g. with "int a[2][2]",  a.size(1) == 2 * 4 == 8
+  // This would equal to the size of a[0] or a[1]
+  [[nodiscard]]
+  uint32_t size(uint32_t current_dim) const {
+    uint32_t product = sizeOf(this->basic_type);
+    uint32_t dimension = this->dim();
+    for (uint32_t i = current_dim; i < dimension; i++)
+      product *= this->array_dims[i];
+    return product;
+  }
+
+  // get the width of certain dimension
+  [[nodiscard]]
+  uint32_t width(uint32_t current_dim) const {
+    return this->array_dims[current_dim];
   }
 
   // check if this type is an array

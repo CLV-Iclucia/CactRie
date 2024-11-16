@@ -165,19 +165,19 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
       // check if the initial value could be a flat array
       // it would happen if all children are constant expressions
-      bool flat_flag = false;
+      ctx->flat_flag = false;
       if (current_dim == 0) {
-        flat_flag = true;
+        ctx->flat_flag = true;
         for (auto &child : const_init_val_ctx) {
           if (!child->constantExpression()) {
-            flat_flag = false;
+            ctx->flat_flag = false;
             break;
           }
         }
       }
 
       // case (1): if this initial value is a flat array, reset current_dim of children and visit them
-      if (flat_flag) {
+      if (ctx->flat_flag) {
         for (auto &child : const_init_val_ctx) {
           child->current_dim = type_dim;
         }

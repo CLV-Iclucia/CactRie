@@ -45,6 +45,7 @@ constantInitialValue
     locals[
         uint32_t current_dim,
         CactType type,
+        bool flat_flag,
         std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
 
