@@ -11,31 +11,123 @@
 
 namespace cactfrontend {
 
-// Type check and constant evaluation visitor.
-// For each node in the AST, this visitor will check the type of the node and evaluate the constant expression.
-// This visitor will also check type and semantic errors.
-struct TypeCheckAndConstEvalVisitor : CactParserBaseVisitor {
+struct ConstEvalVisitor : CactParserBaseVisitor {
 
   /**
+   * // declaration & defination
    * compilationUnit: (declaration | functionDefinition)*;
    * declaration: constantDeclaration | variableDeclaration;
-   * constantDeclaration: Const basicType constantDefinition (Comma constantDefinition)* Semicolon;
-   * basicType: Int32 | Bool | Float | Double;
+   * constantDeclaration: Const dataType constantDefinition (Comma constantDefinition)* Semicolon;
+   * dataType: Int32 | Bool | Float | Double;
    * constantDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
-   * constantInitialValue: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
-   * variableDeclaration: basicType variableDefinition (Comma variableDefinition)* Semicolon;
+   * constantInitialValue: constantExpression | LeftBrace (constantInitialValue
+   *                         (Comma constantInitialValue)*)? RightBrace;
+   * variableDeclaration: dataType variableDefinition (Comma variableDefinition)* Semicolon;
    * variableDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
-   * functionDefinition: functionType Identifier LeftParenthesis (FunctionParameters)? RightParenthesis block;
+   * functionDefinition: functionType Identifier LeftParenthesis (functionParameters)? RightParenthesis block;
    * functionType: Void | Int32 | Float | Double | Bool;
-   * FunctionParameters: FunctionParameter (Comma FunctionParameter)*;
-   * FunctionParameter: basicType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
+   * functionParameters: functionParameter (Comma functionParameter)*;
+   * functionParameter: dataType Identifier (LeftBracket IntegerConstant? RightBracket
+   *                      (LeftBracket IntegerConstant RightBracket)*)?;
+   * 
+   * // statement & expression
+   * block: LeftBrace (blockItem)* RightBrace;
+   * blockItem: declaration | statement;
+   * statement: assignStatement | expressionStatement | block | returnStatement | ifStatement
+   *          | whileStatement | breakStatement | continueStatement;
+   * assignStatement: leftValue Equal expression Semicolon;
+   * expressionStatement: (expression)? Semicolon;
+   * returnStatement: Return expression? Semicolon;
+   * ifStatement: If LeftParenthesis condition RightParenthesis statement (Else statement)?;
+   * whileStatement: While LeftParenthesis condition RightParenthesis statement;
+   * breakStatement: Break Semicolon;
+   * continueStatement: Continue Semicolon;
+   * expression: addExpression | BooleanConstant;
+   * constantExpression: number | BooleanConstant;
+   * condition: logicalOrExpression;
+   * leftValue: Identifier (LeftBracket expression RightBracket)*;
+   * primaryExpression: LeftParenthesis expression RightParenthesis | leftValue | number;
+   * number: IntegerConstant | FloatConstant | DoubleConstant;
+   * unaryExpression: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
+   *                 | Identifier LeftParenthesis (functionArguments)? RightParenthesis;
+   * functionArguments: expression (Comma expression)*;
+   * mulExpression: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression;
+   * addExpression: mulExpression | addExpression (Plus | Minus) mulExpression;
+   * relationalExpression: BooleanConstant | addExpression
+   *                     | addExpression (Less | LessEqual | Greater | GreaterEqual) addExpression;
+   * logicalEqualExpression: relationalExpression | relationalExpression (LogicalEqual | NotEqual) relationalExpression;
+   * logicalAndExpression: logicalEqualExpression | logicalAndExpression LogicalAnd logicalEqualExpression;
+   * logicalOrExpression: logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression;
    */
-  // // visit a compilation unit
-  // std::any visitCompilationUnit(CactParser::CompilationUnitContext *ctx) override {
-  //   for (auto &child : ctx->children)
-  //     visit(child);
-  //   return {};
-  // }
+
+  /**
+   * compilationUnit,
+   * declaration,
+   * constantDeclaration,
+   * dataType,
+   * constantDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
+   * They do not have a constant value
+   */
+
+  // constantInitialValue: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
+
+  /**
+   * variableDeclaration,
+   * variableDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
+   * functionDefinition,
+   * functionType,
+   * functionParameters,
+   * functionParameter: dataType Identifier (LeftBracket IntegerConstant? RightBracket
+   *                      (LeftBracket IntegerConstant RightBracket)*)?;
+   * They do not have a constant value
+   */
+
+  /**
+   * block,
+   * blockItem,
+   * statement,
+   * assignStatement: leftValue Equal expression Semicolon;
+   * expressionStatement,
+   * returnStatement: Return expression? Semicolon;
+   * ifStatement: If LeftParenthesis condition RightParenthesis statement (Else statement)?;
+   * whileStatement: While LeftParenthesis condition RightParenthesis statement;
+   * breakStatement: Break Semicolon;
+   * continueStatement: Continue Semicolon;
+   */
+
+  /**
+   *   [COULD HAVE CONSTANT VALUE]
+   * expression: addExpression | BooleanConstant;
+   * constantExpression: number | BooleanConstant;
+   * condition: logicalOrExpression;
+   * leftValue: Identifier (LeftBracket expression RightBracket)*;
+   * primaryExpression: LeftParenthesis expression RightParenthesis | leftValue | number;
+   * number: IntegerConstant | FloatConstant | DoubleConstant;
+   * unaryExpression: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
+   *                 | Identifier LeftParenthesis (functionArguments)? RightParenthesis;
+   */
+
+  /**
+   * functionArguments: expression (Comma expression)*;
+   */
+
+  /**
+   *   [COULD HAVE CONSTANT VALUE]
+   * mulExpression: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression;
+   * addExpression: mulExpression | addExpression (Plus | Minus) mulExpression;
+   * relationalExpression: BooleanConstant | addExpression
+   *                     | addExpression (Less | LessEqual | Greater | GreaterEqual) addExpression;
+   * logicalEqualExpression: relationalExpression | relationalExpression (LogicalEqual | NotEqual) relationalExpression;
+   * logicalAndExpression: logicalEqualExpression | logicalAndExpression LogicalAnd logicalEqualExpression;
+   * logicalOrExpression: logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression;
+   */
+
+  /**
+   * The task now: generate a tree of semantic analysis,
+   * consisted declarations, statement, expressions, variables and constants.
+   * 
+   * This visitor is responsible for constant evaluation.
+   */
 
   // visit a number
   std::any visitNumber(CactParser::NumberContext *ctx) override {

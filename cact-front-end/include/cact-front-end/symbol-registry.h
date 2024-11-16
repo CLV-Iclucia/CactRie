@@ -18,15 +18,15 @@ struct SymbolRegistry;
 
 // A scope in the symbol table
 struct Scope {
-  std::string name; // the name of a function scope (if any)
+  std::string scopeName; // the name of a function scope (if any)
   // register a variable in the scope
-  void registerVariable(const std::string &name, const CactConstVar &symbol) {
+  void registerVariable(const CactConstVar &symbol) {
     // check if variable with same name is already in the scope
-    if (this->variableID.contains(name))
-      throw std::runtime_error("Redeclaration of variable: " + name);
+    if (this->findVarLocal(symbol.name))
+      throw std::runtime_error("conflicting declaration ‘" + symbol.toString() + "’");
 
-    this->variables.emplace_back(symbol);
-    this->variableID.insert({name, this->variables.size() - 1});
+    this->variableVec.emplace_back(symbol);
+    this->variableMap.insert({symbol.name, this->variableVec.size() - 1});
   }
 
   // set the parent scope
@@ -36,24 +36,24 @@ struct Scope {
 
   // set the parent scope
   [[nodiscard]]
-  observer_ptr<Scope> getParent() {
+  observer_ptr<Scope> getParent() const {
     return this->parent;
   }
 
   // find a variable in the scope
   [[nodiscard]]
-  bool find(const std::string &name) const {
-    return this->variableID.contains(name);
+  bool findVarLocal(const std::string &name) const {
+    return this->variableMap.contains(name);
   }
 
   // get a variable in the scope
   [[nodiscard]]
-  CactConstVar &variable(const std::string &name) {
+  CactConstVar &getVariable(const std::string &name) {
     auto scope = make_observer(this);
     // search for the variable in the current scope, its parent, grandparent, and so on, until the global scope
     do {
-      if (scope.get()->variableID.contains(name))
-        return scope.get()->variables[scope.get()->variableID.at(name)];
+      if (scope->findVarLocal(name))
+        return scope->variableVec[scope->variableMap.at(name)];
       scope = scope->parent;
     } while (scope.get());
     throw std::runtime_error("Variable not found: " + name);
@@ -61,8 +61,8 @@ struct Scope {
 
 private:
   observer_ptr<Scope> parent; // the parent scope
-  std::map<std::string, int> variableID; // variable ID map
-  std::vector<CactConstVar> variables; // variables
+  std::map<std::string, int> variableMap; // variable ID map
+  std::vector<CactConstVar> variableVec; // variables
 };
 
 // A symbol registry
@@ -73,7 +73,7 @@ struct SymbolRegistry {
   // create a new scope
   [[nodiscard]]
   observer_ptr<Scope> newScope() {
-    scopes.push_back(std::make_unique<Scope>());
+    scopes.emplace_back(std::make_unique<Scope>());
     return make_observer(scopes.back().get());
   }
 
@@ -97,23 +97,57 @@ struct SymbolRegistry {
   }
 
   // create a new function
-  observer_ptr<CactFunction> newFunction(std::string &name, CactBasicType returnType) {
+  observer_ptr<CactFunction> newFunction(std::string name, CactBasicType return_type) {
     // check if function with same name is already in the scope
     if (functionID.contains(name))
-      throw std::runtime_error("Function: " + name + " cannot be overloaded");
+      throw std::runtime_error("‘" + func2String(name) + "’ cannot be overloaded");
 
-    functions.push_back(std::make_unique<CactFunction>());
+    functions.emplace_back(std::make_unique<CactFunction>());
     functionID.insert({name, functions.size() - 1});
 
     auto func = make_observer(functions.back().get());
-    func->init(name, returnType);
+    func->init(name, return_type);
+    return func;
+  }
+
+  // create a new function
+  observer_ptr<CactFunction> newFunction(std::string name, CactBasicType return_type, FuncParameters params) {
+    auto func = newFunction(name, return_type);
+
+    for (auto &param : params)
+      func->addParameter(param);
+
     return func;
   }
 
   // get a function by name
   [[nodiscard]]
   observer_ptr<CactFunction> getFunction(const std::string &name) {
+    // check if function with same name is not defined
+    if (!functionID.contains(name))
+      return make_observer<CactFunction>(nullptr);
     return make_observer(functions[functionID.at(name)].get());
+  }
+
+  // function name and type to string
+  [[nodiscard]]
+  std::string func2String(const std::string &name) {
+    auto func = getFunction(name);
+
+    // check if function with same name is not defined
+    if (!func)
+      return nullptr;
+
+    std::string result = type2String(func->return_type) + " " + name + "(";
+    // print all parameters
+    for (auto &param : func->parameters) {
+      result += param.type.toStringFull() + param.name;
+      if (&param != &func->parameters.back())
+        result += ", ";
+    }
+
+    result += ")";
+    return result;
   }
 
 private:
