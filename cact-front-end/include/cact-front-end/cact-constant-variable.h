@@ -19,7 +19,7 @@ struct CactConstVar {
   // basic constructor
   explicit CactConstVar() = default;
   explicit CactConstVar(const std::string &_name, const CactBasicType _basic_type, bool _is_param, bool _is_const) :
-    name(std::move(_name)), type(_basic_type, _is_param), is_const(_is_const), initialized(_is_const) {}
+    name(_name), type(_basic_type, _is_param), is_const(_is_const), initialized(_is_const) {}
 
   // check if this type is a modifiable left value
   [[nodiscard]]

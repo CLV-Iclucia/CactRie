@@ -14,8 +14,8 @@ namespace cactfrontend {
 struct CactSyntaxErrorListener : public antlr4::BaseErrorListener {
 
   // initialize the listener with the path of the file being complied
-  explicit CactSyntaxErrorListener(std::filesystem::path compiled_file_path) : compiled_file_path(std::move(
-      compiled_file_path)) {}
+  explicit CactSyntaxErrorListener(std::filesystem::path compiled_file_path) :
+    compiled_file_path(compiled_file_path) {}
 
   // the function to be called when a syntax error is found
   void syntaxError(antlr4::Recognizer *recognizer,

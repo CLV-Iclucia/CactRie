@@ -30,7 +30,7 @@ struct CactFunction {
 
   // set up name and return type
   void init(const std::string &function_name, CactBasicType return_type) {
-    this->name = std::move(function_name);
+    this->name = function_name;
     this->return_type = return_type;
   }
 

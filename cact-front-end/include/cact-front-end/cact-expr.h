@@ -4,6 +4,7 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_EXPR_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_EXPR_H_
+#include <cact-front-end/mystl/observer_ptr.h>
 #include <cact-front-end/cact-type.h>
 #include <utility>
 #include <variant>
@@ -56,97 +57,73 @@ inline std::optional<bool> conditionEvalResult(const ConstEvalResult &value) {
 struct EvalResult {
   [[nodiscard]]
   virtual CactType type() const = 0;
+
+  [[nodiscard]]
+  bool isCompileTimeConstant() const {return this->is_compile_time_constant;}
+
   [[nodiscard]]
   virtual std::optional<ConstEvalResult> compileTimeEvalResult() const = 0;
+
+protected:
+  bool is_compile_time_constant;
 };
 
 // A compile time constant, might be an attribute in the AST
 struct CompileTimeConstant final : EvalResult {
-  // get compile time constant value
-  explicit CompileTimeConstant(int32_t value) : value(value) {}
-  explicit CompileTimeConstant(float value) : value(value) {}
-  explicit CompileTimeConstant(double value) : value(value) {}
-  explicit CompileTimeConstant(bool value) : value(value) {}
+  // use a value to generate a CompileTimeConstant object
+  explicit CompileTimeConstant(ConstEvalResult value) : value(value) {
+    this->is_compile_time_constant = true;
+  }
 
-  // // get the type of the constant
-  // [[nodiscard]]
-  // CactType type() const override {
-  //   return constEvalResultType(value);
-  // }
+  // return the type of the value
+  [[nodiscard]]
+  CactType type() const override {
+    return constEvalResultType(value);
+  }
 
-  // get the compile time evaluation result
   [[nodiscard]]
   std::optional<ConstEvalResult> compileTimeEvalResult() const override {
     return std::make_optional<ConstEvalResult>(value);
   }
+
+private:
   ConstEvalResult value;
 };
 
 // An expression result, attribute in the AST
 struct ExpressionResult final : EvalResult {
-  ExpressionResult() = default;
-  explicit ExpressionResult(const CactType& type) : m_type(type) {}
-  explicit ExpressionResult(ConstEvalResult value)
-      : compile_time_evaluation_result(value), m_type(constEvalResultType(value)) {}
+  // use a value to generate an ExpressionResult object
+  explicit ExpressionResult(CactType exprType) : exprType(exprType), expr(expr) {
+    this->is_compile_time_constant = false;
+  }
 
-  // get the type of the expression
+  // return the type of the value
   [[nodiscard]]
   CactType type() const override {
-    if (compile_time_evaluation_result.has_value())
-      return constEvalResultType(*compile_time_evaluation_result);
-    else
-      return m_type;
+    return exprType;
   }
 
-  // get the compile time evaluation result
   [[nodiscard]]
   std::optional<ConstEvalResult> compileTimeEvalResult() const override {
-    return compile_time_evaluation_result;
+    return std::nullopt;
   }
 
-  std::optional<ConstEvalResult> compile_time_evaluation_result{};
-
-  // get the string representation of the expression
-  [[nodiscard]]
-  std::string toString() const {
-    if (compile_time_evaluation_result.has_value()) {
-      if (std::holds_alternative<int32_t>(compile_time_evaluation_result.value()))
-        return std::to_string(std::get<int32_t>(compile_time_evaluation_result.value()));
-      else if (std::holds_alternative<float>(compile_time_evaluation_result.value()))
-        return std::to_string(std::get<float>(compile_time_evaluation_result.value()));
-      else if (std::holds_alternative<double>(compile_time_evaluation_result.value()))
-        return std::to_string(std::get<double>(compile_time_evaluation_result.value()));
-      else
-        return std::get<bool>(compile_time_evaluation_result.value()) ? "true" : "false";
-    } else {
-      throw std::runtime_error("not a compile time constant");
-    }
-  }
- private:
-  CactType m_type{};
+private:
+  CactType exprType;
+  CactExpr expr;
 };
 
-// A reference to an expression
+// A reference to an expression. Contains a pointer to different sub-expressions and an operator
 struct CactExpr {
-  CactType result_type{}; // the type of the expression
-  std::vector<std::reference_wrapper<CactExpr>> sub_expressions; // sub expressions
+  observer_ptr<CactExpr> left_expr; // the left expression 
+  observer_ptr<CactExpr> right_expr; // the right expression 
+  observer_ptr<BinaryOperator> binary_operator; // the operator 
+
+  // default constructor
+  explicit CactExpr() = default;
+  explicit CactExpr(observer_ptr<CactExpr> left_expr, observer_ptr<CactExpr> right_expr,
+                    observer_ptr<BinaryOperator> binary_operator) : left_expr(left_expr), right_expr(right_expr), binary_operator(binary_operator) {}
 };
-
-// // check if two operands are valid for binary operations
-// inline bool binaryOperandCheck(const EvalResult &lhs, const EvalResult &rhs) {
-//   return lhs.type().validOperandType() && rhs.type().validOperandType() && lhs.type().basicType == rhs.type().basicType;
-// }
-
-// // check if two operands are valid for binary arithmetic operations
-// inline bool binaryArithmeticOperandCheck(const EvalResult &lhs, const EvalResult &rhs) {
-//   return binaryOperandCheck(lhs, rhs) && lhs.type().basicType != CactBasicType::Bool;
-// }
-
-// // check if two operands are valid for binary conditional operations
-// inline bool binaryConditionalOperandCheck(const EvalResult &lhs, const EvalResult &rhs) {
-//   return binaryOperandCheck(lhs, rhs) && lhs.type().basicType == CactBasicType::Bool;
-// }
-
 }
 
 #endif //CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_EXPR_H_

@@ -16,7 +16,7 @@ struct OperandTypeCheck {
 
   // constructor
   explicit OperandTypeCheck(const std::string error_message, const std::set<CactBasicType> valid_oprand_type_set) :
-    error_message(std::move(error_message)), valid_oprand_type_set(std::move(valid_oprand_type_set)) {}
+    error_message(error_message), valid_oprand_type_set(valid_oprand_type_set) {}
 };
 
 // in cact-operator.cc
@@ -123,18 +123,18 @@ struct LogicalNotOperator : UnaryOperator {
 };
 
 struct BinaryOperator : Operator {
-  [[nodiscard]]
-  std::optional<ExpressionResult> evaluate(const EvalResult &lhs, const EvalResult &rhs) const {
-    // if (!binaryArithmeticOperandCheck(lhs, rhs))
-    //   return std::nullopt;
-    auto lhs_value = lhs.compileTimeEvalResult();
-    auto rhs_value = rhs.compileTimeEvalResult();
-    if (!lhs_value.has_value() || !rhs_value.has_value())
-      return std::make_optional<ExpressionResult>(lhs.type());
-    auto result = apply(*lhs_value, *rhs_value);
-    if (!result) return std::nullopt;
-    return std::make_optional<ExpressionResult>(*result);
-  }
+  // [[nodiscard]]
+  // std::optional<ExpressionResult> evaluate(const EvalResult &lhs, const EvalResult &rhs) const {
+  //   // if (!binaryArithmeticOperandCheck(lhs, rhs))
+  //   //   return std::nullopt;
+  //   auto lhs_value = lhs.compileTimeEvalResult();
+  //   auto rhs_value = rhs.compileTimeEvalResult();
+  //   if (!lhs_value.has_value() || !rhs_value.has_value())
+  //     return std::make_optional<ExpressionResult>(lhs.type());
+  //   auto result = apply(*lhs_value, *rhs_value);
+  //   if (!result) return std::nullopt;
+  //   return std::make_optional<ExpressionResult>(*result);
+  // }
   [[nodiscard]]
   virtual std::optional<ConstEvalResult> apply(const ConstEvalResult &lhs,
                                                const ConstEvalResult &rhs) const = 0;

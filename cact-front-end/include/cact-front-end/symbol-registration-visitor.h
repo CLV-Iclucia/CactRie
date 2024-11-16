@@ -718,7 +718,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       }
       else {
         if (func->parameters.size() != 0)
-          ctx->functionArguments()->need_params = std::move(func->parameters);
+          ctx->functionArguments()->need_params = func->parameters;
         else
           ctx->functionArguments()->need_params = {};
         visit(ctx->functionArguments());

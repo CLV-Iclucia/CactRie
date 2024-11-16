@@ -147,7 +147,7 @@ struct SymbolRegistry {
     }
 
     result += ")";
-    return std::move(result);
+    return result;
   }
 
 private:

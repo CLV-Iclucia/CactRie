@@ -46,7 +46,7 @@ static inline std::string type2String(CactBasicType basic_type) {
   };
 
   std::string result = basic_typeToString.at(basic_type);
-  return std::move(result);
+  return result;
 }
 
 
@@ -67,7 +67,7 @@ struct CactType {
     basic_type(basic_type), is_param(is_param) {}
 
   explicit CactType(const CactBasicType basic_type, const std::vector<uint32_t> array_dims, const bool is_param) :
-    basic_type(basic_type), array_dims(std::move(array_dims)), is_param(is_param) {}
+    basic_type(basic_type), array_dims(array_dims), is_param(is_param) {}
 
   void addDim(const uint32_t dim) {
     this->array_dims.emplace_back(dim);
@@ -119,7 +119,7 @@ struct CactType {
     for (auto dim : array_dims) {
       result += "[" + (dim > 0 ? std::to_string(dim) : "") + "]";
     }
-    return std::move(result);
+    return result;
   }
 
   [[nodiscard]]
@@ -127,7 +127,7 @@ struct CactType {
     std::string result = type2String(basic_type);
     if (isArray())
       result += "[]";
-    return std::move(result);
+    return result;
   }
 
 };
