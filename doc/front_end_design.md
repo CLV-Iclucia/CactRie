@@ -171,4 +171,38 @@ Now we list some grammar variables related to the symbol table.
 - `logicalOrExpression: BooleanConstant | logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression`:
   - record the `type`.
 
+### Phase 2: Constant Evaluation and Expression Tree Construction
 
+During the 2nd pass of the semantic analysis, the constant expressions are evaluated and the expression tree is constructed. The expression tree is a tree of expression nodes, where each node represents an operation or a value. The expression tree is implemented in `cact-front-end/include/const-eval-and-expression-generation.h`.
+
+The design is like generating new trees from the original tree for each expressions.
+
+```g4
+// declaration & defination
+compilationUnit: (declaration | functionDefinition)*; // visit "declaration" or "functionDefinition"
+declaration: constantDeclaration | variableDeclaration; // visit "constantDeclaration" or "variableDeclaration"
+constantDeclaration: Const dataType constantDefinition (Comma constantDefinition)* Semicolon; // visit "constantDefinition"s
+dataType:  // [NO NEED]
+constantDefinition: // [NEW] {CactConstant}
+constantInitialValue: // [NO NEED]
+variableDeclaration: dataType variableDefinition (Comma variableDefinition)* Semicolon; // visit "variableDefinition"s
+variableDefinition: // [NEW] {CactVariable}
+functionDefinition: functionType Identifier LeftParenthesis (functionParameters)? RightParenthesis block; // visit "block" [NEW] {CactFunction}
+functionType: // [NO NEED]
+functionParameters: functionParameter (Comma functionParameter)*; // visit "functionParameter"s
+functionParameter: // [NEW] {CactFuncParam}
+
+// statement & expression
+block: LeftBrace (blockItem)* RightBrace; // visit "blockItem"s
+blockItem: declaration | statement; // visit "declaration" or "statement"
+statement: assignStatement | expressionStatement | block | returnStatement | ifStatement
+         | whileStatement | breakStatement | continueStatement; // visit any statement
+assignStatement: // [NEW] {CactExpr}
+expressionStatement: // [DO NOTHING]
+returnStatement: // [NEW] {CactExpr}
+ifStatement: If LeftParenthesis condition RightParenthesis statement (Else statement)?; // visit "statement"s. [NEW] {cond_expr}
+whileStatement: While LeftParenthesis condition RightParenthesis statement; // visit "statement". [NEW] {cond_expr}
+breakStatement: // [NEW] {to_which_loop: whileStatement}
+continueStatement: // [NEW] {to_which_loop: whileStatement}
+expression, constantExpression, condition, leftValue, primaryExpression, unaryExpression, functionArguments, mulExpression, addExpression, relationalExpression, logicalEqualExpression, logicalAndExpression, logicalOrExpression: // [NO NEED]
+```

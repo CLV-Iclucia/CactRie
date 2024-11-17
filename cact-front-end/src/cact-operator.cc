@@ -6,17 +6,24 @@
 #include <memory>
 namespace cactfrontend {
 
-const OperandTypeCheck operand_type_check_int_float = OperandTypeCheck(
+const OperandTypeChecker operand_checker_non_void = OperandTypeChecker(
+  "expression must have integral, float-point, or boolean type",
+  {CactBasicType::Int32,
+   CactBasicType::Float,
+   CactBasicType::Double,
+   CactBasicType::Bool});
+
+const OperandTypeChecker operand_checker_int_float = OperandTypeChecker(
   "expression must have integral or float-point type",
   {CactBasicType::Int32,
    CactBasicType::Float,
    CactBasicType::Double});
 
-const OperandTypeCheck operand_type_check_int = OperandTypeCheck(
+const OperandTypeChecker operand_checker_int = OperandTypeChecker(
   "expression must have integral type",
   {CactBasicType::Int32});
 
-const OperandTypeCheck operand_type_check_bool = OperandTypeCheck(
+const OperandTypeChecker operand_checker_bool = OperandTypeChecker(
   "expression must have boolean type",
   {CactBasicType::Bool});
 

@@ -19,24 +19,106 @@ namespace cactfrontend {
 using ConstEvalResult = std::variant<int32_t, float, double, bool>;
 
 // A reference to an expression. Contains a pointer to different sub-expressions and an operator
+enum class ExprType {
+  Const,
+  Variable,
+  Expression,
+};
+
 struct CactExpr {
+  ExprType expr_type; // the type of the expression
+
+  observer_ptr<UnaryOperator> unary_operator; // the operator
+  observer_ptr<CactExpr> expr; // the left expression
+
+  observer_ptr<BinaryOperator> binary_operator; // the operator
   observer_ptr<CactExpr> left_expr; // the left expression
   observer_ptr<CactExpr> right_expr; // the right expression
-  observer_ptr<BinaryOperator> binary_operator; // the operator
-
-  bool is_variable; // if the expression is a variable, var/param
-  std::string variable_name; // the name of the variable
 
   // default constructor
   explicit CactExpr() = default;
-  explicit CactExpr(observer_ptr<CactExpr> left_expr, observer_ptr<CactExpr> right_expr,
-                    observer_ptr<BinaryOperator> binary_operator) {
-    is_variable = false;
-    left_expr = left_expr;
-    right_expr = right_expr;
-    binary_operator = binary_operator;
+  explicit CactExpr(const observer_ptr<CactConstVar> __variable_name) { setVariable(__variable_name); }
+  explicit CactExpr(ConstEvalResult __const_value) { setConst(__const_value); }
+  explicit CactExpr(int32_t         __const_value) { setConst(ConstEvalResult(__const_value)); }
+  explicit CactExpr(float           __const_value) { setConst(ConstEvalResult(__const_value)); }
+  explicit CactExpr(double          __const_value) { setConst(ConstEvalResult(__const_value)); }
+  explicit CactExpr(bool            __const_value) { setConst(ConstEvalResult(__const_value)); }
+
+  // check the expression's type
+  [[nodiscard]] bool isVariable()   const { return expr_type == ExprType::Variable; }
+  [[nodiscard]] bool isConst()      const { return expr_type == ExprType::Const; }
+  [[nodiscard]] bool isExpression() const { return expr_type == ExprType::Expression; }
+
+  // set up this struct for variable or constant
+  void setVariable(observer_ptr<CactConstVar> __variable) {
+    expr_type = ExprType::Variable;
+    variable = CactConstVarArray(__variable);
   }
-  explicit CactExpr(const std::string &variable_name) : is_variable(true), variable_name(variable_name) {}
+  void setConst(ConstEvalResult __const_value) {
+    expr_type = ExprType::Const;
+    const_value = __const_value;
+  }
+
+  // get the value of the constant
+  [[nodiscard]]
+  ConstEvalResult getConstValue() const {
+    assert(isConst());
+    return const_value;
+  }
+
+  // // get the variable
+  // [[nodiscard]]
+  // observer_ptr<CactConstVarArray> getVariable() const {
+  //   assert(isVariable());
+  //   return variable;
+  // }
+
+protected:
+  CactConstVarArray variable; // the variable
+  ConstEvalResult const_value; // the value of the constant
+};
+
+struct CactUnaryExpr : CactExpr {
+  // default constructor
+  explicit CactUnaryExpr() = default;
+  explicit CactUnaryExpr(observer_ptr<UnaryOperator> __unary_operator, observer_ptr<CactExpr> __expr) {
+    auto res_value = __unary_operator->unaryConstCheck(__expr->getConstValue());
+    // if this result can be calculated at compile time
+    if (res_value != std::nullopt)
+      setConst(res_value.value());
+    else // if not
+      setExpression(__unary_operator, __expr);
+  }
+
+  // set up this struct for unary expression
+  void setExpression(observer_ptr<UnaryOperator> __unary_operator, observer_ptr<CactExpr> __expr) {
+    expr_type = ExprType::Expression;
+    expr = __expr;
+    unary_operator = __unary_operator;
+  }
+};
+
+struct CactBinaryExpr : CactExpr {
+  // default constructor
+  explicit CactBinaryExpr() = default;
+  explicit CactBinaryExpr(observer_ptr<BinaryOperator> __binary_operator,
+                          observer_ptr<CactExpr> __left_expr, observer_ptr<CactExpr> __right_expr) {
+    auto res_value = __binary_operator->binaryConstCheck(__left_expr->getConstValue(), __right_expr->getConstValue());
+    // if this result can be calculated at compile time
+    if (res_value != std::nullopt)
+      setConst(res_value.value());
+    else // if not
+      setExpression(__binary_operator, __left_expr, __right_expr);
+  }
+
+  // set up this struct for binary expression
+  void setExpression(observer_ptr<BinaryOperator> __binary_operator,
+                     observer_ptr<CactExpr> __left_expr, observer_ptr<CactExpr> __right_expr) {
+    expr_type = ExprType::Expression;
+    left_expr = __left_expr;
+    right_expr = __right_expr;
+    binary_operator = __binary_operator;
+  }
 };
 
 // get a CactType based on the type of the variant
@@ -74,66 +156,6 @@ inline std::optional<bool> conditionEvalResult(const ConstEvalResult &value) {
     return std::make_optional<bool>(std::get<bool>(value));
   else return std::nullopt;
 }
-
-// Base class for evaluation results
-struct EvalResult {
-  [[nodiscard]]
-  virtual CactType type() const = 0;
-
-  [[nodiscard]]
-  bool isCompileTimeConstant() const {return this->is_compile_time_constant;}
-
-  [[nodiscard]]
-  virtual std::optional<ConstEvalResult> compileTimeEvalResult() const = 0;
-
-protected:
-  bool is_compile_time_constant;
-};
-
-// A compile time constant, might be an attribute in the AST
-struct CompileTimeConstant final : EvalResult {
-  // use a value to generate a CompileTimeConstant object
-  explicit CompileTimeConstant(ConstEvalResult value) : value(value) {
-    this->is_compile_time_constant = true;
-  }
-
-  // return the type of the value
-  [[nodiscard]]
-  CactType type() const override {
-    return constEvalResultType(value);
-  }
-
-  [[nodiscard]]
-  std::optional<ConstEvalResult> compileTimeEvalResult() const override {
-    return std::make_optional<ConstEvalResult>(value);
-  }
-
-private:
-  ConstEvalResult value;
-};
-
-// An expression result, attribute in the AST
-struct ExpressionResult final : EvalResult {
-  // use a value to generate an ExpressionResult object
-  explicit ExpressionResult(CactType expr_type) : expr_type(expr_type), expr(expr) {
-    this->is_compile_time_constant = false;
-  }
-
-  // return the type of the value
-  [[nodiscard]]
-  CactType type() const override {
-    return expr_type;
-  }
-
-  [[nodiscard]]
-  std::optional<ConstEvalResult> compileTimeEvalResult() const override {
-    return std::nullopt;
-  }
-
-private:
-  CactType expr_type;
-  CactExpr expr;
-};
 
 }
 

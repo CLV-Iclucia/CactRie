@@ -19,10 +19,10 @@ namespace cactfrontend {
 // A visitor to register symbols
 struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   const std::vector<std::tuple<std::string, CactBasicType, FuncParameters>> built_in_functions = {
-      std::tuple("print_int",    CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Int32)}),
-      std::tuple("print_float",  CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Float)}),
-      std::tuple("print_double", CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Double)}),
-      std::tuple("print_bool",   CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Bool)}),
+      std::tuple("print_int",    CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Int32)}),
+      std::tuple("print_float",  CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Float)}),
+      std::tuple("print_double", CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Double)}),
+      std::tuple("print_bool",   CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Bool)}),
       std::tuple("get_int",      CactBasicType::Int32,  FuncParameters()),
       std::tuple("get_float",    CactBasicType::Float,  FuncParameters()),
       std::tuple("get_double",   CactBasicType::Double, FuncParameters()),
@@ -337,35 +337,35 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     return {};
   }
 
-  // FuncParameter getFuncParam(FunctionParameterCtx *ctx) {
+  // CactFuncParam getFuncParam(FunctionParameterCtx *ctx) {
   //   if (ctx == nullptr)
-  //     return FuncParameter();
-  //   return std::any_cast<FuncParameter>(visit(ctx));
+  //     return CactFuncParam();
+  //   return std::any_cast<CactFuncParam>(visit(ctx));
   // }
 
   std::any visitFunctionParameter(FunctionParameterCtx *ctx) override {
     startSemanticCheck("FunctionParameter");
     // record name and type
     auto name = ctx->Identifier()->getText();
-    auto parameter = FuncParameter(name, getDataType(ctx->dataType()));
+    ctx->parameter = CactFuncParam(name, getDataType(ctx->dataType()));
 
     // if the first pair of brackets is empty, push 0 to the array_dims
     if (ctx->IntegerConstant().size() < ctx->LeftBracket().size())
-      parameter.type.addDim(0);
+      ctx->parameter.type.addDim(0);
 
     // record the array dimensions
     for (auto &dim_ctx : ctx->IntegerConstant()) {
       int dim = std::stoi(dim_ctx->getText());
       if (dim <= 0) // dimension should be positive
         throw std::runtime_error("the size of an array must be greater than zero");
-      parameter.type.addDim((uint32_t)dim);
+      ctx->parameter.type.addDim((uint32_t)dim);
     }
 
     // add the parameter to the function
-    current_function->addParameter(parameter);
+    current_function->addParameter(ctx->parameter);
 
     // register the parameter
-    current_scope->registerVariable(parameter);
+    current_scope->registerVariable(ctx->parameter);
 
     completeSemanticCheck("FunctionParameter");
     return {};
@@ -480,7 +480,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     }
 
     // record function for return statement
-    ctx->ret_function = current_function;
+    ctx->ret_to_which_function = current_function;
 
     completeSemanticCheck("ReturnStatement");
     return {};
@@ -530,7 +530,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("a break statement may only be used within a loop");
 
     // record the loop to break
-    ctx->loop_to_break = while_loop_stack.top();
+    ctx->to_which_loop = while_loop_stack.top();
 
     completeSemanticCheck("BreakStatement");
     return {};
@@ -544,7 +544,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("a continue statement may only be used within a loop");
 
     // record the loop to continue
-    ctx->loop_to_continue = while_loop_stack.top();
+    ctx->to_which_loop = while_loop_stack.top();
 
     completeSemanticCheck("ContinueStatement");
     return {};
@@ -700,7 +700,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       else
         assert(0);
 
-      ctx->unary_operator->validOperandTypeCheck(unary->type);
+      ctx->unary_operator->isValidOperand(unary->type);
       ctx->type = unary->type;
     }
     // -> function call
@@ -966,7 +966,6 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     return {};
   }
 
-private:
   std::unique_ptr<SymbolRegistry> registry;
   observer_ptr<Scope> current_scope;
   std::stack<observer_ptr<WhileStatementCtx>> while_loop_stack;

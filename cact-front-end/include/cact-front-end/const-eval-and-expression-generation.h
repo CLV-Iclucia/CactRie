@@ -4,6 +4,7 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_TYPE_CHECK_AND_CONST_EVAL_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_TYPE_CHECK_AND_CONST_EVAL_H_
+#include <cact-front-end/mystl/observer_ptr.h>
 #include <cact-front-end/CactParserBaseVisitor.h>
 #include <cact-front-end/cact-expr.h>
 #include <cact-front-end/cact-operator.h>
@@ -130,18 +131,27 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
    */
 
   // ---------------------------------------
+
+  // initialization
+  explicit ConstEvalVisitor(std::unique_ptr<SymbolRegistry> registry) {
+    this->registry = make_observer(registry.get());
+  }
+
   /**
    * constantDefinition: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
    */
+  // visit a constant definition
   std::any visitConstantDefinition(CactParser::ConstantDefinitionContext *ctx) override {
-    auto name = ctx->Identifier()->getText();
-    auto type = visitDataType(ctx->dataType());
-    auto value = visitConstantInitialValue(ctx->constantInitialValue());
-    return CactConstant(name, type, value);
-    // TODO: finish this function
+    // set the initial value of the constant
+    if (ctx->constant.isInitialized()) {
+      ctx->constant.init_values = getConstInitVal(ctx->constantInitialValue());
+    }
+    
+    return {};
   }
 
   // constantInitialValue: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
+  // visit a constant initial value
   std::any visitConstantInitialValue(CactParser::ConstantInitialValueContext *ctx) override {
     // If it is a constant expression, return the value's type by visiting constant expression and return the result
     if (ctx->constantExpression()) {
@@ -187,7 +197,8 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
 
   // get the value vector after visiting a constant expression
   std::vector<ConstEvalResult> getConstInitVal(CactParser::ConstantInitialValueContext *ctx) {
-    return std::any_cast<std::vector<ConstEvalResult>>(visit(ctx));
+    assert(ctx != nullptr);
+    return std::any_cast<std::vector<ConstEvalResult>>(visitConstantInitialValue(ctx));
   }
   
 
@@ -196,15 +207,58 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
    * functionParameter: dataType Identifier (LeftBracket IntegerConstant? RightBracket
    *                      (LeftBracket IntegerConstant RightBracket)*)?;
    */
+  // visit a variable definition
+  std::any visitVariableDefinition(CactParser::VariableDefinitionContext *ctx) override {
+    // set the initial value of the variable
+    if (ctx->variable.isInitialized()) {
+      ctx->variable.init_values = getConstInitVal(ctx->constantInitialValue());
+    }
+    return {};
+  }
+
+  // visitting a functionParameter does not need to be overrided
+  
+
+  // cast std::any to observer_ptr<CactExpr>
+  [[nodiscard]]
+  observer_ptr<CactExpr> std_any_to_expr_ptr(std::any any) {
+    return std::any_cast<observer_ptr<CactExpr>>(any);
+  }
+
 
   /**
    * assignStatement: leftValue Equal expression Semicolon;
-  xxx * returnStatement: Return expression? Semicolon;
+   * returnStatement: Return expression? Semicolon;
    * ifStatement: If LeftParenthesis condition RightParenthesis statement (Else statement)?;
    * whileStatement: While LeftParenthesis condition RightParenthesis statement;
   xxx * breakStatement: Break Semicolon;
   xxx * continueStatement: Continue Semicolon;
    */
+  // visit an assign statement
+  std::any visitAssignStatement(CactParser::AssignStatementContext *ctx) override {
+    observer_ptr<CactExpr> expr = std_any_to_expr_ptr(visit(ctx->expression()));
+    observer_ptr<CactExpr> lvalue = std_any_to_expr_ptr(visit(ctx->leftValue()));
+
+    // perform the assignment
+    ctx->expr = CactBinaryExpr(make_observer<BinaryOperator>(new AssignOperator), lvalue, expr);
+
+    return {};
+  }
+
+  // visit a return statement
+  std::any visitReturnStatement(CactParser::ReturnStatementContext *ctx) override {
+    observer_ptr<CactExpr> expr = std_any_to_expr_ptr(visit(ctx->expression()));
+
+    ctx->expr = CactUnaryExpr(make_observer<UnaryOperator>(new ReturnOperator), expr);
+    return {};
+  }  
+
+  // visit a if statement
+
+
+  // visit a while statement
+
+
 
   /**
    *   [COULD HAVE CONSTANT VALUE]
@@ -433,7 +487,10 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     }
     return {};
   }
-  SymbolRegistry registry;
+
+
+  observer_ptr<SymbolRegistry> registry;
+
 };
 
 }

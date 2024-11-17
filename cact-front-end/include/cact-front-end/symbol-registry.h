@@ -4,7 +4,6 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_REGISTRY_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_REGISTRY_H_
-#include <ranges>
 #include <vector>
 #include <map>
 #include <string>
