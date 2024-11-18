@@ -59,7 +59,7 @@ enum class CactOperatorType {
 
 struct Operator {
   Operator(CactOperatorType __op_type, const OperandTypeChecker *__op_checker)
-      : operator_type(__op_type), operand_type_checker(__op_checker) {}
+    : operator_type(__op_type), operand_type_checker(__op_checker) {}
 
   // check if the operand's basic type is valid
   [[nodiscard]]

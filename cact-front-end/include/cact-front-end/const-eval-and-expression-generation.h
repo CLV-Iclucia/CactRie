@@ -155,7 +155,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
   std::any visitConstantInitialValue(CactParser::ConstantInitialValueContext *ctx) override {
     // If it is a constant expression, return the value's type by visiting constant expression and return the result
     if (ctx->constantExpression()) {
-      return visitConstantExpression(ctx->constantExpression());
+      return std::vector<ConstEvalResult>(getConstExpr(ctx->constantExpression()));
     }
     // If it is a list of constant values, return a vector of constant values.
     // The return value is a vector of constant values with the same type.
@@ -236,27 +236,29 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
    */
   // visit an assign statement
   std::any visitAssignStatement(CactParser::AssignStatementContext *ctx) override {
-    observer_ptr<CactExpr> expr = std_any_to_expr_ptr(visit(ctx->expression()));
-    observer_ptr<CactExpr> lvalue = std_any_to_expr_ptr(visit(ctx->leftValue()));
-
-    // perform the assignment
-    ctx->expr = CactBinaryExpr(make_observer<BinaryOperator>(new AssignOperator), lvalue, expr);
+    ctx->expr = *std_any_to_expr_ptr(visit(ctx->expression()));
+    ctx->lvalue = *std_any_to_expr_ptr(visit(ctx->leftValue()));
 
     return {};
   }
 
   // visit a return statement
   std::any visitReturnStatement(CactParser::ReturnStatementContext *ctx) override {
-    observer_ptr<CactExpr> expr = std_any_to_expr_ptr(visit(ctx->expression()));
-
-    ctx->expr = CactUnaryExpr(make_observer<UnaryOperator>(new ReturnOperator), expr);
+    ctx->expr = *std_any_to_expr_ptr(visit(ctx->expression()));
     return {};
   }  
 
   // visit a if statement
-
+  std::any visitIfStatement(CactParser::IfStatementContext *ctx) override {
+    ctx->cond_expr = *std_any_to_expr_ptr(visit(ctx->condition()));
+    return {};
+  }
 
   // visit a while statement
+  std::any visitWhileStatement(CactParser::WhileStatementContext *ctx) override {
+    ctx->cond_expr = *std_any_to_expr_ptr(visit(ctx->condition()));
+    return {};
+  }
 
 
 
@@ -271,6 +273,112 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
    * unaryExpression: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
    *                 | Identifier LeftParenthesis (functionArguments)? RightParenthesis;
    */
+
+
+  // visit an expression
+  std::any visitExpression(CactParser::ExpressionContext *ctx) override {
+    if (ctx->addExpression()) {
+      return std_any_to_expr_ptr(visit(ctx->addExpression()));
+    }
+    else {
+      assert(ctx->BooleanConstant());
+      bool boolean_value = (ctx->BooleanConstant()->getText().compare("true") == 0) ? true : false;
+      return make_uniq_observer<CactExpr>(CactExpr(boolean_value));
+    }
+  }
+
+  // visit a constant expression, and return a ConstEvalResult
+  std::any visitConstantExpression(CactParser::ConstantExpressionContext *ctx) override {
+    if (ctx->number()) {
+      return getNumber(ctx->number());
+    }
+    else {
+      assert(ctx->BooleanConstant());
+      bool boolean_value = (ctx->BooleanConstant()->getText().compare("true") == 0) ? true : false;
+      return ConstEvalResult(boolean_value);
+    }
+  }
+
+  // get the constant value of a constant expression
+  ConstEvalResult getConstExpr(CactParser::ConstantExpressionContext *ctx) {
+    return std::any_cast<ConstEvalResult>(visitConstantExpression(ctx));
+  }
+
+  // visit a condition
+  std::any visitCondition(CactParser::ConditionContext *ctx) override {
+    return std_any_to_expr_ptr(visit(ctx->logicalOrExpression()));
+  }
+
+  // visit a left value, return a CactConstVarArray
+  std::any visitLeftValue(CactParser::LeftValueContext *ctx) override {
+    auto symbol = CactConstVarArray(ctx->symbol);
+
+    // "symbol" is an array and is indexed in this context
+    for (auto &expr : ctx->expression()) {
+      symbol.addIndex(*std_any_to_expr_ptr(visit(expr)));
+    }
+
+    symbol.setOffsetByIndices();
+
+    return symbol;
+  }
+
+  // get the array representation of a left value
+  CactConstVarArray getLeftValue(CactParser::LeftValueContext *ctx) {
+    return std::any_cast<CactConstVarArray>(visitLeftValue(ctx));
+  }
+
+  // visit a primary expression
+  std::any visitPrimaryExpression(CactParser::PrimaryExpressionContext *ctx) override {
+    CactExpr expr;
+    if (ctx->expression()) {
+      return std_any_to_expr_ptr(visit(ctx->expression()));
+    }
+    else if (ctx->leftValue()) {
+      return make_uniq_observer<CactExpr>(CactExpr(getLeftValue(ctx->leftValue())));
+    }
+    else if (ctx->leftValue()) {
+      return make_uniq_observer<CactExpr>(CactExpr(getNumber(ctx->number())));
+    }
+    assert(0);
+  }
+
+  // visit a number
+  std::any visitNumber(CactParser::NumberContext *ctx) override {
+    if (ctx->IntegerConstant()) {
+      return ConstEvalResult(std::stoi(ctx->IntegerConstant()->getText()));
+    } else if (ctx->FloatConstant()) {
+      return ConstEvalResult(std::stof(ctx->FloatConstant()->getText()));
+    } else if (ctx->DoubleConstant()) {
+      return ConstEvalResult(std::stod(ctx->DoubleConstant()->getText()));
+    }
+    assert(0);
+  }
+
+  // get the constant value of a number
+  ConstEvalResult getNumber(CactParser::NumberContext *ctx) {
+    return std::any_cast<ConstEvalResult>(visitNumber(ctx));
+  }
+
+  // visit a unary expression
+  std::any visitUnaryExpression(CactParser::UnaryExpressionContext *ctx) override {
+    if (ctx->primaryExpression()) {
+      return std_any_to_expr_ptr(visit(ctx->primaryExpression()));
+    }
+    else if (ctx->unaryExpression()) {
+      auto expr = std_any_to_expr_ptr(visit(ctx->unaryExpression()));
+      return make_uniq_observer<CactExpr>(CactUnaryExpr(ctx->unary_operator, expr));
+    }
+    else if (ctx->Identifier()) {
+      // the function has already been recorded
+      auto func = ctx->function;
+
+      // gather all arguments into a vector of observer_ptr
+      std::vector<observer_ptr<CactExpr>> args;
+      for 
+    }
+    assert(0);
+  }
 
   /**
    * functionArguments: expression (Comma expression)*;

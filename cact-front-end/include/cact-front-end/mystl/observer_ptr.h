@@ -35,8 +35,17 @@ private:
 };
 
 template<typename T>
+[[nodiscard]]
 observer_ptr<T> make_observer(T *ptr) {
   return observer_ptr<T>(ptr);
 }
+
+// get observer_ptr from template T, allocate memory for it
+template<typename T>
+[[nodiscard]]
+observer_ptr<T> make_uniq_observer(T instance) {
+  return observer_ptr<T>(std::make_unique<T>(instance).get());
+}
+
 }
 #endif //CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H

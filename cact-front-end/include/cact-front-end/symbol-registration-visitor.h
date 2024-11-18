@@ -105,23 +105,24 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("ConstantDefinition");
     // record name and type
     auto name = ctx->Identifier()->getText();
-    ctx->constant = CactConstant(name, ctx->need_type);
+    auto constant = CactConstant(name, ctx->need_type);
 
     for (auto &dim_ctx : ctx->IntegerConstant()) {
       int dim = std::stoi(dim_ctx->getText());
       if (dim <= 0) // dimension should be positive
         throw std::runtime_error("the size of an array must be greater than zero");
-      ctx->constant.type.addDim((uint32_t)dim);
+      constant.type.addDim((uint32_t)dim);
     }
 
     // set some attributes for constantInitialValue, visit it and get the result
     auto const_init_val_ctx = ctx->constantInitialValue();
     const_init_val_ctx->current_dim = 0;
-    const_init_val_ctx->type = ctx->constant.type;
+    const_init_val_ctx->type = constant.type;
     visit(const_init_val_ctx);
 
     // register the constant
-    current_scope->registerVariable(ctx->constant);
+    current_scope->registerVariable(constant);
+    ctx->constant = current_scope->getVariable(name);
 
     completeSemanticCheck("ConstantDefinition");
     return {};
@@ -234,28 +235,30 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("VariableDefinition");
     // record name and type
     auto name = ctx->Identifier()->getText();
-    ctx->variable = CactVariable(name, ctx->need_type);
+    auto variable = CactVariable(name, ctx->need_type);
 
     for (auto &dim_ctx : ctx->IntegerConstant()) {
       int dim = std::stoi(dim_ctx->getText());
       if (dim <= 0) // dimension should be positive
         throw std::runtime_error("the size of an array must be greater than zero");
-      ctx->variable.type.addDim((uint32_t)dim);
+      variable.type.addDim((uint32_t)dim);
     }
 
     // set some attributes for constantInitialValue, visit it and get the result
     auto const_init_val_ctx = ctx->constantInitialValue();
     if (const_init_val_ctx) {
-      ctx->variable.setInitialized(); // set initialized flag
+      variable.setInitialized(); // set initialized flag
 
       const_init_val_ctx->current_dim = 0;
-      const_init_val_ctx->type = ctx->variable.type;
+      const_init_val_ctx->type = variable.type;
       // auto value = getConstIniVal(const_init_val_ctx);
       visit(const_init_val_ctx);
     }
 
     // register the constant
-    current_scope->registerVariable(ctx->variable);
+    current_scope->registerVariable(variable);
+
+    ctx->variable = current_scope->getVariable(name);
 
     completeSemanticCheck("VariableDefinition");
     return {};
@@ -347,25 +350,27 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("FunctionParameter");
     // record name and type
     auto name = ctx->Identifier()->getText();
-    ctx->parameter = CactFuncParam(name, getDataType(ctx->dataType()));
+    auto parameter = CactFuncParam(name, getDataType(ctx->dataType()));
 
     // if the first pair of brackets is empty, push 0 to the array_dims
     if (ctx->IntegerConstant().size() < ctx->LeftBracket().size())
-      ctx->parameter.type.addDim(0);
+      parameter.type.addDim(0);
 
     // record the array dimensions
     for (auto &dim_ctx : ctx->IntegerConstant()) {
       int dim = std::stoi(dim_ctx->getText());
       if (dim <= 0) // dimension should be positive
         throw std::runtime_error("the size of an array must be greater than zero");
-      ctx->parameter.type.addDim((uint32_t)dim);
+      parameter.type.addDim((uint32_t)dim);
     }
 
     // add the parameter to the function
-    current_function->addParameter(ctx->parameter);
+    current_function->addParameter(parameter);
 
     // register the parameter
-    current_scope->registerVariable(ctx->parameter);
+    current_scope->registerVariable(parameter);
+
+    ctx->parameter = current_scope->getVariable(name);
 
     completeSemanticCheck("FunctionParameter");
     return {};
@@ -444,7 +449,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // an array cannot become a valid left-hand-side value
     visit(left_value_ctx);
-    if (!left_value_ctx->modifiable_left_value)
+    if (!left_value_ctx->symbol->isModifiableLValue())
       throw std::runtime_error("expression must be a modifiable lvalue");
 
     // Check type compatibility
@@ -600,8 +605,8 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("LeftValue");
     // record the name of lvalue, and find corresponding variable
     auto name = ctx->Identifier()->getText();
-    auto var = current_scope->getVariable(name); // if not declared, throw an error in variable()
-    ctx->type = var.type;
+    ctx->symbol = current_scope->getVariable(name); // if not declared, throw an error in variable()
+    ctx->type = ctx->symbol->type;
 
     // visit children and check dimensions
     int count = 0;
@@ -610,14 +615,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       if (!expr->type.validArrayIndex())
         throw std::runtime_error("expression must have integral type");
       count++; // count for dimensions
-      if (count > var.type.dim())
+      if (count > ctx->symbol->type.dim())
         throw std::runtime_error("expression must have pointer-to-object type but it has type \"" +
-                                 type2String(var.type.basic_type) + "\"");
+                                 type2String(ctx->symbol->type.basic_type) + "\"");
     }
 
     // update the type of left value by indexing times, erasing the first count dimensions
     ctx->type.array_dims.erase(ctx->type.array_dims.begin(), ctx->type.array_dims.begin() + count);
-    ctx->modifiable_left_value = var.isModifiableLValue();
 
     completeSemanticCheck("LeftValue");
     return {};
@@ -707,24 +711,24 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     else if (ctx->Identifier()) {
       // find the function
       auto name = ctx->Identifier()->getText();
-      auto func = this->registry->getFunction(name);
-      if (!func)
+      ctx->function = this->registry->getFunction(name);
+      if (!ctx->function)
         throw std::runtime_error("function identifier \"" + name + "\" is undefined");
 
       // check parameters inside functionArguments
       if (!ctx->functionArguments()) { // no arguments
-        if (func->parameters.size() != 0)
+        if (ctx->function->parameters.size() != 0)
           throw std::runtime_error("too few arguments in function call");
       }
       else {
-        if (func->parameters.size() != 0)
-          ctx->functionArguments()->need_params = func->parameters;
+        if (ctx->function->parameters.size() != 0)
+          ctx->functionArguments()->need_params = ctx->function->parameters;
         else
           ctx->functionArguments()->need_params = {};
         visit(ctx->functionArguments());
       }
 
-      ctx->type = CactType(func->return_type);
+      ctx->type = CactType(ctx->function->return_type);
     }
     else {
       assert(0);

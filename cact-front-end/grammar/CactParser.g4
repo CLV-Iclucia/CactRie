@@ -35,7 +35,7 @@ dataType: Int32 | Bool | Float | Double;
 constantDefinition
     locals[
         CactBasicType need_type,
-        CactConstant constant,
+        observer_ptr<CactConstVar> constant,
         std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
 
@@ -61,7 +61,7 @@ variableDefinition
     locals[
         // observer_ptr<Scope> scope,
         CactBasicType need_type,
-        CactVariable variable,
+        observer_ptr<CactConstVar> variable,
         std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
 
@@ -83,7 +83,7 @@ functionParameters: functionParameter (Comma functionParameter)*;
 // function_formal_param -> basic_type Identifier ([IntegerConstant]?)* ( [IntegerConstant] )*
 functionParameter
     locals[
-        CactFuncParam parameter,
+        observer_ptr<CactConstVar> parameter,
     ]: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
 
 /* statement & expression */
@@ -111,6 +111,7 @@ statement
 // assign_statement -> left_value = expression ;
 assignStatement
     locals[
+        CactExpr lvalue,
         CactExpr expr,
     ]: leftValue Equal expression Semicolon;
 
@@ -175,7 +176,8 @@ condition: logicalOrExpression;
 leftValue
     locals[
         CactType type,
-        bool modifiable_left_value,
+        // bool modifiable_left_value,
+        observer_ptr<CactConstVar> symbol,
     ]: Identifier (LeftBracket expression RightBracket)*;
 
 // primaryExpression is the most basic expression
@@ -201,6 +203,7 @@ unaryExpression
     locals[
         CactType type,
         observer_ptr<UnaryOperator> unary_operator,
+        observer_ptr<CactFunction> function,
     ]: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
                 | Identifier LeftParenthesis (functionArguments)? RightParenthesis;
 
