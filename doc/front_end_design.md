@@ -182,27 +182,27 @@ The design is like generating new trees from the original tree for each expressi
 compilationUnit: (declaration | functionDefinition)*; // visit "declaration" or "functionDefinition"
 declaration: constantDeclaration | variableDeclaration; // visit "constantDeclaration" or "variableDeclaration"
 constantDeclaration: Const dataType constantDefinition (Comma constantDefinition)* Semicolon; // visit "constantDefinition"s
-dataType:  // [NO NEED]
-constantDefinition: // [NEW] {CactConstant}
-constantInitialValue: // [NO NEED]
+dataType:  // {NO NEED}
+constantDefinition // [NEW] {observer_ptr<CactConstVar> constant}
+constantInitialValue // {NO NEED}
 variableDeclaration: dataType variableDefinition (Comma variableDefinition)* Semicolon; // visit "variableDefinition"s
-variableDefinition: // [NEW] {CactVariable}
-functionDefinition: functionType Identifier LeftParenthesis (functionParameters)? RightParenthesis block; // visit "block" [NEW] {CactFunction}
-functionType: // [NO NEED]
+variableDefinition // [NEW] {observer_ptr<CactConstVar> variable}
+functionDefinition: functionType Identifier LeftParenthesis (functionParameters)? RightParenthesis block; // visit "block" [NEW] {observer_ptr<CactFunction> function}
+functionType // {NO NEED}
 functionParameters: functionParameter (Comma functionParameter)*; // visit "functionParameter"s
-functionParameter: // [NEW] {CactFuncParam}
+functionParameter // [NEW] {observer_ptr<CactConstVar> parameter}
 
 // statement & expression
 block: LeftBrace (blockItem)* RightBrace; // visit "blockItem"s
 blockItem: declaration | statement; // visit "declaration" or "statement"
 statement: assignStatement | expressionStatement | block | returnStatement | ifStatement
          | whileStatement | breakStatement | continueStatement; // visit any statement
-assignStatement: // [NEW] {CactExpr}
-expressionStatement: // [DO NOTHING]
-returnStatement: // [NEW] {CactExpr}
-ifStatement: If LeftParenthesis condition RightParenthesis statement (Else statement)?; // visit "statement"s. [NEW] {cond_expr}
-whileStatement: While LeftParenthesis condition RightParenthesis statement; // visit "statement". [NEW] {cond_expr}
-breakStatement: // [NEW] {to_which_loop: whileStatement}
-continueStatement: // [NEW] {to_which_loop: whileStatement}
-expression, constantExpression, condition, leftValue, primaryExpression, unaryExpression, functionArguments, mulExpression, addExpression, relationalExpression, logicalEqualExpression, logicalAndExpression, logicalOrExpression: // [NO NEED]
+assignStatement // [NEW] {CactExpr lvalue, expr}
+expressionStatement // {DO NOTHING}
+returnStatement // [NEW] {CactExpr expr}
+ifStatement: If LeftParenthesis condition RightParenthesis statement (Else statement)?; // visit "statement"s. [NEW] {CactExpr cond_expr}
+whileStatement: While LeftParenthesis condition RightParenthesis statement; // visit "statement". [NEW] {CactExpr cond_expr}
+breakStatement // [NEW] {observer_ptr<WhileStatementContext> to_which_loop}
+continueStatement // [NEW] {observer_ptr<WhileStatementContext> to_which_loop}
+expression, constantExpression, condition, leftValue, primaryExpression, unaryExpression, functionArguments, mulExpression, addExpression, relationalExpression, logicalEqualExpression, logicalAndExpression, logicalOrExpression // {NO NEED}
 ```

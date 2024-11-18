@@ -685,7 +685,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     if (primary) {
       visit(primary);
       ctx->type = primary->type;
-      ctx->unary_operator = make_observer<UnaryOperator>(new UnaryNopOperator);
+      ctx->unary_operator = make_observer<UnaryOperator>(new UnaryNopOperator());
     }
     // -> unaryOp unaryExpression
     else if (unary) {
@@ -696,11 +696,11 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
         throw std::runtime_error("expression must have arithmetic type");
 
       if (ctx->Plus())
-        ctx->unary_operator = make_observer<UnaryOperator>(new PlusOperator);
+        ctx->unary_operator = make_observer<UnaryOperator>(new PlusOperator());
       else if (ctx->Minus())
-        ctx->unary_operator = make_observer<UnaryOperator>(new NegOperator);
+        ctx->unary_operator = make_observer<UnaryOperator>(new NegOperator());
       else if (ctx->ExclamationMark())
-        ctx->unary_operator = make_observer<UnaryOperator>(new LogicalNotOperator);
+        ctx->unary_operator = make_observer<UnaryOperator>(new LogicalNotOperator());
       else
         assert(0);
 
@@ -777,7 +777,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> unaryExpression
     if (unary && !mul) {
       visit(unary);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
       ctx->type = unary->type;
     }
     // -> mulExpression binary-OP unaryExpression
@@ -786,11 +786,11 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(unary);
 
       if (ctx->Asterisk())
-        ctx->binary_operator = make_observer<BinaryOperator>(new MulOperator);
+        ctx->binary_operator = make_observer<BinaryOperator>(new MulOperator());
       else if (ctx->Slash())
-        ctx->binary_operator = make_observer<BinaryOperator>(new DivOperator);
+        ctx->binary_operator = make_observer<BinaryOperator>(new DivOperator());
       else if (ctx->Percent())
-        ctx->binary_operator = make_observer<BinaryOperator>(new ModOperator);
+        ctx->binary_operator = make_observer<BinaryOperator>(new ModOperator());
       else
         assert(0);
 
@@ -814,7 +814,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> mulExpression
     if (mul && !add) {
       visit(mul);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
       ctx->type = mul->type;
     }
     // -> addExpression binary-OP mulExpression
@@ -823,9 +823,9 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(mul);
 
       if (ctx->Plus())
-        ctx->binary_operator = make_observer<BinaryOperator>(new AddOperator);
+        ctx->binary_operator = make_observer<BinaryOperator>(new AddOperator());
       else if (ctx->Minus())
-        ctx->binary_operator = make_observer<BinaryOperator>(new SubOperator);
+        ctx->binary_operator = make_observer<BinaryOperator>(new SubOperator());
       else
         assert(0);
 
@@ -847,13 +847,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // -> BooleanExpression
     if (add.size() == 0) {
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
       ctx->basic_type = CactBasicType::Bool;
     }
     // -> addExpression
     else if (add.size() == 1) {
       visit(add[0]);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
       ctx->basic_type = add[0]->type.basic_type;
     }
     // -> addExpression binary-OP addExpression
@@ -862,13 +862,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(add[1]);
 
       if (ctx->Less())
-        ctx->binary_operator = make_observer<BinaryOperator>(new LessOperator);
+        ctx->binary_operator = make_observer<BinaryOperator>(new LessOperator());
       else if (ctx->LessEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new LessEqualOperator);
+        ctx->binary_operator = make_observer<BinaryOperator>(new LessEqualOperator());
       else if (ctx->Greater())
-        ctx->binary_operator = make_observer<BinaryOperator>(new GreaterOperator);
+        ctx->binary_operator = make_observer<BinaryOperator>(new GreaterOperator());
       else if (ctx->GreaterEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new GreaterEqualOperator);
+        ctx->binary_operator = make_observer<BinaryOperator>(new GreaterEqualOperator());
       else
         assert(0);
 
@@ -891,7 +891,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> relationalExpression
     if (relational.size() == 1) {
       visit(relational[0]);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
       if (relational[0]->basic_type != CactBasicType::Bool)
         throw std::runtime_error("expression must have boolean type");
     }
@@ -901,9 +901,9 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(relational[1]);
 
       if (ctx->LogicalEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new EqualOperator);
+        ctx->binary_operator = make_observer<BinaryOperator>(new EqualOperator());
       else if (ctx->NotEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new NotEqualOperator);
+        ctx->binary_operator = make_observer<BinaryOperator>(new NotEqualOperator());
       else
         assert(0);
 
@@ -927,14 +927,14 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> logicalEqualExpression
     if (logical_equal_ctx && !logical_and_ctx) {
       visit(logical_equal_ctx);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
     }
     // -> logicalAndExpression && logicalEqualExpression
     else if (logical_equal_ctx && logical_and_ctx) {
       visit(logical_and_ctx);
       visit(logical_equal_ctx);
 
-      ctx->binary_operator = make_observer<BinaryOperator>(new LogicalAndOperator);
+      ctx->binary_operator = make_observer<BinaryOperator>(new LogicalAndOperator());
     }
     else {
       assert(0);
@@ -953,14 +953,14 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> logicalAndExpression
     if (logical_and_ctx && !logical_or_ctx) {
       visit(logical_and_ctx);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
     }
     // -> logicalOrExpression || logicalAndExpression
     else if (logical_and_ctx && logical_or_ctx) {
       visit(logical_or_ctx);
       visit(logical_and_ctx);
 
-      ctx->binary_operator = make_observer<BinaryOperator>(new LogicalOrOperator);
+      ctx->binary_operator = make_observer<BinaryOperator>(new LogicalOrOperator());
     }
     else {
       assert(0);

@@ -143,8 +143,8 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
   // visit a constant definition
   std::any visitConstantDefinition(CactParser::ConstantDefinitionContext *ctx) override {
     // set the initial value of the constant
-    if (ctx->constant.isInitialized()) {
-      ctx->constant.init_values = getConstInitVal(ctx->constantInitialValue());
+    if (ctx->constant->isInitialized()) {
+      ctx->constant->init_values = getConstInitVal(ctx->constantInitialValue());
     }
     
     return {};
@@ -155,7 +155,10 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
   std::any visitConstantInitialValue(CactParser::ConstantInitialValueContext *ctx) override {
     // If it is a constant expression, return the value's type by visiting constant expression and return the result
     if (ctx->constantExpression()) {
-      return std::vector<ConstEvalResult>(getConstExpr(ctx->constantExpression()));
+      std::vector<ConstEvalResult> return_vec;
+      auto res = getConstExpr(ctx->constantExpression());
+      return_vec.emplace_back(res);
+      return return_vec;
     }
     // If it is a list of constant values, return a vector of constant values.
     // The return value is a vector of constant values with the same type.
@@ -210,8 +213,8 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
   // visit a variable definition
   std::any visitVariableDefinition(CactParser::VariableDefinitionContext *ctx) override {
     // set the initial value of the variable
-    if (ctx->variable.isInitialized()) {
-      ctx->variable.init_values = getConstInitVal(ctx->constantInitialValue());
+    if (ctx->variable->isInitialized()) {
+      ctx->variable->init_values = getConstInitVal(ctx->constantInitialValue());
     }
     return {};
   }
@@ -370,12 +373,14 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
       return make_uniq_observer<CactExpr>(CactUnaryExpr(ctx->unary_operator, expr));
     }
     else if (ctx->Identifier()) {
-      // the function has already been recorded
-      auto func = ctx->function;
-
       // gather all arguments into a vector of observer_ptr
       std::vector<observer_ptr<CactExpr>> args;
-      for 
+      if (ctx->functionArguments()) {
+        for (auto &arg : ctx->functionArguments()->expression()) {
+          args.emplace_back(std_any_to_expr_ptr(visit(arg)));
+        }
+      }
+      return make_uniq_observer<CactExpr>(CactExpr(ctx->function, args));
     }
     assert(0);
   }
@@ -383,6 +388,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
   /**
    * functionArguments: expression (Comma expression)*;
    */
+  // no need to override visitFunctionArguments, since it is not used in the current context
 
   /**
    *   [COULD HAVE CONSTANT VALUE]
@@ -394,208 +400,107 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
    * logicalAndExpression: logicalEqualExpression | logicalAndExpression LogicalAnd logicalEqualExpression;
    * logicalOrExpression: logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression;
    */
-  // ---------------------------------------
-
-  // visit a number
-  std::any visitNumber(CactParser::NumberContext *ctx) override {
-    if (ctx->IntegerConstant()) {
-      return CompileTimeConstant(std::stoi(ctx->IntegerConstant()->getText()));
-    } else if (ctx->FloatConstant()) {
-      return CompileTimeConstant(std::stof(ctx->FloatConstant()->getText()));
-    } else if (ctx->DoubleConstant()) {
-      return CompileTimeConstant(std::stod(ctx->DoubleConstant()->getText()));
-    }
-    throw std::runtime_error("Invalid number context");
-  }
-
-  // visit a function definition
-  std::any visitFunctionDefinition(CactParser::FunctionDefinitionContext *ctx) override {
-  }
-
-  // visit a primary expression
-  std::any visitPrimaryExpression(CactParser::PrimaryExpressionContext *ctx) override {
-    auto expr = ctx->expression();
-    auto num = ctx->number();
-    auto lvalue = ctx->leftValue();
-    if (expr) {
-      ctx->expressionResult = visitExpression(expr);
-    } else if (num) {
-      ctx->expressionResult = visitNumber(num);
-    } else if (lvalue) {
-      ctx->expressionResult = visitLeftValue(lvalue);
-    } else
-      throw std::runtime_error("Invalid primary expression context");
-    return {};
-  }
-
-  // visit a unary expression
-  std::any visitUnaryExpression(CactParser::UnaryExpressionContext *ctx) override {
-    auto primary_expr = ctx->primaryExpression();
+  // visit a mul expression
+  std::any visitMulExpression(CactParser::MulExpressionContext *ctx) override {
     auto unary_expr = ctx->unaryExpression();
-    if (primary_expr) {
-      ctx->expressionResult = visitPrimaryExpression(primary_expr);
-    } else {
-      visitUnaryExpression(unary_expr);
-      auto result = unaryOperator(*ctx)->apply(unary_expr->expressionResult);
-      if (!result.has_value()) {
-        // compile error
-      }
-      ctx->expressionResult = result.value();
-    }
-    if (unary_expr) {
-      ctx->expressionResult = visitUnaryExpression(unary_expr);
-      if (!ctx->expressionResult.has_value()) {
-        // compile error
-      }
-    }
+    auto mul_expr = ctx->mulExpression();
 
-    return ctx->expressionResult;
+    if (!mul_expr && unary_expr) {
+      return std_any_to_expr_ptr(visit(unary_expr));
+    }
+    else if (mul_expr && unary_expr) {
+      auto lhs = std_any_to_expr_ptr(visit(mul_expr));
+      auto rhs = std_any_to_expr_ptr(visit(unary_expr));
+      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
+    }
+    assert(0);
   }
 
   // visit an additive expression
   std::any visitAddExpression(CactParser::AddExpressionContext *ctx) override {
-    auto add_expr = ctx->addExpression();
-    auto mul_expr = ctx->mulExpression();
-    assert(mul_expr);
-    visitMulExpression(mul_expr);
-    auto lhs = mul_expr->expressionResult;
-    if (!add_expr)
-      ctx->expressionResult = lhs;
-    else {
-      auto rhs = visitAddExpression(add_expr);
-      auto result = binaryOperator(*ctx)->evaluate(lhs, rhs);
-      if (!result.has_value()) {
-        // compile error
-      }
-      ctx->expressionResult = result.value();
-    }
-    return ctx->expressionResult;
-  }
+    auto add_expr_ctx = ctx->addExpression();
+    auto mul_expr_ctx = ctx->mulExpression();
 
-  // visit a multiplicative expression
-  std::any visitMulExpression(CactParser::MulExpressionContext *ctx) override {
-    auto mul_expr = ctx->mulExpression();
-    auto unary_expr = ctx->unaryExpression();
-    assert(unary_expr);
-    auto rhs = visitUnaryExpression(unary_expr);
-    if (!mul_expr) {
-      ctx->expressionResult = rhs;
-    } else {
-      auto lhs = visitMulExpression(mul_expr);
-      auto result = binaryOperator(*ctx)->evaluate(lhs, rhs);
-      if (!result.has_value()) {
-        // compile error
-      }
-      ctx->expressionResult = result.value();
+    if (!add_expr_ctx && mul_expr_ctx) {
+      return std_any_to_expr_ptr(visit(mul_expr_ctx));
     }
-    return ctx->expressionResult;
-  }
-
-  // visit a logical or expression
-  std::any visitLogicalOrExpression(CactParser::LogicalOrExpressionContext *ctx) override {
-    auto bool_const = ctx->BooleanConstant();
-    if (bool_const) {
-      ctx->expressionResult = CompileTimeConstant(bool_const->getText() == "true");
-      return ctx->expressionResult;
+    else if (add_expr_ctx && mul_expr_ctx) {
+      auto lhs = std_any_to_expr_ptr(visit(add_expr_ctx));
+      auto rhs = std_any_to_expr_ptr(visit(mul_expr_ctx));
+      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
     }
-
-    auto logical_or_expr = ctx->logicalOrExpression();
-    auto logical_and_expr = ctx->logicalAndExpression();
-    assert(logical_and_expr);
-    auto rhs = visitLogicalAndExpression(logical_and_expr);
-    if (!logical_or_expr)
-      ctx->expressionResult = rhs;
-    else {
-      auto lhs = visitLogicalOrExpression(logical_or_expr);
-      auto result = LogicalOrOperator().evaluate(lhs, rhs);
-      if (!result.has_value()) {
-        // compile error
-      }
-      ctx->expressionResult = result.value();
-    }
-    return ctx->expressionResult;
-  }
-
-  // visit a logical and expression
-  std::any visitLogicalAndExpression(CactParser::LogicalAndExpressionContext *ctx) override {
-    auto logical_and_expr = ctx->logicalAndExpression();
-    auto logical_eq_expr = ctx->logicalEqualExpression();
-    assert(logical_eq_expr);
-    visitLogicalEqualExpression(logical_eq_expr);
-    auto rhs = logical_eq_expr->expressionResult;
-    if (!logical_and_expr)
-      ctx->expressionResult = rhs;
-    else {
-      auto lhs = visitLogicalAndExpression(logical_and_expr);
-      auto result = LogicalAndOperator().evaluate(lhs, rhs);
-      if (!result.has_value()) {
-
-      }
-      ctx->expressionResult = result.value();
-    }
-    return {};
+    assert(0);
   }
 
   // visit a relational expression
   std::any visitRelationalExpression(CactParser::RelationalExpressionContext *ctx) override {
-    auto relational_expr = ctx->relationalExpression();
-    auto add_expr = ctx->addExpression();
-    assert(add_expr);
-    visitAddExpression(add_expr);
-    auto rhs = add_expr->expressionResult;
-    if (!relational_expr)
-      ctx->expressionResult = rhs;
-    else {
-      auto lhs = visitRelationalExpression(relational_expr);
-      auto result = binaryOperator(*ctx)->evaluate(lhs, rhs);
-      if (!result.has_value()) {
-        // compile error
-      }
-      ctx->expressionResult = result.value();
+    auto bool_const_ctx = ctx->BooleanConstant();
+    auto add_expr_ctxs = ctx->addExpression();
+
+    if (bool_const_ctx) {
+      return std_any_to_expr_ptr(visit(bool_const_ctx));
     }
-    return {};
+    else if (add_expr_ctxs.size() == 1) {
+      return std_any_to_expr_ptr(visit(add_expr_ctxs.at(0)));
+    }
+    else if (add_expr_ctxs.size() == 2) {
+      auto lhs = std_any_to_expr_ptr(visit(add_expr_ctxs.at(0)));
+      auto rhs = std_any_to_expr_ptr(visit(add_expr_ctxs.at(1)));
+      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
+    }
+    assert(0);
   }
 
-  // visit a condition
-  std::any visitCondition(CactParser::ConditionContext *ctx) override {
-    auto logicalOrExpr = ctx->logicalOrExpression();
-    assert(logicalOrExpr);
-    visitLogicalOrExpression(logicalOrExpr);
-    auto result = logicalOrExpr->expressionResult;
-    if (!result.has_value())
-      ctx->compileTimeResult = std::nullopt;
-    else {
-      assert(constEvalResultBasicType(result) == CactBasicType::Bool);
-      ctx->compileTimeResult = std::make_optional<bool>(std::get<bool>(result));
+  // visit a logical equal expression
+  std::any visitLogicalEqualExpression(CactParser::LogicalEqualExpressionContext *ctx) override {
+    auto rel_expr_ctxs = ctx->relationalExpression();
+
+    if (rel_expr_ctxs.size() == 1) {
+      return std_any_to_expr_ptr(visit(rel_expr_ctxs.at(0)));
     }
-    return {};
+    else if (rel_expr_ctxs.size() == 2) {
+      auto lhs = std_any_to_expr_ptr(visit(rel_expr_ctxs.at(0)));
+      auto rhs = std_any_to_expr_ptr(visit(rel_expr_ctxs.at(1)));
+      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
+    }
+    assert(0);
   }
 
-  // visit an if statement
-  std::any visitIfStatement(CactParser::IfStatementContext *ctx) override {
-    assert(ctx->statement().size() == 1 || ctx->statement().size() == 2);
-    auto condition = ctx->condition();
-    visitCondition(condition);
-    for (auto &stmt : ctx->statement())
-      visitStatement(stmt);
-    if (!condition->compileTimeResult.has_value()) {
-      // compile error
-    } else {
-      bool cond = condition->compileTimeResult.value();
-      auto then = ctx->statement(0);
-      if (cond) {
-        then->reachable = std::make_optional<bool>(true);
-        if (ctx->statement().size() == 2)
-          ctx->statement(1)->reachable = std::make_optional<bool>(false);
-      } else {
-        then->reachable = std::make_optional<bool>(false);
-        if (ctx->statement().size() == 2)
-          ctx->statement(1)->reachable = std::make_optional<bool>(true);
-      }
+  // visit a logical and expression
+  std::any visitLogicalAndExpression(CactParser::LogicalAndExpressionContext *ctx) override {
+    auto logical_eq_expr = ctx->logicalEqualExpression();
+    auto logical_and_expr = ctx->logicalAndExpression();
+
+    if (logical_eq_expr && !logical_and_expr) {
+      return std_any_to_expr_ptr(visit(logical_eq_expr));
     }
-    return {};
+    else if (logical_eq_expr && logical_and_expr) {
+      auto lhs = std_any_to_expr_ptr(visit(logical_and_expr));
+      auto rhs = std_any_to_expr_ptr(visit(logical_eq_expr));
+      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
+    }
+
+    assert(0);
   }
 
+  // visit a logical or expression
+  std::any visitLogicalOrExpression(CactParser::LogicalOrExpressionContext *ctx) override {
+    auto logical_and_expr = ctx->logicalAndExpression();
+    auto logical_or_expr = ctx->logicalOrExpression();
+
+    if (logical_and_expr && !logical_or_expr) {
+      return std_any_to_expr_ptr(visit(logical_and_expr));
+    }
+    else if (logical_and_expr && logical_or_expr) {
+      auto lhs = std_any_to_expr_ptr(visit(logical_or_expr));
+      auto rhs = std_any_to_expr_ptr(visit(logical_and_expr));
+      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
+    }
+
+    assert(0);
+  }
+
+  // ---------------------------------------
 
   observer_ptr<SymbolRegistry> registry;
 
