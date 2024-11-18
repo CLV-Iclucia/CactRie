@@ -4,11 +4,22 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_OPERATOR_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_OPERATOR_H_
-#include <cact-front-end/cact-expr.h>
-#include <functional>
+#include <cact-front-end/cact-typedef.h>
+#include <cact-front-end/cact-type.h>
 #include <set>
+#include <optional>
 
 namespace cactfrontend {
+
+// // get a CactType based on the type of the variant
+// CactType constEvalResultType(const ConstEvalResult value);
+
+// get the basic type of the variant
+CactBasicType constEvalResultBasicType(const ConstEvalResult value);
+
+// // get the value of the variant
+// inline std::optional<bool> conditionEvalResult(const ConstEvalResult value);
+
 
 struct OperandTypeChecker {
   const std::string error_message;
@@ -31,30 +42,6 @@ extern const OperandTypeChecker operand_checker_int_float;
 extern const OperandTypeChecker operand_checker_int;
 extern const OperandTypeChecker operand_checker_bool;
 
-enum class CactOperatorType {
-  // Unary operators
-  UnaryNop,
-  Plus,
-  Neg,
-  LogicalNot,
-  // Return,
-
-  // Binary operators
-  BinaryNop,
-  Mul,
-  Div,
-  Mod,
-  Add,
-  Sub,
-  Less,
-  Greater,
-  LessEqual,
-  GreaterEqual,
-  LogicalEqual,
-  LogicalNotEqual,
-  LogicalAnd,
-  LogicalOr,
-};
 
 
 struct Operator {
@@ -100,17 +87,18 @@ private:
 };
 
 struct UnaryOperator : Operator {
-  UnaryOperator(CactOperatorType __op_type, const OperandTypeChecker *__op_checker) : Operator(__op_type, __op_checker) {}
+  explicit UnaryOperator() : Operator(CactOperatorType::UnaryNop, &operand_checker_all) {}
+  explicit UnaryOperator(CactOperatorType __op_type, const OperandTypeChecker *__op_checker) : Operator(__op_type, __op_checker) {}
 
   [[nodiscard]]
-  virtual std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult& x) const = 0;
+  virtual std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult x) const = 0;
 };
 
 struct UnaryNopOperator : UnaryOperator {
   UnaryNopOperator() : UnaryOperator(CactOperatorType::UnaryNop, &operand_checker_all) {}
 
   [[nodiscard]]
-  std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult& x) const override {
+  std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult x) const override {
     switch (constEvalResultBasicType(x)) {
       case CactBasicType::Int32:  return {std::get<int32_t>(x)};
       case CactBasicType::Float:  return {std::get<float>(x)};
@@ -125,7 +113,7 @@ struct PlusOperator : UnaryOperator {
   PlusOperator() : UnaryOperator(CactOperatorType::Plus, &operand_checker_int_float) {}
 
   [[nodiscard]]
-  std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult& x) const override {
+  std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult x) const override {
     switch (constEvalResultBasicType(x)) {
       case CactBasicType::Int32:  return {+std::get<int32_t>(x)};
       case CactBasicType::Float:  return {+std::get<float>(x)};
@@ -139,7 +127,7 @@ struct NegOperator : UnaryOperator {
   NegOperator() : UnaryOperator(CactOperatorType::Neg, &operand_checker_int_float) {}
 
   [[nodiscard]]
-  std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult& x) const override {
+  std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult x) const override {
     switch (constEvalResultBasicType(x)) {
       case CactBasicType::Int32:  return {-std::get<int32_t>(x)};
       case CactBasicType::Float:  return {-std::get<float>(x)};
@@ -153,7 +141,7 @@ struct LogicalNotOperator : UnaryOperator {
   LogicalNotOperator() : UnaryOperator(CactOperatorType::LogicalNot, &operand_checker_bool) {}
 
   [[nodiscard]]
-  std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult& x) const override {
+  std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult x) const override {
     switch (constEvalResultBasicType(x)) {
       case CactBasicType::Bool:   return {!std::get<bool>(x)};
       default:                    return std::nullopt;
@@ -178,7 +166,7 @@ struct BinaryOperator : Operator {
   }
 
   // check if two ConstEvalResult have the same CactBasicType 
-  inline bool sameValidBasicType(const ConstEvalResult x, const ConstEvalResult y) const {
+  bool sameValidBasicType(const ConstEvalResult x, const ConstEvalResult y) const {
     // if the type of x/y are among validTypes
     CactBasicType xType = constEvalResultBasicType(x);
 

@@ -5,6 +5,7 @@
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H
 #include <cassert>
+#include <memory>
 namespace cactfrontend {
 template<typename T>
 class observer_ptr {
@@ -45,6 +46,12 @@ template<typename T>
 [[nodiscard]]
 observer_ptr<T> make_uniq_observer(T instance) {
   return observer_ptr<T>(std::make_unique<T>(instance).get());
+}
+
+template<typename T>
+[[nodiscard]]
+observer_ptr<T> make_uniq_observer() {
+  return observer_ptr<T>(std::make_unique<T>().get());
 }
 
 }

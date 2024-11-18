@@ -10,6 +10,7 @@
 #include <cact-front-end/cact-operator.h>
 #include <stack>
 #include <string>
+#include <tuple>
 
 // #define LOG
 
@@ -211,10 +212,6 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     completeSemanticCheck("ConstantInitialValue");
     return {};
   }
-
-  // std::vector<ConstEvalResult> getConstIniVal(ConstantInitialValueCtx *ctx) {
-  //   return std::any_cast<std::vector<ConstEvalResult>>(visit(ctx));
-  // }
 
   std::any visitVariableDeclaration(VariableDeclarationCtx *ctx) override {
     startSemanticCheck("VariableDeclaration");

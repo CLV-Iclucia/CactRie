@@ -4,14 +4,18 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_CONSTANT_VARIABLE_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_CONSTANT_VARIABLE_H_
-#include <cact-front-end/mystl/observer_ptr.h>
-#include <cact-front-end/cact-expr.h>
+
+#include <cact-front-end/cact-typedef.h>
+#include <cact-front-end/cact-type.h>
 #include <string>
-#include <memory>
+#include <vector>
 
 namespace cactfrontend {
 
-// a constant or variable in the Cact language
+struct CactConstVar;
+struct CactConstant;
+struct CactVariable;
+struct CactFuncParam;
 
 struct CactConstVar {
   std::string name;
@@ -65,85 +69,12 @@ struct CactVariable : CactConstVar {
   }
 };
 
-
-struct CactConstVarArray {
-  observer_ptr<CactConstVar> symbol;
-  observer_ptr<CactExpr> offset;
-  uint32_t indexing_times; // 0 means not indexed, 1 means indexed once, etc.
-
+// a parameter in the function definition
+struct CactFuncParam : CactConstVar {
   // constructor
-  explicit CactConstVarArray() = default;
-  explicit CactConstVarArray(observer_ptr<CactConstVar> symbol)
-    : symbol(symbol), offset(nullptr), indexing_times(0) {}
-
-  // add an index
-  void addIndex(CactExpr index) {
-    this->indices.emplace_back(index);
-    this->indexing_times++;
-  }
-
-  // get the index
-  [[nodiscard]]
-  CactExpr getIndex(uint32_t index) const {
-    return this->indices[index];
-  }
-
-  // create an expression to calculate the offset
-  void setOffsetByIndices() {
-    assert(this->indexing_times == this->symbol->type.dim());
-
-    // calculate constant offset
-    int32_t const_offset = 0;
-    for (int i = 0; i < this->indexing_times; i++) {
-      // indexing times might be less than the dimension of the array
-      if (this->indexing_times <= i) {
-        break;
-      }
-
-      if (indices[i].isConstant()) {
-        const_offset += std::get<int32_t>(indices[i].getConstantValue()) * this->symbol->type.size(i);
-      }
-    }
-
-    offset = getObserverPtrExpr(CactExpr(const_offset));
-
-    // calculate non-constant offset
-    observer_ptr<CactExpr> expr_tmp_ptr;
-
-    for (int i = 0; i < this->indexing_times; i++) {
-      // indexing times might be less than the dimension of the array
-      if (this->indexing_times <= i) {
-        break;
-      }
-
-      if (!indices[i].isConstant()) {
-        expr_tmp_ptr = getObserverPtrExpr(CactExpr((int32_t)(this->symbol->type.size(i))));
-        expr_tmp_ptr = getObserverPtrBiExpr(
-          CactBinaryExpr(
-            make_observer<BinaryOperator>(new MulOperator),
-            make_observer<CactExpr>(&indices[i]),
-            expr_tmp_ptr));
-        offset = getObserverPtrBiExpr(
-          CactBinaryExpr(
-            make_observer<BinaryOperator>(new AddOperator),
-            offset,
-            expr_tmp_ptr));
-      }
-    }
-  }
-
-private:
-  std::vector<CactExpr> indices;
-
-  [[nodiscard]]
-  static observer_ptr<CactExpr> getObserverPtrExpr(CactExpr expr) {
-    return make_observer<CactExpr>(std::make_unique<CactExpr>(expr).get());
-  };
-
-  [[nodiscard]]
-  static observer_ptr<CactExpr> getObserverPtrBiExpr(CactBinaryExpr expr) {
-    return make_observer<CactExpr>((CactExpr *)(std::make_unique<CactBinaryExpr>(expr).get()));
-  };
+  explicit CactFuncParam() = default;
+  explicit CactFuncParam(const std::string &function_name, const CactBasicType return_type) :
+    CactConstVar(function_name, return_type, true, false) {}
 };
 
 
