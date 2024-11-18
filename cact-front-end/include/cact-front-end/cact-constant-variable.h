@@ -100,8 +100,8 @@ struct CactConstVarArray {
         break;
       }
 
-      if (indices[i].isConst()) {
-        const_offset += std::get<int32_t>(indices[i].getConstValue()) * this->symbol->type.size(i);
+      if (indices[i].isConstant()) {
+        const_offset += std::get<int32_t>(indices[i].getConstantValue()) * this->symbol->type.size(i);
       }
     }
 
@@ -116,7 +116,7 @@ struct CactConstVarArray {
         break;
       }
 
-      if (!indices[i].isConst()) {
+      if (!indices[i].isConstant()) {
         expr_tmp_ptr = getObserverPtrExpr(CactExpr((int32_t)(this->symbol->type.size(i))));
         expr_tmp_ptr = getObserverPtrBiExpr(
           CactBinaryExpr(

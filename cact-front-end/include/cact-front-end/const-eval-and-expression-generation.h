@@ -17,8 +17,8 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
   // ---------------------------------------
 
   // initialization
-  explicit ConstEvalVisitor(std::unique_ptr<SymbolRegistry> registry) {
-    this->registry = make_observer(registry.get());
+  explicit ConstEvalVisitor(observer_ptr<SymbolRegistry> __registry) {
+    this->registry = __registry;
   }
 
   /**
