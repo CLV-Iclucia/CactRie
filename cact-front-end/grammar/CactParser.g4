@@ -35,33 +35,33 @@ dataType: Int32 | Bool | Float | Double;
 constantDefinition
     locals[
         CactBasicType need_type,
-        CactConstant constant,
-        std::vector<std::variant<int32_t, float, double, bool>> pointee,
+        std::shared_ptr<CactConstVar> constant,
+        std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
 
-// initial pointee of a constant can be a constant expression or a list of constant values
+// initial value of a constant can be a constant expression or a list of constant values
 // constant_initial_value -> constant_expression | { constant_initial_value (, constant_initial_value)* }
 constantInitialValue
     locals[
         uint32_t current_dim,
         CactType type,
-        std::vector<std::variant<int32_t, float, double, bool>> pointee,
+        bool flat_flag,
+        std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
 
 // variable_declaration -> basic_type variable_definition (, variable_definition)* ;
 variableDeclaration
     locals[
         CactBasicType need_type,
-        std::vector<std::variant<int32_t, float, double, bool>> pointee,
+        std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: dataType variableDefinition (Comma variableDefinition)* Semicolon;
 
 // variable_definition -> Identifier ([IntegerConstant])* ( = constant_initial_value )?
 variableDefinition
     locals[
-        // observer_ptr<Scope> scope,
         CactBasicType need_type,
-        CactVariable variable,
-        std::vector<std::variant<int32_t, float, double, bool>> pointee,
+        std::shared_ptr<CactConstVar> variable,
+        std::vector<std::variant<int32_t, float, double, bool>> value,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
 
 // functionDefinition contains the function signature and the function body
@@ -80,7 +80,10 @@ functionType: Void | Int32 | Float | Double | Bool;
 functionParameters: functionParameter (Comma functionParameter)*;
 
 // function_formal_param -> basic_type Identifier ([IntegerConstant]?)* ( [IntegerConstant] )*
-functionParameter: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
+functionParameter
+    locals[
+        std::shared_ptr<CactConstVar> parameter,
+    ]: dataType Identifier (LeftBracket IntegerConstant? RightBracket (LeftBracket IntegerConstant RightBracket)*)?;
 
 /* statement & expression */
 // a block is a list of declarations and statements enclosed by braces
@@ -105,7 +108,11 @@ statement
     ]: assignStatement | expressionStatement | block | returnStatement | ifStatement | whileStatement | breakStatement | continueStatement;
 
 // assign_statement -> left_value = expression ;
-assignStatement: leftValue Equal expression Semicolon;
+assignStatement
+    locals[
+        std::shared_ptr<CactExpr> lvalue,
+        std::shared_ptr<CactExpr> expr,
+    ]: leftValue Equal expression Semicolon;
 
 // expression_statement -> expression ;
 expressionStatement: (expression)? Semicolon;
@@ -113,32 +120,37 @@ expressionStatement: (expression)? Semicolon;
 // return_statement -> return expression? ;
 returnStatement
     locals[
-        observer_ptr<CactFunction> ret_function,
+        std::shared_ptr<CactExpr> expr,
+        observer_ptr<CactFunction> ret_to_which_function,
     ]: Return expression? Semicolon;
 
 // if_statement -> if ( condition ) statement (else statement)?
 ifStatement
     locals[
         bool has_return,
+        std::shared_ptr<CactExpr> cond_expr,
     ]: If LeftParenthesis condition RightParenthesis statement (Else statement)?;
 
 // while_statement -> while ( condition ) statement
-whileStatement: While LeftParenthesis condition RightParenthesis statement;
+whileStatement
+    locals[
+        std::shared_ptr<CactExpr> cond_expr,
+    ]: While LeftParenthesis condition RightParenthesis statement;
 
 // break_statement -> break ;
 breakStatement
     locals[
-        observer_ptr<WhileStatementContext> loop_to_break,
+        observer_ptr<WhileStatementContext> to_which_loop,
     ]: Break Semicolon;
 
 // continue_statement -> continue ;
 continueStatement
     locals[
-        observer_ptr<WhileStatementContext> loop_to_continue,
+        observer_ptr<WhileStatementContext> to_which_loop,
     ]: Continue Semicolon;
 
 // addExpression has the lowest precedence, so it's on the top of the parse tree above any other operators
-// expression -> logical_or_expression
+// expression -> addExpression | BooleanConstant
 expression
     locals[
         CactType type,
@@ -151,23 +163,20 @@ constantExpression
         CactBasicType basic_type,
     ]: number | BooleanConstant;
 
-// condition is an expression that evaluates to a boolean pointee
+// condition is an expression that evaluates to a boolean value
 // logicalOrExpression has the lowest precedence
 // condition -> logical_or_expression
-condition
-    locals[
-        std::optional<bool> compile_time_result,
-    ]: logicalOrExpression;
+condition: logicalOrExpression;
 
-// leftValue is the pointee that can be put on the left hand side of an assignment
+// leftValue is the value that can be put on the left hand side of an assignment
 // so they have an address in the memory
 // it can either be a variable or an array element
 // left_value -> Identifier ([expression])*
 leftValue
     locals[
         CactType type,
-        bool modifiable_left_value,
-        observer_ptr<Scope> scope,
+        // bool modifiable_left_value,
+        std::shared_ptr<CactConstVar> symbol,
     ]: Identifier (LeftBracket expression RightBracket)*;
 
 // primaryExpression is the most basic expression
@@ -177,8 +186,6 @@ leftValue
 primaryExpression
     locals[
         CactType type,
-        ExpressionResult expression_result,
-        // observer_ptr<Scope> scope,
     ]: LeftParenthesis expression RightParenthesis | leftValue | number;
 
 // number -> IntegerConstant | FloatConstant | DoubleConstant
@@ -194,8 +201,8 @@ number
 unaryExpression
     locals[
         CactType type,
-        ExpressionResult expression_result,
-        observer_ptr<UnaryOperator> unary_operator,
+        std::shared_ptr<UnaryOperator> unary_operator,
+        observer_ptr<CactFunction> function,
     ]: primaryExpression | (Plus | Minus | ExclamationMark) unaryExpression
                 | Identifier LeftParenthesis (functionArguments)? RightParenthesis;
 
@@ -211,8 +218,7 @@ functionArguments
 mulExpression
     locals[
         CactType type,
-        ExpressionResult expression_result,
-        observer_ptr<BinaryOperator> binary_operator,
+        std::shared_ptr<BinaryOperator> binary_operator,
     ]: unaryExpression | mulExpression (Asterisk | Slash | Percent) unaryExpression;
 
 // addExpression is an expression with addition or subtraction operators
@@ -221,35 +227,30 @@ mulExpression
 addExpression
     locals[
         CactType type,
-        ExpressionResult expression_result,
-        observer_ptr<BinaryOperator> binary_operator,
+        std::shared_ptr<BinaryOperator> binary_operator,
     ]: mulExpression | addExpression (Plus | Minus) mulExpression;
 
 // relational_expression -> add_expression | relational_expression (< | <= | > | >=) add_expression
 relationalExpression
     locals[
         CactBasicType basic_type,
-        ExpressionResult expression_result,
-        observer_ptr<BinaryOperator> binary_operator,
+        std::shared_ptr<BinaryOperator> binary_operator,
     ]: BooleanConstant | addExpression | addExpression (Less | LessEqual | Greater | GreaterEqual) addExpression;
 
 // logical_equal_expression -> relational_expression | logical_equal_expression (== | !=) relational_expression
 logicalEqualExpression
     locals[
-        ExpressionResult expression_result,
-        observer_ptr<BinaryOperator> binary_operator,
+        std::shared_ptr<BinaryOperator> binary_operator,
     ]: relationalExpression | relationalExpression (LogicalEqual | NotEqual) relationalExpression;
 
 // logical_and_expression -> logical_equal_expression | logical_and_expression && logical_equal_expression
 logicalAndExpression
     locals[
-        ExpressionResult expression_result,
-        observer_ptr<BinaryOperator> binary_operator,
+        std::shared_ptr<BinaryOperator> binary_operator,
     ]: logicalEqualExpression | logicalAndExpression LogicalAnd logicalEqualExpression;
 
 // logical_or_expression -> Boolean_constant | logical_and_expression | logical_or_expression || logical_and_expression
 logicalOrExpression
     locals[
-        ExpressionResult expression_result,
-        observer_ptr<BinaryOperator> binary_operator,
+        std::shared_ptr<BinaryOperator> binary_operator,
     ]: logicalAndExpression | logicalOrExpression LogicalOr logicalAndExpression;

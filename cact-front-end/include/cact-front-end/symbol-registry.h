@@ -4,10 +4,10 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_REGISTRY_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_SYMBOL_REGISTRY_H_
-#include <ranges>
 #include <vector>
 #include <map>
 #include <string>
+#include <memory>
 #include <cact-front-end/cact-constant-variable.h>
 #include <cact-front-end/cact-functions.h>
 #include <cact-front-end/mystl/observer_ptr.h>
@@ -20,12 +20,12 @@ struct SymbolRegistry;
 struct Scope {
   std::string scopeName; // the name of a function scope (if any)
   // register a variable in the scope
-  void registerVariable(const CactConstVar &symbol) {
+  void registerVariable(const CactConstVar symbol) {
     // check if variable with same name is already in the scope
     if (this->findVarLocal(symbol.name))
       throw std::runtime_error("conflicting declaration ‘" + symbol.toString() + "’");
 
-    this->variableVec.emplace_back(symbol);
+    this->variableVec.emplace_back(std::make_shared<CactConstVar>(symbol));
     this->variableMap.insert({symbol.name, this->variableVec.size() - 1});
   }
 
@@ -48,7 +48,7 @@ struct Scope {
 
   // get a variable in the scope
   [[nodiscard]]
-  CactConstVar &getVariable(const std::string &name) {
+  std::shared_ptr<CactConstVar> getVariable(const std::string &name) {
     auto scope = make_observer(this);
     // search for the variable in the current scope, its parent, grandparent, and so on, until the global scope
     do {
@@ -62,7 +62,7 @@ struct Scope {
 private:
   observer_ptr<Scope> parent; // the parent scope
   std::map<std::string, int> variableMap; // variable ID map
-  std::vector<CactConstVar> variableVec; // variables
+  std::vector<std::shared_ptr<CactConstVar>> variableVec; // variables
 };
 
 // A symbol registry

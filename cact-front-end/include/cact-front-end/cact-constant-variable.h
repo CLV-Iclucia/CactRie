@@ -4,17 +4,23 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_CONSTANT_VARIABLE_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_CONSTANT_VARIABLE_H_
-#include <cact-front-end/cact-expr.h>
+
+#include <cact-front-end/cact-typedef.h>
+#include <cact-front-end/cact-type.h>
 #include <string>
+#include <vector>
 
 namespace cactfrontend {
 
-// a constant or variable in the Cact language
+struct CactConstVar;
+struct CactConstant;
+struct CactVariable;
+struct CactFuncParam;
 
 struct CactConstVar {
   std::string name;
   CactType type;
-  // ExpressionResult value; // the type value
+  std::vector<ConstEvalResult> init_values; // the initial values
 
   // basic constructor
   explicit CactConstVar() = default;
@@ -31,6 +37,12 @@ struct CactConstVar {
   [[nodiscard]]
   std::string toString() const {
     return (this->is_const ? "const " : "") + this->type.toString() + " " + this->name;
+  }
+
+  // check if the variable is initialized
+  [[nodiscard]]
+  bool isInitialized() const {
+    return this->initialized;
   }
 
 protected:
@@ -56,6 +68,15 @@ struct CactVariable : CactConstVar {
     this->initialized = true;
   }
 };
+
+// a parameter in the function definition
+struct CactFuncParam : CactConstVar {
+  // constructor
+  explicit CactFuncParam() = default;
+  explicit CactFuncParam(const std::string &function_name, const CactBasicType return_type) :
+    CactConstVar(function_name, return_type, true, false) {}
+};
+
 
 }
 

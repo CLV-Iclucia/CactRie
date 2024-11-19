@@ -5,6 +5,7 @@
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H
 #include <cassert>
+#include <memory>
 namespace cactfrontend {
 template<typename T>
 class observer_ptr {
@@ -35,8 +36,11 @@ private:
 };
 
 template<typename T>
+[[nodiscard]]
 observer_ptr<T> make_observer(T *ptr) {
   return observer_ptr<T>(ptr);
 }
+
 }
+
 #endif //CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H

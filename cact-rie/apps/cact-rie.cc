@@ -4,6 +4,7 @@
 #include <cact-front-end/CactParser.h>
 #include <cact-front-end/cact-syntax-error-listener.h>
 #include <cact-front-end/symbol-registration-visitor.h>
+#include <cact-front-end/const-eval-and-expression-generation.h>
 #include <antlr-runtime/ANTLRInputStream.h>
 #include <antlr-runtime/CommonTokenStream.h>
 #include <cxxopts.hpp>
@@ -34,7 +35,7 @@ int main(int argc, char *argv[]) {
     std::cerr << "Usage: " << argv[0] << " <input file>" << std::endl;
     return 1;
   }
-
+  
   std::ifstream stream(argv[1]);
   if (!stream) {
     std::cerr << "Failed to open file: " << argv[1] << std::endl;
@@ -46,7 +47,8 @@ int main(int argc, char *argv[]) {
   std::cout << "Source file content:" << std::endl;
   std::cout << streamCopy.rdbuf() << std::endl;
 
-  antlr4::tree::ParseTree *tree;
+
+  antlr4::tree::ParseTree * tree;
 
   antlr4::ANTLRInputStream input(stream);
   cactfrontend::CactLexer lexer(&input);
@@ -67,8 +69,8 @@ int main(int argc, char *argv[]) {
       std::cerr << "Syntax error(s) found in the source file. Compilation failed." << std::endl;
       return 1;
     }
-    // return 0;
-  } catch (const std::exception &ex) {
+  }
+  catch (const std::exception &ex) {
     std::cerr << "Parsing failed: " << ex.what() << std::endl;
     return 1;
   }
@@ -82,15 +84,32 @@ int main(int argc, char *argv[]) {
   cactfrontend::SymbolRegistrationErrorCheckVisitor visitor;
 
   // check if there is any syntax error
+  cactfrontend::SymbolRegistrationErrorCheckVisitor visitor_pass1;
+
+  // check if there is any semantic error
   try {
-    visitor.visit(tree);
-    std::cout << "Syntax check completed." << std::endl;
-    // return 0;
-  } catch (const std::exception &ex) {
-    std::cerr << "Syntax error(s) found in the source file. Compilation failed." << std::endl;
+    visitor_pass1.visit(tree);
+    std::cout << "Semantic check completed." << std::endl;
+  }
+  catch (const std::exception &ex) {
+    std::cerr << "Semantic error(s) found in the source file. Compilation failed." << std::endl;
     std::cerr << ex.what() << std::endl;
     return 1;
   }
+
+  auto visitor_pass2 = cactfrontend::ConstEvalVisitor(visitor_pass1.registry);
+
+  // evaluate constant expression and generate expression tree in the tree nodes
+  try {
+    visitor_pass2.visit(tree);
+    std::cout << "Expression generation completed." << std::endl;
+  }
+  catch (const std::exception &ex) {
+    std::cerr << "Semantic error(s) found in the source file. Compilation failed." << std::endl;
+    std::cerr << ex.what() << std::endl;
+    return 1;
+  }
+
 
   return 0;
 }

@@ -10,6 +10,7 @@
 #include <cact-front-end/cact-operator.h>
 #include <stack>
 #include <string>
+#include <tuple>
 
 // #define LOG
 
@@ -19,17 +20,17 @@ namespace cactfrontend {
 // A visitor to register symbols
 struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   const std::vector<std::tuple<std::string, CactBasicType, FuncParameters>> built_in_functions = {
-      std::tuple("print_int",    CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Int32)}),
-      std::tuple("print_float",  CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Float)}),
-      std::tuple("print_double", CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Double)}),
-      std::tuple("print_bool",   CactBasicType::Void,   FuncParameters{FuncParameter("x", CactBasicType::Bool)}),
+      std::tuple("print_int",    CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Int32)}),
+      std::tuple("print_float",  CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Float)}),
+      std::tuple("print_double", CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Double)}),
+      std::tuple("print_bool",   CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Bool)}),
       std::tuple("get_int",      CactBasicType::Int32,  FuncParameters()),
       std::tuple("get_float",    CactBasicType::Float,  FuncParameters()),
       std::tuple("get_double",   CactBasicType::Double, FuncParameters()),
   };
 
   // Constructor: initialize the symbol registry
-  SymbolRegistrationErrorCheckVisitor() : registry(std::make_unique<SymbolRegistry>()) {
+  SymbolRegistrationErrorCheckVisitor() : registry(std::make_shared<SymbolRegistry>()) {
     // register built-in functions
     for (const auto &func : built_in_functions) {
       registry->newFunction(std::get<0>(func), std::get<1>(func), std::get<2>(func));
@@ -105,23 +106,24 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("ConstantDefinition");
     // record name and type
     auto name = ctx->Identifier()->getText();
-    ctx->constant = CactConstant(name, ctx->need_type);
+    auto constant = CactConstant(name, ctx->need_type);
 
     for (auto &dim_ctx : ctx->IntegerConstant()) {
       int dim = std::stoi(dim_ctx->getText());
       if (dim <= 0) // dimension should be positive
         throw std::runtime_error("the size of an array must be greater than zero");
-      ctx->constant.type.addDim((uint32_t)dim);
+      constant.type.addDim((uint32_t)dim);
     }
 
     // set some attributes for constantInitialValue, visit it and get the result
     auto const_init_val_ctx = ctx->constantInitialValue();
     const_init_val_ctx->current_dim = 0;
-    const_init_val_ctx->type = ctx->constant.type;
+    const_init_val_ctx->type = constant.type;
     visit(const_init_val_ctx);
 
     // register the constant
-    current_scope->registerVariable(ctx->constant);
+    current_scope->registerVariable(constant);
+    ctx->constant = current_scope->getVariable(name);
 
     completeSemanticCheck("ConstantDefinition");
     return {};
@@ -165,19 +167,19 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
       // check if the initial value could be a flat array
       // it would happen if all children are constant expressions
-      bool flat_flag = false;
+      ctx->flat_flag = false;
       if (current_dim == 0) {
-        flat_flag = true;
+        ctx->flat_flag = true;
         for (auto &child : const_init_val_ctx) {
           if (!child->constantExpression()) {
-            flat_flag = false;
+            ctx->flat_flag = false;
             break;
           }
         }
       }
 
       // case (1): if this initial value is a flat array, reset current_dim of children and visit them
-      if (flat_flag) {
+      if (ctx->flat_flag) {
         for (auto &child : const_init_val_ctx) {
           child->current_dim = type_dim;
         }
@@ -211,10 +213,6 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     return {};
   }
 
-  // std::vector<ConstEvalResult> getConstIniVal(ConstantInitialValueCtx *ctx) {
-  //   return std::any_cast<std::vector<ConstEvalResult>>(visit(ctx));
-  // }
-
   std::any visitVariableDeclaration(VariableDeclarationCtx *ctx) override {
     startSemanticCheck("VariableDeclaration");
     // record the basic type
@@ -234,28 +232,30 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("VariableDefinition");
     // record name and type
     auto name = ctx->Identifier()->getText();
-    ctx->variable = CactVariable(name, ctx->need_type);
+    auto variable = CactVariable(name, ctx->need_type);
 
     for (auto &dim_ctx : ctx->IntegerConstant()) {
       int dim = std::stoi(dim_ctx->getText());
       if (dim <= 0) // dimension should be positive
         throw std::runtime_error("the size of an array must be greater than zero");
-      ctx->variable.type.addDim((uint32_t)dim);
+      variable.type.addDim((uint32_t)dim);
     }
 
     // set some attributes for constantInitialValue, visit it and get the result
     auto const_init_val_ctx = ctx->constantInitialValue();
     if (const_init_val_ctx) {
-      ctx->variable.setInitialized(); // set initialized flag
+      variable.setInitialized(); // set initialized flag
 
       const_init_val_ctx->current_dim = 0;
-      const_init_val_ctx->type = ctx->variable.type;
+      const_init_val_ctx->type = variable.type;
       // auto value = getConstIniVal(const_init_val_ctx);
       visit(const_init_val_ctx);
     }
 
     // register the constant
-    current_scope->registerVariable(ctx->variable);
+    current_scope->registerVariable(variable);
+
+    ctx->variable = current_scope->getVariable(name);
 
     completeSemanticCheck("VariableDefinition");
     return {};
@@ -337,17 +337,17 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     return {};
   }
 
-  // FuncParameter getFuncParam(FunctionParameterCtx *ctx) {
+  // CactFuncParam getFuncParam(FunctionParameterCtx *ctx) {
   //   if (ctx == nullptr)
-  //     return FuncParameter();
-  //   return std::any_cast<FuncParameter>(visit(ctx));
+  //     return CactFuncParam();
+  //   return std::any_cast<CactFuncParam>(visit(ctx));
   // }
 
   std::any visitFunctionParameter(FunctionParameterCtx *ctx) override {
     startSemanticCheck("FunctionParameter");
     // record name and type
     auto name = ctx->Identifier()->getText();
-    auto parameter = FuncParameter(name, getDataType(ctx->dataType()));
+    auto parameter = CactFuncParam(name, getDataType(ctx->dataType()));
 
     // if the first pair of brackets is empty, push 0 to the array_dims
     if (ctx->IntegerConstant().size() < ctx->LeftBracket().size())
@@ -366,6 +366,8 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // register the parameter
     current_scope->registerVariable(parameter);
+
+    ctx->parameter = current_scope->getVariable(name);
 
     completeSemanticCheck("FunctionParameter");
     return {};
@@ -444,7 +446,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // an array cannot become a valid left-hand-side value
     visit(left_value_ctx);
-    if (!left_value_ctx->modifiable_left_value)
+    if (!left_value_ctx->symbol->isModifiableLValue())
       throw std::runtime_error("expression must be a modifiable lvalue");
 
     // Check type compatibility
@@ -480,7 +482,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     }
 
     // record function for return statement
-    ctx->ret_function = current_function;
+    ctx->ret_to_which_function = current_function;
 
     completeSemanticCheck("ReturnStatement");
     return {};
@@ -530,7 +532,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("a break statement may only be used within a loop");
 
     // record the loop to break
-    ctx->loop_to_break = while_loop_stack.top();
+    ctx->to_which_loop = while_loop_stack.top();
 
     completeSemanticCheck("BreakStatement");
     return {};
@@ -544,7 +546,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       throw std::runtime_error("a continue statement may only be used within a loop");
 
     // record the loop to continue
-    ctx->loop_to_continue = while_loop_stack.top();
+    ctx->to_which_loop = while_loop_stack.top();
 
     completeSemanticCheck("ContinueStatement");
     return {};
@@ -600,8 +602,8 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("LeftValue");
     // record the name of lvalue, and find corresponding variable
     auto name = ctx->Identifier()->getText();
-    auto var = current_scope->getVariable(name); // if not declared, throw an error in variable()
-    ctx->type = var.type;
+    ctx->symbol = current_scope->getVariable(name); // if not declared, throw an error in variable()
+    ctx->type = ctx->symbol->type;
 
     // visit children and check dimensions
     int count = 0;
@@ -610,14 +612,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       if (!expr->type.validArrayIndex())
         throw std::runtime_error("expression must have integral type");
       count++; // count for dimensions
-      if (count > var.type.dim())
+      if (count > ctx->symbol->type.dim())
         throw std::runtime_error("expression must have pointer-to-object type but it has type \"" +
-                                 type2String(var.type.basic_type) + "\"");
+                                 type2String(ctx->symbol->type.basic_type) + "\"");
     }
 
     // update the type of left value by indexing times, erasing the first count dimensions
     ctx->type.array_dims.erase(ctx->type.array_dims.begin(), ctx->type.array_dims.begin() + count);
-    ctx->modifiable_left_value = var.isModifiableLValue();
 
     completeSemanticCheck("LeftValue");
     return {};
@@ -681,7 +682,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     if (primary) {
       visit(primary);
       ctx->type = primary->type;
-      ctx->unary_operator = make_observer<UnaryOperator>(new UnaryNopOperator);
+      ctx->unary_operator = std::make_shared<UnaryNopOperator>();
     }
     // -> unaryOp unaryExpression
     else if (unary) {
@@ -692,39 +693,39 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
         throw std::runtime_error("expression must have arithmetic type");
 
       if (ctx->Plus())
-        ctx->unary_operator = make_observer<UnaryOperator>(new PlusOperator);
+        ctx->unary_operator = std::make_shared<PlusOperator>();
       else if (ctx->Minus())
-        ctx->unary_operator = make_observer<UnaryOperator>(new NegOperator);
+        ctx->unary_operator = std::make_shared<NegOperator>();
       else if (ctx->ExclamationMark())
-        ctx->unary_operator = make_observer<UnaryOperator>(new LogicalNotOperator);
+        ctx->unary_operator = std::make_shared<LogicalNotOperator>();
       else
         assert(0);
 
-      ctx->unary_operator->validOperandTypeCheck(unary->type);
+      ctx->unary_operator->isValidOperand(unary->type);
       ctx->type = unary->type;
     }
     // -> function call
     else if (ctx->Identifier()) {
       // find the function
       auto name = ctx->Identifier()->getText();
-      auto func = this->registry->getFunction(name);
-      if (!func)
+      ctx->function = this->registry->getFunction(name);
+      if (!ctx->function)
         throw std::runtime_error("function identifier \"" + name + "\" is undefined");
 
       // check parameters inside functionArguments
       if (!ctx->functionArguments()) { // no arguments
-        if (func->parameters.size() != 0)
+        if (ctx->function->parameters.size() != 0)
           throw std::runtime_error("too few arguments in function call");
       }
       else {
-        if (func->parameters.size() != 0)
-          ctx->functionArguments()->need_params = func->parameters;
+        if (ctx->function->parameters.size() != 0)
+          ctx->functionArguments()->need_params = ctx->function->parameters;
         else
           ctx->functionArguments()->need_params = {};
         visit(ctx->functionArguments());
       }
 
-      ctx->type = CactType(func->return_type);
+      ctx->type = CactType(ctx->function->return_type);
     }
     else {
       assert(0);
@@ -773,7 +774,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> unaryExpression
     if (unary && !mul) {
       visit(unary);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
       ctx->type = unary->type;
     }
     // -> mulExpression binary-OP unaryExpression
@@ -782,11 +783,11 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(unary);
 
       if (ctx->Asterisk())
-        ctx->binary_operator = make_observer<BinaryOperator>(new MulOperator);
+        ctx->binary_operator = std::make_shared<MulOperator>();
       else if (ctx->Slash())
-        ctx->binary_operator = make_observer<BinaryOperator>(new DivOperator);
+        ctx->binary_operator = std::make_shared<DivOperator>();
       else if (ctx->Percent())
-        ctx->binary_operator = make_observer<BinaryOperator>(new ModOperator);
+        ctx->binary_operator = std::make_shared<ModOperator>();
       else
         assert(0);
 
@@ -810,7 +811,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> mulExpression
     if (mul && !add) {
       visit(mul);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
       ctx->type = mul->type;
     }
     // -> addExpression binary-OP mulExpression
@@ -819,9 +820,9 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(mul);
 
       if (ctx->Plus())
-        ctx->binary_operator = make_observer<BinaryOperator>(new AddOperator);
+        ctx->binary_operator = std::make_shared<AddOperator>();
       else if (ctx->Minus())
-        ctx->binary_operator = make_observer<BinaryOperator>(new SubOperator);
+        ctx->binary_operator = std::make_shared<SubOperator>();
       else
         assert(0);
 
@@ -843,13 +844,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // -> BooleanExpression
     if (add.size() == 0) {
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
       ctx->basic_type = CactBasicType::Bool;
     }
     // -> addExpression
     else if (add.size() == 1) {
       visit(add[0]);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
       ctx->basic_type = add[0]->type.basic_type;
     }
     // -> addExpression binary-OP addExpression
@@ -858,13 +859,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(add[1]);
 
       if (ctx->Less())
-        ctx->binary_operator = make_observer<BinaryOperator>(new LessOperator);
+        ctx->binary_operator = std::make_shared<LessOperator>();
       else if (ctx->LessEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new LessEqualOperator);
+        ctx->binary_operator = std::make_shared<LessEqualOperator>();
       else if (ctx->Greater())
-        ctx->binary_operator = make_observer<BinaryOperator>(new GreaterOperator);
+        ctx->binary_operator = std::make_shared<GreaterOperator>();
       else if (ctx->GreaterEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new GreaterEqualOperator);
+        ctx->binary_operator = std::make_shared<GreaterEqualOperator>();
       else
         assert(0);
 
@@ -887,7 +888,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> relationalExpression
     if (relational.size() == 1) {
       visit(relational[0]);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
       if (relational[0]->basic_type != CactBasicType::Bool)
         throw std::runtime_error("expression must have boolean type");
     }
@@ -897,9 +898,9 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(relational[1]);
 
       if (ctx->LogicalEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new EqualOperator);
+        ctx->binary_operator = std::make_shared<EqualOperator>();
       else if (ctx->NotEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new NotEqualOperator);
+        ctx->binary_operator = std::make_shared<NotEqualOperator>();
       else
         assert(0);
 
@@ -923,14 +924,14 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> logicalEqualExpression
     if (logical_equal_ctx && !logical_and_ctx) {
       visit(logical_equal_ctx);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
     }
     // -> logicalAndExpression && logicalEqualExpression
     else if (logical_equal_ctx && logical_and_ctx) {
       visit(logical_and_ctx);
       visit(logical_equal_ctx);
 
-      ctx->binary_operator = make_observer<BinaryOperator>(new LogicalAndOperator);
+      ctx->binary_operator = std::make_shared<LogicalAndOperator>();
     }
     else {
       assert(0);
@@ -949,14 +950,14 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> logicalAndExpression
     if (logical_and_ctx && !logical_or_ctx) {
       visit(logical_and_ctx);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator);
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
     }
     // -> logicalOrExpression || logicalAndExpression
     else if (logical_and_ctx && logical_or_ctx) {
       visit(logical_or_ctx);
       visit(logical_and_ctx);
 
-      ctx->binary_operator = make_observer<BinaryOperator>(new LogicalOrOperator);
+      ctx->binary_operator = std::make_shared<LogicalOrOperator>();
     }
     else {
       assert(0);
@@ -966,8 +967,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     return {};
   }
 
-private:
-  std::unique_ptr<SymbolRegistry> registry;
+  std::shared_ptr<SymbolRegistry> registry;
   observer_ptr<Scope> current_scope;
   std::stack<observer_ptr<WhileStatementCtx>> while_loop_stack;
   observer_ptr<CactFunction> current_function;

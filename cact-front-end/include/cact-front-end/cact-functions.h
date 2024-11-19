@@ -6,21 +6,14 @@
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_FUNCTIONS_H_
 #include <cact-front-end/cact-type.h>
 #include <cact-front-end/cact-constant-variable.h>
-// #include <functional>
 #include <string>
+#include <vector>
 
 namespace cactfrontend {
 
-// a parameter in the function definition
-struct FuncParameter : CactConstVar {
-  // constructor
-  explicit FuncParameter() = default;
-  explicit FuncParameter(const std::string &function_name, const CactBasicType return_type) :
-    CactConstVar(function_name, return_type, true, false) {}
-};
 
 // a list of function parameters
-typedef std::vector<FuncParameter> FuncParameters;
+typedef std::vector<CactFuncParam> FuncParameters;
 
 // a function in the Cact language
 struct CactFunction {
@@ -35,7 +28,7 @@ struct CactFunction {
   }
 
   // add a new parameter
-  void addParameter(FuncParameter new_parameter) {
+  void addParameter(CactFuncParam new_parameter) {
     // check if parameter name is used
     for (auto &p : this->parameters)
       if (p.name == new_parameter.name)
