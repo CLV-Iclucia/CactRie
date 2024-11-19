@@ -13,13 +13,15 @@ struct GlobalVariableDetails {
   bool isConstant{};
 };
 
-struct GlobalVariable : Value {
+// GlobalVariable is actually a pointer to a global object
+struct GlobalVariable : Constant {
 
   [[nodiscard]] bool isConstant() const {
-    return m_isConstant;
+    return constVal.has_value();
   }
+
 private:
-  bool m_isConstant{};
+  std::optional<Ref<Constant>> constVal;
 };
 
 }

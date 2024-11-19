@@ -28,6 +28,7 @@ std::any ModuleBuilder::visitArrayType(LLVMParser::ArrayTypeContext *ctx) {
   auto elementType = elementTypeNode->typeRef;
   if (elementType == Type::voidType(*llvmContext)) {
     // ERROR
+    throw std::runtime_error("Array type cannot have void type as its element type");
   }
   ctx->typeRef = llvmContext->arrayType(elementType, size);
   return {};
@@ -55,6 +56,7 @@ Ref<Value> ModuleBuilder::resolveValueUsage(LLVMParser::ValueContext *ctx) {
     return resolveVariableUsageAfterVisit(var);
   }
 }
+
 Ref<Value> ModuleBuilder::resolveVariableUsageAfterVisit(LLVMParser::VariableContext *ctx) const {
   if (ctx->isGlobal)
     return module->globalVariable(ctx->name);
@@ -264,19 +266,57 @@ std::any ModuleBuilder::visitGepInstruction(LLVMParser::GepInstructionContext *c
       {
           .name = gepValName,
           .type = pointerType,
-          .val = var,
+          .pointer = var,
           .indices = std::move(indicesRef)
       });
   return {};
 }
+
 BuildResult ModuleBuilder::build(LLVMParser::ModuleContext *ctx) {
   llvmContext = std::make_unique<LLVMContext>();
   module = std::make_unique<Module>();
   visitModule(ctx);
   return {std::move(module), std::move(llvmContext)};
 }
-std::any ModuleBuilder::visitInitializer(LLVMParser::InitializerContext *ctx) {
 
+std::any ModuleBuilder::visitInitializer(LLVMParser::InitializerContext *ctx) {
+  if (ctx->IntegerLiteral()) {
+    visitScalarType(ctx->scalarType());
+    auto type = ctx->scalarType()->typeRef;
+    if (!type->isInteger())
+      throw std::runtime_error("Invalid type for integer literal");
+    ctx->constant = llvmContext->constant(type, ctx->IntegerLiteral()->getText());
+  }
+  if (ctx->FloatLiteral()) {
+    visitScalarType(ctx->scalarType());
+    auto type = ctx->scalarType()->typeRef;
+    if (!type->isInteger())
+      throw std::runtime_error("Invalid type for integer literal");
+    ctx->constant = llvmContext->constant(type, ctx->FloatLiteral()->getText());
+  }
+  if (ctx->constantArray()) {
+    auto constArrayCtx = ctx->constantArray();
+    visitConstantArray(constArrayCtx);
+    ctx->constant = constArrayCtx->constArray;
+  }
+  throw std::runtime_error("Initializer must be either an integer literal, a float literal or a constant array");
+}
+
+std::any ModuleBuilder::visitConstantArray(LLVMParser::ConstantArrayContext *ctx) {
+  auto arrayTypeCtx = ctx->arrayType();
+  visitArrayType(arrayTypeCtx);
+  auto arrayType = arrayTypeCtx->typeRef;
+  for (auto init : ctx->initializer()) {
+    visitInitializer(init);
+    if (init->constant->type() != arrayType->elementType())
+      throw std::runtime_error("Initializer type does not match the array element type");
+  }
+  return {};
+}
+
+std::any ModuleBuilder::visitScalarType(LLVMParser::ScalarTypeContext *ctx) {
+  ctx->typeRef = llvmContext->stobt(ctx->getText());
+  return {};
 }
 
 }

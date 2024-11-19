@@ -7,9 +7,22 @@
 #include <stack>
 #include <chiisai-llvm/ref.h>
 #include <chiisai-llvm/value.h>
-#include <chiisai-llvm/address.h>
 #include <chiisai-llvm/constant-scalar.h>
 namespace llvm {
+
+struct RuntimeVar {
+  CRef<Value> value;
+  std::optional<size_t> frameIndex{};
+
+  [[nodiscard]] bool isGlobal() const {
+    return !frameIndex.has_value();
+  }
+};
+
+struct SpanAddress {
+  RuntimeVar begin{};
+  size_t index{};
+};
 
 struct Result {
   using Integer = std::variant<int32_t, int64_t>;
@@ -24,17 +37,17 @@ struct Result {
   }
 
   explicit Result(bool value) : value(value) {}
-  explicit Result(Address value) : value(value) {}
+  explicit Result(SpanAddress value) : value(value) {}
 
-  std::variant<bool, int32_t, int64_t, float, double, Address> value;
+  std::variant<bool, int32_t, int64_t, float, double, SpanAddress> value;
   [[nodiscard]] bool isBool() const {
     return std::holds_alternative<bool>(value);
   }
   [[nodiscard]] bool isPointer() const {
-    return std::holds_alternative<Address>(value);
+    return std::holds_alternative<SpanAddress>(value);
   }
   [[nodiscard]] bool canOperateWith(const Result &other) const {
-    return !isBool() && value.index() == other.value.index() && !std::holds_alternative<Address>(value);
+    return !isBool() && !isPointer() && value.index() == other.value.index();
   }
   [[nodiscard]] Integer toInteger() const {
     if (std::holds_alternative<int32_t>(value))
@@ -50,13 +63,21 @@ struct Result {
       return std::get<double>(value);
     throw std::runtime_error("Cannot convert to floating point");
   }
-  [[nodiscard]] Address toPointer() const {
-    return std::get<Address>(value);
+  template<typename T> requires std::is_integral_v<T>
+  [[nodiscard]] T as() const {
+    if (std::holds_alternative<int32_t>(value))
+      return std::get<int32_t>(value);
+    if (std::holds_alternative<int64_t>(value))
+      return std::get<int64_t>(value);
+    throw std::runtime_error("Cannot convert to integer");
   }
 };
 
 struct CallFrame {
   std::unordered_map<std::string, Result> regs;
+  // memory maps pointer name to the value it points to
+  // it is for alloca and load/store instructions
+  std::unordered_map<std::string, std::vector<Result>> memory;
 };
 
 struct Module;
@@ -71,15 +92,29 @@ struct Executor {
   }
   void pushFrame() {
     returnFlag = false;
-    callFrames.emplace();
+    callFrames.emplace_back();
   }
   void popFrame() {
-    callFrames.pop();
+    callFrames.pop_back();
     returnFlag = false;
   }
   Result &reg(CRef<Value> value);
   Result &reg(const std::string &name) {
-    return callFrames.top().regs.at(name);
+    return callFrames.back().regs.at(name);
+  }
+  Result load(SpanAddress span) const {
+    CRef<std::unordered_map<std::string, std::vector<Result>>> mem{};
+    if (span.begin.isGlobal())
+      mem = makeCRef(globalMemory);
+    else mem = makeCRef(callFrames.at(span.begin.frameIndex.value()).memory);
+    return mem->at(span.begin.value->name()).at(span.index);
+  }
+  void store(SpanAddress span, Result result) {
+    Ref<std::unordered_map<std::string, std::vector<Result>>> mem{};
+    if (span.begin.isGlobal())
+      mem = makeRef(globalMemory);
+    else mem = makeRef(callFrames.at(span.begin.frameIndex.value()).memory);
+    mem->at(span.begin.value->name()).at(span.index) = result;
   }
   Module &module;
   LLVMContext &ctx;
@@ -88,8 +123,8 @@ struct Executor {
   std::optional<Result> returnReg{};
   bool returnFlag{};
 private:
-  std::stack<CallFrame> callFrames{};
-  std::unordered_map<std::string, Result> globalResults;
+  std::vector<CallFrame> callFrames{};
+  std::unordered_map<std::string, std::vector<Result>> globalMemory;
 };
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_EXECUTOR_H

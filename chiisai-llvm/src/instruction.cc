@@ -82,15 +82,19 @@ void BinaryInst::accept(Executor &executor) {
 }
 
 void StoreInst::accept(Executor &executor) {
-  auto src = executor.reg(pointer);
-  if (src.isPointer())
+  auto dest = executor.reg(pointer);
+  if (dest.isPointer())
     throw std::runtime_error("Store instruction cannot store a pointer");
-
-  auto srcPointer = std::get<Address>(src.value);
+  auto span = std::get<SpanAddress>(dest.value);
+  executor.store(span, executor.reg(value));
 }
 
 void LoadInst::accept(Executor &executor) {
-  executor.reg(name()) = executor.reg(pointer);
+  auto src = executor.reg(pointer);
+  if (!src.isPointer())
+    throw std::runtime_error("Load instruction must have a pointer as its source");
+  auto span = std::get<SpanAddress>(src.value);
+  executor.reg(name()) = executor.load(span);
 }
 
 void CallInst::accept(Executor &executor) {
@@ -188,6 +192,16 @@ void BrInst::accept(Executor &executor) {
   } else
     executor.nxtBasicBlock = std::get<CRef<BasicBlock>>(dest)->name();
   executor.prvBasicBlock = basicBlock.name();
+}
+
+void GepInst::accept(llvm::Executor &executor) {
+  if (!pointer.type()->isPointer())
+    throw std::runtime_error("GEP instruction must have a pointer as its source");
+
+  if (!index)
+    executor.reg(name()) = SpanAddress::fromValue(makeRef(pointer));
+  else
+    executor.reg(name()) = SpanAddress::fromArray(makeCRef(pointer), executor.reg(index->name()).as<size_t>());
 }
 
 void RetInst::accept(Executor &executor) {

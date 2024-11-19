@@ -12,8 +12,8 @@ struct Module;
 struct LLVMContext;
 
 struct BuildResult {
-  std::unique_ptr<Module> module;
-  std::unique_ptr<LLVMContext> llvmContext;
+  std::unique_ptr<Module> module{};
+  std::unique_ptr<LLVMContext> llvmContext{};
 };
 
 struct ModuleBuilder : public LLVMParserVisitor {
@@ -31,11 +31,9 @@ struct ModuleBuilder : public LLVMParserVisitor {
   std::any visitModule(LLVMParser::ModuleContext *ctx) override;
 
   std::any visitGlobalDeclaration(LLVMParser::GlobalDeclarationContext *ctx) override {
-    visitType(ctx->type());
-    auto varType = ctx->type()->typeRef;
-    std::string name = variableName(ctx->globalIdentifier());
-    return {};
   }
+
+  std::any visitScalarType(LLVMParser::ScalarTypeContext *ctx) override;
 
   std::any visitFunctionDefinition(LLVMParser::FunctionDefinitionContext *ctx) override;
 
@@ -121,6 +119,8 @@ struct ModuleBuilder : public LLVMParserVisitor {
   std::any visitValue(LLVMParser::ValueContext *ctx) override;
 
   std::any visitGepInstruction(LLVMParser::GepInstructionContext *ctx) override;
+
+  std::any visitConstantArray(LLVMParser::ConstantArrayContext *ctx) override;
 
   void addExternalFunctions() {
 

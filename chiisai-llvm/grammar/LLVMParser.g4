@@ -6,12 +6,16 @@ parser grammar LLVMParser;
     #include <chiisai-llvm/ref.h>
     #include <chiisai-llvm/type.h>
     #include <chiisai-llvm/basic-block.h>
+    #include <chiisai-llvm/constants.h>
 }
 options {
     tokenVocab=LLVMLexer;
 }
 
-scalarType : I1 | I32 | I64 | F32 | F64;
+scalarType
+    locals [
+    CRef<Type> typeRef,
+]: I1 | I32 | I64 | F32 | F64;
 
 basicType
     locals[
@@ -30,7 +34,7 @@ pointerType
 
 arrayType
     locals[
-    CRef<Type> typeRef,
+    CRef<ArrayType> typeRef,
 ]: LeftBracket IntegerLiteral Cross type RightBracket;
 
 globalIdentifier: At NamedIdentifier;
@@ -51,7 +55,7 @@ literal : IntegerLiteral | FloatLiteral;
 
 number: scalarType literal;
 
-value
+pointee
     locals[
     bool isGlobal,
     bool isConstant,
@@ -61,13 +65,15 @@ module: (globalDeclaration | functionDefinition)*;
 
 initializer
 locals[
-]: IntegerLiteral | FloatLiteral | constantArray;
+    CRef<Constant> constant,
+]: scalarType IntegerLiteral | scalarType FloatLiteral | constantArray;
 
 constantArray
 locals[
-]: LeftBracket type IntegerLiteral Cross value (Comma value)* RightBracket;
+    CRef<ConstantArray> constArray,
+]: arrayType LeftBracket initializer (Comma initializer)* RightBracket;
 
-globalDeclaration : Global type globalIdentifier (Comma Align initializer)?;
+globalDeclaration : globalIdentifier Equals (Global | Constant) initializer (Comma Align IntegerLiteral)?;
 
 functionDefinition
  locals [
@@ -113,7 +119,7 @@ instruction
     | gepInstruction
     ;
 
-returnInstruction: Ret type value?;
+returnInstruction: Ret type pointee?;
 
 branchInstruction: Br I1 variable Comma Label localVariable Comma Label localVariable
                 | Br Label localVariable;
@@ -121,7 +127,7 @@ branchInstruction: Br I1 variable Comma Label localVariable Comma Label localVar
 callInstruction: (unamedIdentifier Equals)? Call type globalIdentifier functionArguments;
 
 arithmeticInstruction
-    : unamedIdentifier Equals binaryOperation type value Comma value
+    : unamedIdentifier Equals binaryOperation type pointee Comma pointee
     ;
 
 loadInstruction
@@ -129,19 +135,19 @@ loadInstruction
     ;
 
 storeInstruction
-    : Store type value Comma type Asterisk variable (Comma Align IntegerLiteral)?
+    : Store type pointee Comma type Asterisk variable (Comma Align IntegerLiteral)?
     ;
 
 phiInstruction
     : Phi type phiValue (Comma phiValue)*
     ;
 
-phiValue: LeftBrace unamedIdentifier Comma value RightBrace;
+phiValue: LeftBrace unamedIdentifier Comma pointee RightBrace;
 
 comparisonOperation : Icmp | Fcmp;
 
 comparisonInstruction
-    : unamedIdentifier Equals comparisonOperation comparisonPredicate type value Comma value
+    : unamedIdentifier Equals comparisonOperation comparisonPredicate type pointee Comma pointee
     ;
 
 allocaInstruction
@@ -162,5 +168,5 @@ terminatorInstruction
     ;
 
 gepInstruction
-    : unamedIdentifier Equals GetElementPtr type Comma type Asterisk variable Comma value (Comma value)*
+    : unamedIdentifier Equals GetElementPtr type Comma type Asterisk variable Comma pointee (Comma pointee)*
     ;

@@ -6,21 +6,8 @@
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MYSTL_ZIP_H
 #include <tuple>
 #include <vector>
+#include <iterator>
 namespace llvm::mystl {
-template<typename T>
-concept Iterator = requires(T it) {
-  requires std::is_convertible_v<std::decay_t<decltype(*it)>, typename T::value_type>;
-  typename T::reference;
-  { ++it } -> std::convertible_to<T>;
-  { it != it } -> std::convertible_to<bool>;
-  { it == it } -> std::convertible_to<bool>;
-};
-
-template<typename T>
-concept Iterable = requires(T t) {
-  { std::begin(t) } -> Iterator;
-  { std::end(t) } -> Iterator;
-};
 
 template <typename T>
 using select_access_t = std::conditional_t<
@@ -29,7 +16,7 @@ typename T::value_type,
 typename T::reference
 >;
 
-template<Iterator... Iters>
+template<std::forward_iterator... Iters>
 class zip_iterator {
   std::tuple<Iters...> m_iters;
 public:
@@ -56,13 +43,13 @@ template<typename T>
 using select_iterator_t = std::conditional_t<std::is_const_v<std::remove_reference_t<T>>,
 typename std::decay_t<T>::const_iterator,
 typename std::decay_t<T>::iterator>;
-template<Iterable... Iterables>
+
+template<std::ranges::forward_range... Ranges>
 struct zip_range {
 public:
-  using iterator_t = zip_iterator<select_iterator_t<Iterables>...>;
-  std::tuple<Iterables ...> iterables;
-  template<Iterable... Args>
-  explicit zip_range(Args &&... iterables) : iterables(std::forward<Args>(iterables)...) {}
+  using iterator_t = zip_iterator<select_iterator_t<Ranges>...>;
+  std::tuple<Ranges...> iterables;
+  explicit zip_range(Ranges &&... ranges) : iterables(std::forward<Ranges>(iterables)...) {}
   iterator_t begin() {
     return std::apply([](auto &&... args) {
       return (iterator_t(std::begin(args)...)); }, iterables);
@@ -72,9 +59,10 @@ public:
       return (iterator_t(std::end(args)...)); }, iterables);
   }
 };
-template<Iterable... Iterables>
-auto zip(Iterables &&... iterables) {
-  return zip_range<Iterables...>(std::forward<Iterables>(iterables)...);
+
+template<std::ranges::forward_range... Ranges>
+auto zip(Ranges &&... ranges) {
+  return zip_range<Ranges...>(std::forward<Ranges>(ranges)...);
 }
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MYSTL_ZIP_H

@@ -7,6 +7,7 @@ options {
 }
 
 Global: 'global';
+Constant: 'constant';
 External: 'external';
 Define: 'define';
 Align: 'align';

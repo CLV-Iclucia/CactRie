@@ -173,7 +173,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
       if (!result.has_value()) {
         // compile error
       }
-      ctx->expressionResult = result.value();
+      ctx->expressionResult = result.pointee();
     }
     if (unary_expr) {
       ctx->expressionResult = visitUnaryExpression(unary_expr);
@@ -200,7 +200,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
       if (!result.has_value()) {
         // compile error
       }
-      ctx->expressionResult = result.value();
+      ctx->expressionResult = result.pointee();
     }
     return ctx->expressionResult;
   }
@@ -219,7 +219,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
       if (!result.has_value()) {
         // compile error
       }
-      ctx->expressionResult = result.value();
+      ctx->expressionResult = result.pointee();
     }
     return ctx->expressionResult;
   }
@@ -244,7 +244,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
       if (!result.has_value()) {
         // compile error
       }
-      ctx->expressionResult = result.value();
+      ctx->expressionResult = result.pointee();
     }
     return ctx->expressionResult;
   }
@@ -264,7 +264,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
       if (!result.has_value()) {
 
       }
-      ctx->expressionResult = result.value();
+      ctx->expressionResult = result.pointee();
     }
     return {};
   }
@@ -284,7 +284,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
       if (!result.has_value()) {
         // compile error
       }
-      ctx->expressionResult = result.value();
+      ctx->expressionResult = result.pointee();
     }
     return {};
   }
@@ -314,7 +314,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     if (!condition->compileTimeResult.has_value()) {
       // compile error
     } else {
-      bool cond = condition->compileTimeResult.value();
+      bool cond = condition->compileTimeResult.pointee();
       auto then = ctx->statement(0);
       if (cond) {
         then->reachable = std::make_optional<bool>(true);

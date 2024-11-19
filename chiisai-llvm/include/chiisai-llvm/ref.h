@@ -16,13 +16,18 @@ template <typename T>
 using CRef = mystl::observer_ptr<const T>;
 
 template <typename T>
-Ref<T> ref(T& t) {
+Ref<T> makeRef(T& t) {
   return mystl::make_observer(&t);
 }
 
 template <typename T>
-CRef<T> cref(const T& t) {
+CRef<T> makeCRef(const T& t) {
   return mystl::make_observer(&t);
+}
+
+template <typename Derived, typename Base>
+bool isa(Ref<Base> base) {
+  return mystl::dyn_cast_ref<Derived, Base>(base) != nullptr;
 }
 
 template <typename Ptr>

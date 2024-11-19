@@ -24,7 +24,7 @@ struct IRGenerator : public CactParserVisitor {
                  << "'\nsource_filename = \""
                  << name
                  << ".cact\"\n";
-    // visit all children
+
     for (auto &child : ctx->children)
       visit(child);
     return {};
@@ -49,16 +49,6 @@ struct IRGenerator : public CactParserVisitor {
       visitAddExpression(ctx->addExpression());
     visitMulExpression(ctx->mulExpression());
 
-    // irCodeStream << "%"
-    //              << temporaryName(ctx->tmpResultID)
-    //              << " = "
-    //              << typeString(toLLVMType(ctx->expressionResult.type()))
-    //              << " "
-    //              << resultString(ctx->addExpression())
-    //              << " "
-    //              << resultString(ctx->mulExpression())
-    //              << "\n"
-    //              ;
     return {};
   }
 
@@ -84,7 +74,7 @@ private:
 
   // get the temporary name
   std::string temporaryName(int id) {
-    return "_tmp_" + std::to_string(id);
+    return std::to_string(id);
   }
 
   // get the operator type string

@@ -79,19 +79,19 @@ Now we list some grammar variables related to the symbol table.
   <!-- - `value = constantInitialValue.value`, -->
   - register variables by `regVar(type, name, dim, initialized=true)`,
 - `constantInitialValue: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace`:
-  - **simply get `value` from `constantExpression`:**
+  - **simply get `pointee` from `constantExpression`:**
     - if **`currentDim == dim.size()`**,
     - check whether the type of `constantExpression` matches `needType`,
-  - **complex case: check initial value for array constant:**
+  - **complex case: check initial pointee for array constant:**
     - `constantInitialValue.(dim,currentDim,needType) = (dim,currentDim+1,needType)`,
     - consider 3 cases of the number of `constantInitialValue` in the brace:
       - it is ***no more than*** `dim[currentDim]`,
       - it is ***no more than*** `\Pi_i dim[i]` and **`currentDim==0`**,
-        - now the initial value is a flattened array,
+        - now the initial pointee is a flattened array,
         - **modify** attributes for children, `constantInitialValue.currentDim = dim.size()`,
     - (use zero to fulfill the rest of the array in the future)
     - visit all the children,
-    - record `value` from `constantInitialValue`s,
+    - record `pointee` from `constantInitialValue`s,
 - `variableDeclaration: dataType variableDefinition (Comma variableDefinition)* Semicolon`:
   <!-- - `type=dataType.type`, -->
   - `variableDefinition.type = visit(dataType)`,
@@ -149,7 +149,7 @@ Now we list some grammar variables related to the symbol table.
 - `leftValue: Identifier (LeftBracket expression RightBracket)*`:
   - record the `type` from `Identifier`,
   - check whether brackets match the dimension of the variable (no overflow is guaranteed by programmer),
-  - check whether this left value is valid to be assigned,
+  - check whether this left pointee is valid to be assigned,
 - `primaryExpression: LeftParenthesis expression RightParenthesis | leftValue | number`:
   - the `type` is the same as the `expression` or `leftValue` or `number`,
 - `number: IntegerConstant | FloatConstant | DoubleConstant`:

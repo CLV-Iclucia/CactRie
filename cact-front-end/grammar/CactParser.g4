@@ -36,23 +36,23 @@ constantDefinition
     locals[
         CactBasicType need_type,
         CactConstant constant,
-        std::vector<std::variant<int32_t, float, double, bool>> value,
+        std::vector<std::variant<int32_t, float, double, bool>> pointee,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* Equal constantInitialValue;
 
-// initial value of a constant can be a constant expression or a list of constant values
+// initial pointee of a constant can be a constant expression or a list of constant values
 // constant_initial_value -> constant_expression | { constant_initial_value (, constant_initial_value)* }
 constantInitialValue
     locals[
         uint32_t current_dim,
         CactType type,
-        std::vector<std::variant<int32_t, float, double, bool>> value,
+        std::vector<std::variant<int32_t, float, double, bool>> pointee,
     ]: constantExpression | LeftBrace (constantInitialValue (Comma constantInitialValue)*)? RightBrace;
 
 // variable_declaration -> basic_type variable_definition (, variable_definition)* ;
 variableDeclaration
     locals[
         CactBasicType need_type,
-        std::vector<std::variant<int32_t, float, double, bool>> value,
+        std::vector<std::variant<int32_t, float, double, bool>> pointee,
     ]: dataType variableDefinition (Comma variableDefinition)* Semicolon;
 
 // variable_definition -> Identifier ([IntegerConstant])* ( = constant_initial_value )?
@@ -61,7 +61,7 @@ variableDefinition
         // observer_ptr<Scope> scope,
         CactBasicType need_type,
         CactVariable variable,
-        std::vector<std::variant<int32_t, float, double, bool>> value,
+        std::vector<std::variant<int32_t, float, double, bool>> pointee,
     ]: Identifier (LeftBracket IntegerConstant RightBracket)* (Equal constantInitialValue)?;
 
 // functionDefinition contains the function signature and the function body
@@ -151,7 +151,7 @@ constantExpression
         CactBasicType basic_type,
     ]: number | BooleanConstant;
 
-// condition is an expression that evaluates to a boolean value
+// condition is an expression that evaluates to a boolean pointee
 // logicalOrExpression has the lowest precedence
 // condition -> logical_or_expression
 condition
@@ -159,7 +159,7 @@ condition
         std::optional<bool> compile_time_result,
     ]: logicalOrExpression;
 
-// leftValue is the value that can be put on the left hand side of an assignment
+// leftValue is the pointee that can be put on the left hand side of an assignment
 // so they have an address in the memory
 // it can either be a variable or an array element
 // left_value -> Identifier ([expression])*

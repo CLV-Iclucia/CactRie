@@ -65,9 +65,17 @@ struct Type : RAII {
     return false;
   }
 
+  [[nodiscard]] bool isConvertibleToPointer() const {
+    // in CACT, functions cannot be seen as function pointers
+    // so we don't need to check for function type
+    return isPointer() || isArray() /*|| isFunction()*/;
+  }
+
   [[nodiscard]] bool isFunction() const {
     return type == TypeEnum::Function;
   }
+
+  virtual ~Type() = default;
 
   TypeEnum type{TypeEnum::Void};
   std::vector<CRef<Type>> containedTypes{};

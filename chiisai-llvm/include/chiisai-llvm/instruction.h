@@ -8,8 +8,10 @@
 #include <chiisai-llvm/user.h>
 #include <chiisai-llvm/basic-block.h>
 #include <chiisai-llvm/predicate.h>
-#include <chiisai-llvm/mystl/hash.h>
 #include <chiisai-llvm/pointer-type.h>
+#include <chiisai-llvm/mystl/hash.h>
+#include <chiisai-llvm/integer-type.h>
+
 namespace llvm {
 
 struct Instruction : User {
@@ -173,6 +175,7 @@ struct StoreInst : Instruction {
     assert(pointer->type()->isPointer());
   }
   Ref<Value> pointer;
+  Ref<Value> value;
   void accept(Executor &executor) override;
   [[nodiscard]] uint64_t hash() const override {
     uint64_t hashCode{};
@@ -257,7 +260,7 @@ struct CmpInstDetails {
   const LLVMContext &ctx;
   const std::string &name;
   Ref<Value> lhs, rhs;
-  Predicate predicate;
+  Predicate predicate{};
 };
 
 struct CmpInst final : Instruction {
@@ -325,11 +328,12 @@ private:
   std::variant<Conditional, CRef<BasicBlock>> dest;
 };
 
+// we only support at most one index for now
 struct GepInstDetails {
   const std::string &name;
   CRef<Type> type;
-  Ref<Value> pointer;
-  std::vector<Ref<Value>> &&indices;
+  Value& pointer;
+  Ref<Value> index{};
 };
 
 struct GepInst : Instruction {
@@ -338,18 +342,19 @@ struct GepInst : Instruction {
                                                                                         details.type,
                                                                                         basicBlock),
                                                                             pointer(details.pointer),
-                                                                            indices(details.indices) {}
+                                                                            index(details.index) {}
   [[nodiscard]] uint64_t hash() const override {
     uint64_t hashCode{};
     mystl::hash_combine(hashCode, name());
     mystl::hash_combine(hashCode, opCode);
-    mystl::hash_combine(hashCode, pointer->name());
-    for (auto &index : indices)
+    mystl::hash_combine(hashCode, pointer.name());
+    if (index)
       mystl::hash_combine(hashCode, index->name());
     return hashCode;
   }
-  std::vector<Ref<Value>> indices{};
-  Ref<Value> pointer;
+  void accept(Executor &executor) override;
+  Ref<Value> index{};
+  Value& pointer;
 };
 
 struct RetInst : Instruction {

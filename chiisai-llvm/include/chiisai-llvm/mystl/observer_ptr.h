@@ -14,10 +14,12 @@ class observer_ptr {
 public:
   observer_ptr() = default;
 
-  explicit observer_ptr(T *ptr) : m_ptr(ptr) {}
-  observer_ptr(const observer_ptr &) = default;
-  template<typename U, typename = std::enable_if_t<std::is_convertible_v<U *, T *>>>
-  observer_ptr(const observer_ptr<U> &other) : m_ptr(other.get()) {}
+  template <typename U>
+  requires std::is_convertible_v<U*, T*>
+  observer_ptr(U *ptr) : m_ptr(ptr) {}
+  template<typename U>
+  requires std::is_convertible_v<U *, T *>
+  observer_ptr(observer_ptr<U> other) : m_ptr(other.get()) {}
   observer_ptr(std::nullptr_t) : m_ptr(nullptr) {}
   T *operator->() const {
     assert(m_ptr);
@@ -31,18 +33,18 @@ public:
 
   T *get() const { return m_ptr; }
 
-  explicit operator bool() const { return m_ptr; }
-  observer_ptr &operator=(const observer_ptr &other) = default;
-  template<typename U, typename = std::enable_if_t<std::is_convertible_v<U *, T *>>>
-  observer_ptr &operator=(const observer_ptr<U> &other) {
+  operator bool() const { return m_ptr; }
+  template<typename U>
+  requires std::is_convertible_v<U *, T *>
+  observer_ptr &operator=(observer_ptr<U> other) {
     m_ptr = other.get();
     return *this;
   }
-  bool operator==(observer_ptr<const T> other) const {
+  bool operator==(observer_ptr other) const {
     return m_ptr == other.m_ptr;
   }
-  bool operator!=(observer_ptr<const T> other) const {
-    return m_ptr != other.m_ptr;
+  bool operator!() const {
+    return !m_ptr;
   }
 private:
   template<typename U>
@@ -53,7 +55,7 @@ private:
 
 template<typename T>
 struct hash<observer_ptr<T>> {
-  size_t operator()(const observer_ptr<T> &ptr) const {
+  size_t operator()(observer_ptr<T> ptr) const {
     return std::hash<T *>{}(ptr.get());
   }
 };
