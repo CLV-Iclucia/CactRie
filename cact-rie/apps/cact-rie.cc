@@ -76,8 +76,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  cactfrontend::ConstEvalVisitor visitor_pass2 = cactfrontend::ConstEvalVisitor(
-    make_observer(visitor_pass1.registry.get()));
+  auto visitor_pass2 = cactfrontend::ConstEvalVisitor(visitor_pass1.registry);
 
   // evaluate constant expression and generate expression tree in the tree nodes
   try {

@@ -199,7 +199,7 @@ statement: assignStatement | expressionStatement | block | returnStatement | ifS
          | whileStatement | breakStatement | continueStatement; // visit any statement
 assignStatement // [NEW] {CactExpr lvalue, expr}
 expressionStatement // {DO NOTHING}
-returnStatement // [NEW] {CactExpr expr}
+returnStatement // [NEW] {CactExpr expr}  IMPORTANT: "MIGHT BE nullptr"
 ifStatement: If LeftParenthesis condition RightParenthesis statement (Else statement)?; // visit "statement"s. [NEW] {CactExpr cond_expr}
 whileStatement: While LeftParenthesis condition RightParenthesis statement; // visit "statement". [NEW] {CactExpr cond_expr}
 breakStatement // [NEW] {observer_ptr<WhileStatementContext> to_which_loop}

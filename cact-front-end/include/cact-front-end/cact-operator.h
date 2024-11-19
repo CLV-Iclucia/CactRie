@@ -59,7 +59,6 @@ struct Operator {
   }
 
   // check if the operand is valid
-  [[nodiscard]]
   bool isValidOperand(const CactType type) const {
     if (!type.validOperandType()){
       throw std::runtime_error("expression must be a scalar");

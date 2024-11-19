@@ -25,7 +25,7 @@ struct Scope {
     if (this->findVarLocal(symbol.name))
       throw std::runtime_error("conflicting declaration ‘" + symbol.toString() + "’");
 
-    this->variableVec.emplace_back(std::make_unique<CactConstVar>(symbol));
+    this->variableVec.emplace_back(std::make_shared<CactConstVar>(symbol));
     this->variableMap.insert({symbol.name, this->variableVec.size() - 1});
   }
 
@@ -48,12 +48,12 @@ struct Scope {
 
   // get a variable in the scope
   [[nodiscard]]
-  observer_ptr<CactConstVar> getVariable(const std::string &name) {
+  std::shared_ptr<CactConstVar> getVariable(const std::string &name) {
     auto scope = make_observer(this);
     // search for the variable in the current scope, its parent, grandparent, and so on, until the global scope
     do {
       if (scope->findVarLocal(name))
-        return make_observer<CactConstVar>(scope->variableVec[scope->variableMap.at(name)].get());
+        return scope->variableVec[scope->variableMap.at(name)];
       scope = scope->parent;
     } while (scope.get());
     throw std::runtime_error("Variable not found: " + name);
@@ -62,7 +62,7 @@ struct Scope {
 private:
   observer_ptr<Scope> parent; // the parent scope
   std::map<std::string, int> variableMap; // variable ID map
-  std::vector<std::unique_ptr<CactConstVar>> variableVec; // variables
+  std::vector<std::shared_ptr<CactConstVar>> variableVec; // variables
 };
 
 // A symbol registry

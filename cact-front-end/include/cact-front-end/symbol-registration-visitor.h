@@ -30,7 +30,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   };
 
   // Constructor: initialize the symbol registry
-  SymbolRegistrationErrorCheckVisitor() : registry(std::make_unique<SymbolRegistry>()) {
+  SymbolRegistrationErrorCheckVisitor() : registry(std::make_shared<SymbolRegistry>()) {
     // register built-in functions
     for (const auto &func : built_in_functions) {
       registry->newFunction(std::get<0>(func), std::get<1>(func), std::get<2>(func));
@@ -682,7 +682,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     if (primary) {
       visit(primary);
       ctx->type = primary->type;
-      ctx->unary_operator = make_observer<UnaryOperator>(new UnaryNopOperator());
+      ctx->unary_operator = std::make_shared<UnaryNopOperator>();
     }
     // -> unaryOp unaryExpression
     else if (unary) {
@@ -693,11 +693,11 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
         throw std::runtime_error("expression must have arithmetic type");
 
       if (ctx->Plus())
-        ctx->unary_operator = make_observer<UnaryOperator>(new PlusOperator());
+        ctx->unary_operator = std::make_shared<PlusOperator>();
       else if (ctx->Minus())
-        ctx->unary_operator = make_observer<UnaryOperator>(new NegOperator());
+        ctx->unary_operator = std::make_shared<NegOperator>();
       else if (ctx->ExclamationMark())
-        ctx->unary_operator = make_observer<UnaryOperator>(new LogicalNotOperator());
+        ctx->unary_operator = std::make_shared<LogicalNotOperator>();
       else
         assert(0);
 
@@ -774,7 +774,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> unaryExpression
     if (unary && !mul) {
       visit(unary);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
       ctx->type = unary->type;
     }
     // -> mulExpression binary-OP unaryExpression
@@ -783,11 +783,11 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(unary);
 
       if (ctx->Asterisk())
-        ctx->binary_operator = make_observer<BinaryOperator>(new MulOperator());
+        ctx->binary_operator = std::make_shared<MulOperator>();
       else if (ctx->Slash())
-        ctx->binary_operator = make_observer<BinaryOperator>(new DivOperator());
+        ctx->binary_operator = std::make_shared<DivOperator>();
       else if (ctx->Percent())
-        ctx->binary_operator = make_observer<BinaryOperator>(new ModOperator());
+        ctx->binary_operator = std::make_shared<ModOperator>();
       else
         assert(0);
 
@@ -811,7 +811,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> mulExpression
     if (mul && !add) {
       visit(mul);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
       ctx->type = mul->type;
     }
     // -> addExpression binary-OP mulExpression
@@ -820,9 +820,9 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(mul);
 
       if (ctx->Plus())
-        ctx->binary_operator = make_observer<BinaryOperator>(new AddOperator());
+        ctx->binary_operator = std::make_shared<AddOperator>();
       else if (ctx->Minus())
-        ctx->binary_operator = make_observer<BinaryOperator>(new SubOperator());
+        ctx->binary_operator = std::make_shared<SubOperator>();
       else
         assert(0);
 
@@ -844,13 +844,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // -> BooleanExpression
     if (add.size() == 0) {
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
       ctx->basic_type = CactBasicType::Bool;
     }
     // -> addExpression
     else if (add.size() == 1) {
       visit(add[0]);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
       ctx->basic_type = add[0]->type.basic_type;
     }
     // -> addExpression binary-OP addExpression
@@ -859,13 +859,13 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(add[1]);
 
       if (ctx->Less())
-        ctx->binary_operator = make_observer<BinaryOperator>(new LessOperator());
+        ctx->binary_operator = std::make_shared<LessOperator>();
       else if (ctx->LessEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new LessEqualOperator());
+        ctx->binary_operator = std::make_shared<LessEqualOperator>();
       else if (ctx->Greater())
-        ctx->binary_operator = make_observer<BinaryOperator>(new GreaterOperator());
+        ctx->binary_operator = std::make_shared<GreaterOperator>();
       else if (ctx->GreaterEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new GreaterEqualOperator());
+        ctx->binary_operator = std::make_shared<GreaterEqualOperator>();
       else
         assert(0);
 
@@ -888,7 +888,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> relationalExpression
     if (relational.size() == 1) {
       visit(relational[0]);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
       if (relational[0]->basic_type != CactBasicType::Bool)
         throw std::runtime_error("expression must have boolean type");
     }
@@ -898,9 +898,9 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
       visit(relational[1]);
 
       if (ctx->LogicalEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new EqualOperator());
+        ctx->binary_operator = std::make_shared<EqualOperator>();
       else if (ctx->NotEqual())
-        ctx->binary_operator = make_observer<BinaryOperator>(new NotEqualOperator());
+        ctx->binary_operator = std::make_shared<NotEqualOperator>();
       else
         assert(0);
 
@@ -924,14 +924,14 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> logicalEqualExpression
     if (logical_equal_ctx && !logical_and_ctx) {
       visit(logical_equal_ctx);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
     }
     // -> logicalAndExpression && logicalEqualExpression
     else if (logical_equal_ctx && logical_and_ctx) {
       visit(logical_and_ctx);
       visit(logical_equal_ctx);
 
-      ctx->binary_operator = make_observer<BinaryOperator>(new LogicalAndOperator());
+      ctx->binary_operator = std::make_shared<LogicalAndOperator>();
     }
     else {
       assert(0);
@@ -950,14 +950,14 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     // -> logicalAndExpression
     if (logical_and_ctx && !logical_or_ctx) {
       visit(logical_and_ctx);
-      ctx->binary_operator = make_observer<BinaryOperator>(new BinaryNopOperator());
+      ctx->binary_operator = std::make_shared<BinaryNopOperator>();
     }
     // -> logicalOrExpression || logicalAndExpression
     else if (logical_and_ctx && logical_or_ctx) {
       visit(logical_or_ctx);
       visit(logical_and_ctx);
 
-      ctx->binary_operator = make_observer<BinaryOperator>(new LogicalOrOperator());
+      ctx->binary_operator = std::make_shared<LogicalOrOperator>();
     }
     else {
       assert(0);
@@ -967,7 +967,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     return {};
   }
 
-  std::unique_ptr<SymbolRegistry> registry;
+  std::shared_ptr<SymbolRegistry> registry;
   observer_ptr<Scope> current_scope;
   std::stack<observer_ptr<WhileStatementCtx>> while_loop_stack;
   observer_ptr<CactFunction> current_function;

@@ -2,7 +2,6 @@
 // Created by creeper on 8/15/24.
 //
 
-#include <cact-front-end/mystl/observer_ptr.h>
 #include <cact-front-end/cact-typedef.h>
 #include <cact-front-end/cact-type.h>
 #include <cact-front-end/cact-expr.h>
@@ -46,17 +45,6 @@ inline std::optional<bool> conditionEvalResult(const ConstEvalResult value) {
   if (constEvalResultBasicType(value) == CactBasicType::Bool)
     return std::make_optional<bool>(std::get<bool>(value));
   else return std::nullopt;
-}
-
-
-[[nodiscard]]
-observer_ptr<CactExpr> getObserverPtrExpr(CactExpr expr) {
-    return make_observer<CactExpr>(std::make_unique<CactExpr>(expr).get());
-}
-
-[[nodiscard]]
-observer_ptr<CactExpr> getObserverPtrBiExpr(CactBinaryExpr expr) {
-    return make_observer<CactExpr>((CactExpr *)(std::make_unique<CactBinaryExpr>(expr).get()));
 }
 
 }

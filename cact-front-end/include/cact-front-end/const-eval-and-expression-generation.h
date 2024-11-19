@@ -4,7 +4,6 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_TYPE_CHECK_AND_CONST_EVAL_H_
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_TYPE_CHECK_AND_CONST_EVAL_H_
-#include <cact-front-end/mystl/observer_ptr.h>
 #include <cact-front-end/CactParserBaseVisitor.h>
 #include <cact-front-end/cact-parser-context.h>
 #include <cact-front-end/cact-expr.h>
@@ -18,7 +17,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
   // ---------------------------------------
 
   // initialization
-  explicit ConstEvalVisitor(observer_ptr<SymbolRegistry> __registry) {
+  explicit ConstEvalVisitor(std::shared_ptr<SymbolRegistry> __registry) {
     this->registry = __registry;
   }
 
@@ -107,10 +106,10 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
   // visitting a functionParameter does not need to be overrided
   
 
-  // cast std::any to observer_ptr<CactExpr>
+  // cast std::any to std::shared_ptr<CactExpr>
   [[nodiscard]]
-  observer_ptr<CactExpr> std_any_to_expr_ptr(std::any any) {
-    return std::any_cast<observer_ptr<CactExpr>>(any);
+  std::shared_ptr<CactExpr> std_any_to_expr_ptr(std::any any) {
+    return std::any_cast<std::shared_ptr<CactExpr>>(any);
   }
 
 
@@ -124,27 +123,30 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
    */
   // visit an assign statement
   std::any visitAssignStatement(AssignStatementCtx *ctx) override {
-    ctx->expr = *std_any_to_expr_ptr(visit(ctx->expression()));
-    ctx->lvalue = *std_any_to_expr_ptr(visit(ctx->leftValue()));
+    ctx->expr = std_any_to_expr_ptr(visit(ctx->expression()));
+    ctx->lvalue = std::make_shared<CactExpr>(std::make_shared<CactConstVarArray>(getLeftValue(ctx->leftValue())));
 
     return {};
   }
 
   // visit a return statement
   std::any visitReturnStatement(ReturnStatementCtx *ctx) override {
-    ctx->expr = *std_any_to_expr_ptr(visit(ctx->expression()));
+    if (ctx->expression())
+      ctx->expr = std_any_to_expr_ptr(visit(ctx->expression()));
+    else
+      ctx->expr = nullptr;
     return {};
   }  
 
   // visit a if statement
   std::any visitIfStatement(IfStatementCtx *ctx) override {
-    ctx->cond_expr = *std_any_to_expr_ptr(visit(ctx->condition()));
+    ctx->cond_expr = std_any_to_expr_ptr(visit(ctx->condition()));
     return {};
   }
 
   // visit a while statement
   std::any visitWhileStatement(WhileStatementCtx *ctx) override {
-    ctx->cond_expr = *std_any_to_expr_ptr(visit(ctx->condition()));
+    ctx->cond_expr = std_any_to_expr_ptr(visit(ctx->condition()));
     return {};
   }
 
@@ -168,11 +170,11 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     if (ctx->addExpression()) {
       return std_any_to_expr_ptr(visit(ctx->addExpression()));
     }
-    else {
-      assert(ctx->BooleanConstant());
+    else if (ctx->BooleanConstant()) {
       bool boolean_value = (ctx->BooleanConstant()->getText().compare("true") == 0) ? true : false;
-      return make_uniq_observer<CactExpr>(CactExpr(boolean_value));
+      return std::make_shared<CactExpr>(boolean_value);
     }
+    assert(0);
   }
 
   // visit a constant expression, and return a ConstEvalResult
@@ -180,11 +182,11 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     if (ctx->number()) {
       return getNumber(ctx->number());
     }
-    else {
-      assert(ctx->BooleanConstant());
+    else if (ctx->BooleanConstant()) {
       bool boolean_value = (ctx->BooleanConstant()->getText().compare("true") == 0) ? true : false;
       return ConstEvalResult(boolean_value);
     }
+    assert(0);
   }
 
   // get the constant value of a constant expression
@@ -203,7 +205,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
 
     // "symbol" is an array and is indexed in this context
     for (auto &expr : ctx->expression()) {
-      symbol.addIndex(std::any_cast<observer_ptr<CactExpr>>(visit(expr)));
+      symbol.addIndex(std_any_to_expr_ptr(visit(expr)));
     }
 
     symbol.setOffsetByIndices();
@@ -223,11 +225,10 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
       return std_any_to_expr_ptr(visit(ctx->expression()));
     }
     else if (ctx->leftValue()) {
-      return make_uniq_observer<CactExpr>(CactExpr(
-        make_uniq_observer<CactConstVarArray>(getLeftValue(ctx->leftValue()))));
+      return std::make_shared<CactExpr>(std::make_shared<CactConstVarArray>(getLeftValue(ctx->leftValue())));
     }
-    else if (ctx->leftValue()) {
-      return make_uniq_observer<CactExpr>(CactExpr(getNumber(ctx->number())));
+    else if (ctx->number()) {
+      return std::make_shared<CactExpr>(getNumber(ctx->number()));
     }
     assert(0);
   }
@@ -256,17 +257,17 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     }
     else if (ctx->unaryExpression()) {
       auto expr = std_any_to_expr_ptr(visit(ctx->unaryExpression()));
-      return make_uniq_observer<CactExpr>(CactUnaryExpr(ctx->unary_operator, expr));
+      return std::make_shared<CactExpr>(CactUnaryExpr(ctx->unary_operator, expr));
     }
     else if (ctx->Identifier()) {
-      // gather all arguments into a vector of observer_ptr
-      std::vector<observer_ptr<CactExpr>> args;
+      // gather all arguments into a vector of shared pointers
+      std::vector<std::shared_ptr<CactExpr>> args;
       if (ctx->functionArguments()) {
         for (auto &arg : ctx->functionArguments()->expression()) {
           args.emplace_back(std_any_to_expr_ptr(visit(arg)));
         }
       }
-      return make_uniq_observer<CactExpr>(CactExpr(ctx->function, args));
+      return std::make_shared<CactExpr>(ctx->function, args);
     }
     assert(0);
   }
@@ -297,7 +298,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     else if (mul_expr && unary_expr) {
       auto lhs = std_any_to_expr_ptr(visit(mul_expr));
       auto rhs = std_any_to_expr_ptr(visit(unary_expr));
-      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
+      return std::make_shared<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
     }
     assert(0);
   }
@@ -313,7 +314,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     else if (add_expr_ctx && mul_expr_ctx) {
       auto lhs = std_any_to_expr_ptr(visit(add_expr_ctx));
       auto rhs = std_any_to_expr_ptr(visit(mul_expr_ctx));
-      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
+      return std::make_shared<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
     }
     assert(0);
   }
@@ -332,7 +333,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     else if (add_expr_ctxs.size() == 2) {
       auto lhs = std_any_to_expr_ptr(visit(add_expr_ctxs.at(0)));
       auto rhs = std_any_to_expr_ptr(visit(add_expr_ctxs.at(1)));
-      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
+      return std::make_shared<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
     }
     assert(0);
   }
@@ -347,7 +348,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     else if (rel_expr_ctxs.size() == 2) {
       auto lhs = std_any_to_expr_ptr(visit(rel_expr_ctxs.at(0)));
       auto rhs = std_any_to_expr_ptr(visit(rel_expr_ctxs.at(1)));
-      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
+      return std::make_shared<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
     }
     assert(0);
   }
@@ -363,7 +364,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     else if (logical_eq_expr && logical_and_expr) {
       auto lhs = std_any_to_expr_ptr(visit(logical_and_expr));
       auto rhs = std_any_to_expr_ptr(visit(logical_eq_expr));
-      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
+      return std::make_shared<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
     }
 
     assert(0);
@@ -380,7 +381,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     else if (logical_and_expr && logical_or_expr) {
       auto lhs = std_any_to_expr_ptr(visit(logical_or_expr));
       auto rhs = std_any_to_expr_ptr(visit(logical_and_expr));
-      return make_uniq_observer<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
+      return std::make_shared<CactExpr>(CactBinaryExpr(ctx->binary_operator, lhs, rhs));
     }
 
     assert(0);
@@ -388,7 +389,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
 
   // ---------------------------------------
 
-  observer_ptr<SymbolRegistry> registry;
+  std::shared_ptr<SymbolRegistry> registry;
 
 };
 
