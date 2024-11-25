@@ -26,13 +26,13 @@ struct OperandTypeChecker {
   const std::set<CactBasicType> valid_oprand_types;
 
   // constructor
-  explicit OperandTypeChecker(const std::string __error_message, const std::set<CactBasicType> __valid_oprand_types) :
-    error_message(__error_message), valid_oprand_types(__valid_oprand_types) {}
+  explicit OperandTypeChecker(const std::string _error_message, const std::set<CactBasicType> _valid_oprand_types) :
+      error_message(_error_message), valid_oprand_types(_valid_oprand_types) {}
 
   // type check
   [[nodiscard]]
-  bool inValidSet(const CactBasicType __basic_type) const {
-    return valid_oprand_types.contains(__basic_type);
+  bool inValidSet(const CactBasicType _basic_type) const {
+    return valid_oprand_types.contains(_basic_type);
   }
 };
 
@@ -42,11 +42,9 @@ extern const OperandTypeChecker operand_checker_int_float;
 extern const OperandTypeChecker operand_checker_int;
 extern const OperandTypeChecker operand_checker_bool;
 
-
-
 struct Operator {
-  Operator(CactOperatorType __op_type, const OperandTypeChecker *__op_checker)
-    : operator_type(__op_type), operand_type_checker(__op_checker) {}
+  Operator(CactOperatorType _op_type, const OperandTypeChecker *_op_checker)
+      : operator_type(_op_type), operand_type_checker(_op_checker) {}
 
   // check if the operand's basic type is valid
   [[nodiscard]]
@@ -60,7 +58,7 @@ struct Operator {
 
   // check if the operand is valid
   bool isValidOperand(const CactType type) const {
-    if (!type.validOperandType()){
+    if (!type.validOperandType()) {
       throw std::runtime_error("expression must be a scalar");
       return false;
     }
@@ -79,7 +77,6 @@ struct Operator {
     return operand_type_checker->valid_oprand_types;
   }
 
-
 private:
   CactOperatorType operator_type;
   const OperandTypeChecker *operand_type_checker;
@@ -87,7 +84,8 @@ private:
 
 struct UnaryOperator : Operator {
   explicit UnaryOperator() : Operator(CactOperatorType::UnaryNop, &operand_checker_all) {}
-  explicit UnaryOperator(CactOperatorType __op_type, const OperandTypeChecker *__op_checker) : Operator(__op_type, __op_checker) {}
+  explicit UnaryOperator(CactOperatorType __op_type, const OperandTypeChecker *__op_checker) : Operator(__op_type,
+                                                                                                        __op_checker) {}
 
   [[nodiscard]]
   virtual std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult x) const = 0;
@@ -99,11 +97,11 @@ struct UnaryNopOperator : UnaryOperator {
   [[nodiscard]]
   std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult x) const override {
     switch (constEvalResultBasicType(x)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(x)};
-      case CactBasicType::Float:  return {std::get<float>(x)};
-      case CactBasicType::Double: return {std::get<double>(x)};
-      case CactBasicType::Bool:   return {std::get<bool>(x)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(x)};
+    case CactBasicType::Float: return {std::get<float>(x)};
+    case CactBasicType::Double: return {std::get<double>(x)};
+    case CactBasicType::Bool: return {std::get<bool>(x)};
+    default: return std::nullopt;
     }
   }
 };
@@ -114,10 +112,10 @@ struct PlusOperator : UnaryOperator {
   [[nodiscard]]
   std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult x) const override {
     switch (constEvalResultBasicType(x)) {
-      case CactBasicType::Int32:  return {+std::get<int32_t>(x)};
-      case CactBasicType::Float:  return {+std::get<float>(x)};
-      case CactBasicType::Double: return {+std::get<double>(x)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {+std::get<int32_t>(x)};
+    case CactBasicType::Float: return {+std::get<float>(x)};
+    case CactBasicType::Double: return {+std::get<double>(x)};
+    default: return std::nullopt;
     }
   }
 };
@@ -128,10 +126,10 @@ struct NegOperator : UnaryOperator {
   [[nodiscard]]
   std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult x) const override {
     switch (constEvalResultBasicType(x)) {
-      case CactBasicType::Int32:  return {-std::get<int32_t>(x)};
-      case CactBasicType::Float:  return {-std::get<float>(x)};
-      case CactBasicType::Double: return {-std::get<double>(x)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {-std::get<int32_t>(x)};
+    case CactBasicType::Float: return {-std::get<float>(x)};
+    case CactBasicType::Double: return {-std::get<double>(x)};
+    default: return std::nullopt;
     }
   }
 };
@@ -142,14 +140,15 @@ struct LogicalNotOperator : UnaryOperator {
   [[nodiscard]]
   std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult x) const override {
     switch (constEvalResultBasicType(x)) {
-      case CactBasicType::Bool:   return {!std::get<bool>(x)};
-      default:                    return std::nullopt;
+    case CactBasicType::Bool: return {!std::get<bool>(x)};
+    default: return std::nullopt;
     }
   }
 };
 
 struct BinaryOperator : Operator {
-  BinaryOperator(CactOperatorType __op_type, const OperandTypeChecker *__op_checker) : Operator(__op_type, __op_checker) {}
+  BinaryOperator(CactOperatorType _op_type, const OperandTypeChecker *_op_checker) : Operator(_op_type,
+                                                                                                _op_checker) {}
 
   [[nodiscard]]
   virtual std::optional<ConstEvalResult> binaryConstCheck(const ConstEvalResult lhs,
@@ -184,11 +183,11 @@ struct BinaryNopOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs)};
-      case CactBasicType::Float:  return {std::get<float>(lhs)};
-      case CactBasicType::Double: return {std::get<double>(lhs)};
-      case CactBasicType::Bool:   return {std::get<bool>(lhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs)};
+    case CactBasicType::Float: return {std::get<float>(lhs)};
+    case CactBasicType::Double: return {std::get<double>(lhs)};
+    case CactBasicType::Bool: return {std::get<bool>(lhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -201,10 +200,10 @@ struct AddOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs) + std::get<int32_t>(rhs)};
-      case CactBasicType::Float:  return {std::get<float>(lhs)   + std::get<float>(rhs)};
-      case CactBasicType::Double: return {std::get<double>(lhs)  + std::get<double>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs) + std::get<int32_t>(rhs)};
+    case CactBasicType::Float: return {std::get<float>(lhs) + std::get<float>(rhs)};
+    case CactBasicType::Double: return {std::get<double>(lhs) + std::get<double>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -217,10 +216,10 @@ struct SubOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs) - std::get<int32_t>(rhs)};
-      case CactBasicType::Float:  return {std::get<float>(lhs)   - std::get<float>(rhs)};
-      case CactBasicType::Double: return {std::get<double>(lhs)  - std::get<double>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs) - std::get<int32_t>(rhs)};
+    case CactBasicType::Float: return {std::get<float>(lhs) - std::get<float>(rhs)};
+    case CactBasicType::Double: return {std::get<double>(lhs) - std::get<double>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -233,10 +232,10 @@ struct MulOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs) * std::get<int32_t>(rhs)};
-      case CactBasicType::Float:  return {std::get<float>(lhs)   * std::get<float>(rhs)};
-      case CactBasicType::Double: return {std::get<double>(lhs)  * std::get<double>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs) * std::get<int32_t>(rhs)};
+    case CactBasicType::Float: return {std::get<float>(lhs) * std::get<float>(rhs)};
+    case CactBasicType::Double: return {std::get<double>(lhs) * std::get<double>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -249,10 +248,10 @@ struct DivOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs) / std::get<int32_t>(rhs)};
-      case CactBasicType::Float:  return {std::get<float>(lhs)   / std::get<float>(rhs)};
-      case CactBasicType::Double: return {std::get<double>(lhs)  / std::get<double>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs) / std::get<int32_t>(rhs)};
+    case CactBasicType::Float: return {std::get<float>(lhs) / std::get<float>(rhs)};
+    case CactBasicType::Double: return {std::get<double>(lhs) / std::get<double>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -265,8 +264,8 @@ struct ModOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs) % std::get<int32_t>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs) % std::get<int32_t>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -279,8 +278,8 @@ struct LogicalOrOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Bool:   return {std::get<bool>(lhs) || std::get<bool>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Bool: return {std::get<bool>(lhs) || std::get<bool>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -293,12 +292,11 @@ struct LogicalAndOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Bool:   return {std::get<bool>(lhs) && std::get<bool>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Bool: return {std::get<bool>(lhs) && std::get<bool>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
-
 
 struct LessOperator : BinaryOperator {
   LessOperator() : BinaryOperator(CactOperatorType::Less, &operand_checker_int_float) {}
@@ -308,10 +306,10 @@ struct LessOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs) < std::get<int32_t>(rhs)};
-      case CactBasicType::Float:  return {std::get<float>(lhs)   < std::get<float>(rhs)};
-      case CactBasicType::Double: return {std::get<double>(lhs)  < std::get<double>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs) < std::get<int32_t>(rhs)};
+    case CactBasicType::Float: return {std::get<float>(lhs) < std::get<float>(rhs)};
+    case CactBasicType::Double: return {std::get<double>(lhs) < std::get<double>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -324,10 +322,10 @@ struct GreaterOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs) > std::get<int32_t>(rhs)};
-      case CactBasicType::Float:  return {std::get<float>(lhs)   > std::get<float>(rhs)};
-      case CactBasicType::Double: return {std::get<double>(lhs)  > std::get<double>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs) > std::get<int32_t>(rhs)};
+    case CactBasicType::Float: return {std::get<float>(lhs) > std::get<float>(rhs)};
+    case CactBasicType::Double: return {std::get<double>(lhs) > std::get<double>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -340,10 +338,10 @@ struct LessEqualOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs) <= std::get<int32_t>(rhs)};
-      case CactBasicType::Float:  return {std::get<float>(lhs)   <= std::get<float>(rhs)};
-      case CactBasicType::Double: return {std::get<double>(lhs)  <= std::get<double>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs) <= std::get<int32_t>(rhs)};
+    case CactBasicType::Float: return {std::get<float>(lhs) <= std::get<float>(rhs)};
+    case CactBasicType::Double: return {std::get<double>(lhs) <= std::get<double>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -356,10 +354,10 @@ struct GreaterEqualOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs) >= std::get<int32_t>(rhs)};
-      case CactBasicType::Float:  return {std::get<float>(lhs)   >= std::get<float>(rhs)};
-      case CactBasicType::Double: return {std::get<double>(lhs)  >= std::get<double>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs) >= std::get<int32_t>(rhs)};
+    case CactBasicType::Float: return {std::get<float>(lhs) >= std::get<float>(rhs)};
+    case CactBasicType::Double: return {std::get<double>(lhs) >= std::get<double>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -372,11 +370,11 @@ struct EqualOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs) == std::get<int32_t>(rhs)};
-      case CactBasicType::Float:  return {std::get<float>(lhs)   == std::get<float>(rhs)};
-      case CactBasicType::Double: return {std::get<double>(lhs)  == std::get<double>(rhs)};
-      case CactBasicType::Bool:   return {std::get<bool>(lhs)    == std::get<bool>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs) == std::get<int32_t>(rhs)};
+    case CactBasicType::Float: return {std::get<float>(lhs) == std::get<float>(rhs)};
+    case CactBasicType::Double: return {std::get<double>(lhs) == std::get<double>(rhs)};
+    case CactBasicType::Bool: return {std::get<bool>(lhs) == std::get<bool>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -389,11 +387,11 @@ struct NotEqualOperator : BinaryOperator {
                                                   const ConstEvalResult rhs) const override {
     assert(sameValidBasicType(lhs, rhs));
     switch (constEvalResultBasicType(lhs)) {
-      case CactBasicType::Int32:  return {std::get<int32_t>(lhs) != std::get<int32_t>(rhs)};
-      case CactBasicType::Float:  return {std::get<float>(lhs)   != std::get<float>(rhs)};
-      case CactBasicType::Double: return {std::get<double>(lhs)  != std::get<double>(rhs)};
-      case CactBasicType::Bool:   return {std::get<bool>(lhs)    != std::get<bool>(rhs)};
-      default:                    return std::nullopt;
+    case CactBasicType::Int32: return {std::get<int32_t>(lhs) != std::get<int32_t>(rhs)};
+    case CactBasicType::Float: return {std::get<float>(lhs) != std::get<float>(rhs)};
+    case CactBasicType::Double: return {std::get<double>(lhs) != std::get<double>(rhs)};
+    case CactBasicType::Bool: return {std::get<bool>(lhs) != std::get<bool>(rhs)};
+    default: return std::nullopt;
     }
   }
 };
@@ -409,6 +407,5 @@ struct IndexOperator : BinaryOperator {
 };
 
 }
-
 
 #endif //CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_CACT_OPERATOR_H_

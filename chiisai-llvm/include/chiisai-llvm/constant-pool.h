@@ -8,14 +8,19 @@
 #include <chiisai-llvm/properties.h>
 #include <chiisai-llvm/constant.h>
 #include <chiisai-llvm/mystl/poly_vector.h>
+#include <chiisai-llvm/mystl/castings.h>
+
 namespace llvm {
 
 struct ConstantPool : RAII {
-  CRef<Constant> constant(CRef<Type> type, const std::string& str) {
+  Ref<Constant> constant(CRef<Type> type, const std::string& str) {
     if (m_constants.contains({type, str}))
       return mystl::make_observer(m_constants.at({type, str}).get());
     m_constants.insert({std::pair{type, str}, std::make_unique<Constant>(str, type)});
     return mystl::make_observer(m_constants.at({type, str}).get());
+  }
+  CRef<ConstantScalar> constantZero(CRef<Type> type) {
+    return dyn_cast_ref<ConstantScalar>(constant(type, "0"));
   }
 private:
   using ConstantKey = std::pair<CRef<Type>, std::string>;

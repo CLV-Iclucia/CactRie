@@ -4,89 +4,106 @@
 
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_IR_GENERATOR_H
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_IR_GENERATOR_H
-#include <cact-front-end/CactParser.h>
-#include <cact-front-end/CactParserVisitor.h>
-#include <cact-front-end/cact-operator.h>
+
 #include <sstream>
+#include <format>
+#include <cact-front-end/cact-base-visitor.h>
+#include <cact-front-end/cact-operator.h>
+#include <cact-front-end/const-eval-and-expression-generation.h>
 
 namespace cactfrontend {
 
+struct LocalIdentifierMangler {
+  std::unordered_map<CactParser::BlockContext *, size_t> blockIDMap{};
+  size_t nextBlockID = 0;
+  std::string rename(const std::string &originalName, CactParser::BlockContext *block) {
+    if (blockIDMap.find(block) == blockIDMap.end()) {
+      blockIDMap[block] = nextBlockID++;
+    }
+
+    size_t blockID = blockIDMap[block];
+
+    return originalName + ".b." + std::to_string(blockID);
+  }
+  void clear() {
+    blockIDMap.clear();
+    nextBlockID = 0;
+  }
+};
+
 // struct to generate IR code
-struct IRGenerator : public CactParserVisitor {
+struct LLVMIRGenerator final : public CactBaseVisitor {
   // constructor, initialize the output stream and the name of the module
-  explicit IRGenerator(std::ostream &os, const std::string &name) : irCodeStream(os), name(name) {}
+  explicit LLVMIRGenerator(std::ostream &os, const std::string &name) : irCodeStream(os), moduleName(name) {}
 
   // visit a compilation unit
   std::any visitCompilationUnit(CactParser::CompilationUnitContext *ctx) override {
     // output the module name
     irCodeStream << "; ModuleID = '"
-                 << name
                  << "'\nsource_filename = \""
-                 << name
+                 << moduleName
                  << ".cact\"\n";
-
     for (auto &child : ctx->children)
       visit(child);
     return {};
   }
 
-  // visit a function definition
-  std::any visitFunctionDefinition(CactParser::FunctionDefinitionContext *ctx) override {
-    // visit all children
-    for (auto &child : ctx->children)
-      visit(child);
-    irCodeStream << "}\n";
-    return {};
-  }
+  std::string ifStatementIRGen(const std::string &labelPrefix, CactParser::IfStatementContext *ctx);
 
-  // visit an add expression
-  std::any visitAddExpression(CactParser::AddExpressionContext *ctx) override {
-    // if the result is a compile time constant, return
-    if (ctx->expression_result.compileTimeEvalResult().has_value())
-      return {};
-    // visit the add expression, and then the mul expression
-    if (ctx->addExpression())
-      visitAddExpression(ctx->addExpression());
-    visitMulExpression(ctx->mulExpression());
+  std::string whileStatementIRGen(const std::string &labelPrefix, CactParser::WhileStatementContext *ctx);
 
-    return {};
-  }
+  std::string statementIRGen(const std::string &labelPrefix, CactParser::StatementContext *ctx);
 
-  // visit a mul expression
-  std::any visitMulExpression(CactParser::MulExpressionContext *ctx) override {
-    // visit the mul expression, and then the unary expression
-    if (ctx->mulExpression())
-      visitMulExpression(ctx->mulExpression());
-    visitUnaryExpression(ctx->unaryExpression());
-
-    return {};
-  }
+  std::any visitFunctionDefinition(CactParser::FunctionDefinitionContext *ctx) override;
 
 private:
-  template<typename ExpressionContext>
 
-  // get the result string of the expression
-  std::string resultString(ExpressionContext *ctx) {
-    if (ctx->expressionResult.compileTimeEvalResult.has_value())
-      return ctx->expressionResult.toString();
-    return "%" + temporaryName(ctx->expressionResult.tmpResultID);
+  void allocateLocalVariables(CactParser::BlockContext *block);
+
+  void allocateLocalVariables(CactParser::BlockContext *block, int depth);
+
+  struct EvaluationCodegenResult {
+    std::string code;
+    std::string resultName;
+  };
+
+  EvaluationCodegenResult evaluationCodeGen(std::shared_ptr<CactExpr> expr);
+
+  static std::string basicTypeString(const CactBasicType &type) {
+    static std::map<CactBasicType, std::string> typeMap = {
+        {CactBasicType::Int32, "i32"},
+        {CactBasicType::Float, "float"},
+        {CactBasicType::Double, "double"},
+        {CactBasicType::Bool, "i1"},
+        {CactBasicType::Void, "void"}
+    };
+    return typeMap.at(type);
   }
+  std::optional<CactParser::StatementContext *> reduceStatement(CactParser::StatementContext *ctx);
 
-  // get the temporary name
+  // nullopt: cannot reduce
+  // nullptr: reduce to empty statement, this while can be removed
+  // statement: the statement to replace the while loop
+  std::optional<CactParser::StatementContext *> reduceWhileLoop(CactParser::WhileStatementContext *ctx);
+
+  // nullopt: cannot reduce
+  // nullptr: reduce to empty statement, this if can be removed
+  // statement: the statement to replace the if statement
+  std::optional<CactParser::StatementContext *> reduceIfBranch(CactParser::IfStatementContext *ctx);
+  std::string renameLocalIdentifier(const std::string &originalName, CactParser::BlockContext *block) {
+    return localIdentifierMangler.rename(originalName, block);
+  }
   std::string temporaryName(int id) {
     return std::to_string(id);
   }
 
-  // get the operator type string
-  std::string operatorString(CactParser::AddExpressionContext *ctx) {
-    if (ctx->Plus())
-      return "add";
-    return "sub";
-  }
   int temporaryID = 0;
+  std::vector<int> ifID{};
+  std::vector<int> whileID{};
+  LocalIdentifierMangler localIdentifierMangler{};
   // and output stream to output the generated IR chars
   std::ostream &irCodeStream;
-  std::string name;
+  std::string moduleName;
 };
 
 }

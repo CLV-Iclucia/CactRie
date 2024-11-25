@@ -17,8 +17,8 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
   // ---------------------------------------
 
   // initialization
-  explicit ConstEvalVisitor(std::shared_ptr<SymbolRegistry> __registry) {
-    this->registry = __registry;
+  explicit ConstEvalVisitor(std::shared_ptr<SymbolRegistry> _registry) {
+    this->registry = _registry;
   }
 
   /**
@@ -390,7 +390,6 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
   // ---------------------------------------
 
   std::shared_ptr<SymbolRegistry> registry;
-
 };
 
 }

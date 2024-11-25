@@ -30,6 +30,10 @@ struct Function : Value {
     m_argMap[name] = m_args.back();
     return *this;
   }
+  CRef<Type> returnType() const {
+    assert(isa<FunctionType>(type()));
+    return cast<FunctionType>(type())->returnValueType();
+  }
   [[nodiscard]]
   Argument& arg(const std::string& name) {
     if (m_argMap.contains(name))

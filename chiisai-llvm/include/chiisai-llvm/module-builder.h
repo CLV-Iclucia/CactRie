@@ -16,7 +16,7 @@ struct BuildResult {
   std::unique_ptr<LLVMContext> llvmContext{};
 };
 
-struct ModuleBuilder : public LLVMParserVisitor {
+struct ModuleBuilder final : public LLVMParserVisitor {
 
   std::any visitInitializer(LLVMParser::InitializerContext *ctx) override;
 
@@ -116,11 +116,41 @@ struct ModuleBuilder : public LLVMParserVisitor {
     return {};
   }
 
-  std::any visitValue(LLVMParser::ValueContext *ctx) override;
+  std::any visitImmediatelyUsableValue(LLVMParser::ImmediatelyUsableValueContext *ctx) override;
 
   std::any visitGepInstruction(LLVMParser::GepInstructionContext *ctx) override;
 
   std::any visitConstantArray(LLVMParser::ConstantArrayContext *ctx) override;
+
+  std::any visitReturnInstruction(LLVMParser::ReturnInstructionContext *ctx) override;
+
+  std::any visitBranchInstruction(LLVMParser::BranchInstructionContext *ctx) override;
+
+  std::any visitCallInstruction(LLVMParser::CallInstructionContext *ctx) override;
+
+  std::any visitPhiInstruction(LLVMParser::PhiInstructionContext *ctx) override;
+
+  std::any visitPhiValue(LLVMParser::PhiValueContext *ctx) override;
+
+  std::any visitComparisonOperation(LLVMParser::ComparisonOperationContext *ctx) override {
+    throw std::runtime_error("Comparison operation should not be visited");
+  }
+
+  std::any visitBinaryOperation(LLVMParser::BinaryOperationContext *ctx) override {
+    throw std::runtime_error("Binary operation should not be visited");
+  }
+
+  std::any visitComparisonPredicate(LLVMParser::ComparisonPredicateContext *ctx) override {
+    throw std::runtime_error("Comparison predicate should not be visited");
+  }
+
+  std::any visitLiteral(LLVMParser::LiteralContext *ctx) override {
+    throw std::runtime_error("Literal context should not be visited");
+  }
+
+  std::any visitNumber(LLVMParser::NumberContext *ctx) override {
+    throw std::runtime_error("Number context should not be visited");
+  }
 
   void addExternalFunctions() {
 
@@ -133,7 +163,8 @@ struct ModuleBuilder : public LLVMParserVisitor {
 private:
   std::unique_ptr<Module> module{};
   std::unique_ptr<LLVMContext> llvmContext{};
-  Ref<Value> resolveValueUsage(LLVMParser::ValueContext *ctx);
+  Ref<Value> resolveImmediateValueUsage(LLVMParser::ImmediatelyUsableValueContext *ctx);
+  Ref<Value> resolveValueUsage(CRef<Type> type, const std::string& name);
   Ref<Value> resolveVariableUsage(LLVMParser::VariableContext *ctx);
   Ref<Value> resolveVariableUsageAfterVisit(LLVMParser::VariableContext *ctx) const;
   template<typename T>

@@ -141,16 +141,17 @@ struct BinaryInst final : Instruction {
 struct AllocaInstDetails {
   const std::string &name;
   CRef<PointerType> type;
-  size_t size;
-  size_t alignment;
+  size_t size = 1;
+  size_t alignment = 0;
 };
 
 struct AllocaInst : Instruction {
   explicit AllocaInst(BasicBlock &basicBlock, const AllocaInstDetails &details) : Instruction(
       MemoryOps::Alloca, details.name, details.type, basicBlock), alignment(details.alignment) {}
 
-  size_t alignment{};
-  size_t size{};
+  size_t alignment{0};
+  size_t size{1};
+  void accept(Executor &executor) override;
   [[nodiscard]] uint64_t hash() const override {
     uint64_t hashCode{};
     mystl::hash_combine(hashCode, name());
@@ -160,18 +161,20 @@ struct AllocaInst : Instruction {
   }
 };
 
-struct MemInstDetails {
+struct StoreInstDetails {
   const std::string &name;
   CRef<Type> type;
   Ref<Value> pointer;
+  Ref<Value> value;
 };
 
 struct StoreInst : Instruction {
-  explicit StoreInst(BasicBlock &basicBlock, const MemInstDetails &details) : Instruction(MemoryOps::Store,
-                                                                                          details.name,
-                                                                                          details.type,
-                                                                                          basicBlock),
-                                                                              pointer(details.pointer) {
+  explicit StoreInst(BasicBlock &basicBlock, const StoreInstDetails &details) : Instruction(MemoryOps::Store,
+                                                                                            details.name,
+                                                                                            details.type,
+                                                                                            basicBlock),
+                                                                                pointer(details.pointer),
+                                                                                value(details.value) {
     assert(pointer->type()->isPointer());
   }
   Ref<Value> pointer;
@@ -186,12 +189,18 @@ struct StoreInst : Instruction {
   }
 };
 
+struct LoadInstDetails {
+  const std::string &name;
+  CRef<Type> type;
+  Ref<Value> pointer;
+};
+
 struct LoadInst : Instruction {
-  explicit LoadInst(BasicBlock &basicBlock, const MemInstDetails &details) : Instruction(MemoryOps::Load,
-                                                                                         details.name,
-                                                                                         details.type,
-                                                                                         basicBlock),
-                                                                             pointer(details.pointer) {
+  explicit LoadInst(BasicBlock &basicBlock, const LoadInstDetails &details) : Instruction(MemoryOps::Load,
+                                                                                          details.name,
+                                                                                          details.type,
+                                                                                          basicBlock),
+                                                                              pointer(details.pointer) {
     assert(pointer->type()->isPointer());
   }
   Ref<Value> pointer;
@@ -206,7 +215,7 @@ struct LoadInst : Instruction {
 };
 
 struct PhiValue {
-  Ref<BasicBlock> basicBlock;
+  CRef<BasicBlock> basicBlock;
   Ref<Value> value;
 };
 
@@ -228,11 +237,14 @@ struct PhiInst final : Instruction {
     uint64_t hashCode{};
     mystl::hash_combine(hashCode, name());
     mystl::hash_combine(hashCode, opCode);
-    for (auto [basicBlock, val] : incomingValues) {
-      mystl::hash_combine(hashCode, basicBlock->name());
-      mystl::hash_combine(hashCode, val->name());
-    }
     return hashCode;
+  }
+  void removeBranch(const std::string &blockName) {
+    auto
+        erase_begin = std::remove_if(incomingValues.begin(), incomingValues.end(), [&blockName](const PhiValue &value) {
+      return value.basicBlock->name() == blockName;
+    });
+    incomingValues.erase(erase_begin, incomingValues.end());
   }
 };
 
@@ -240,7 +252,7 @@ struct CallInstDetails {
   std::string name;
   CRef<Type> type;
   Function &function;
-  const std::vector<std::string> &realArgs;
+  std::vector<Ref<Value>> &&realArgs;
 };
 
 struct CallInst : Instruction {
@@ -251,7 +263,7 @@ struct CallInst : Instruction {
                     basicBlock),
         function(details.function), realArgs(details.realArgs) {}
   Function &function;
-  std::vector<std::string> realArgs;
+  std::vector<Ref<Value>> realArgs{};
   void accept(Executor &executor) override;
   [[nodiscard]] uint64_t hash() const override;
 };
@@ -288,12 +300,22 @@ struct CmpInst final : Instruction {
   }
 };
 
+struct BrInstDetails {
+  Ref<Value> cond;
+  CRef<BasicBlock> thenBranch;
+  CRef<BasicBlock> elseBranch;
+};
+
 struct BrInst : Instruction {
   struct Conditional {
-    CRef<Value> cond;
+    Ref<Value> cond;
     CRef<BasicBlock> thenBranch;
     CRef<BasicBlock> elseBranch;
   };
+  explicit BrInst(BasicBlock& current, CRef<BasicBlock> dest) : Instruction(TerminatorOps::Br, {}, {}, current), dest(dest) {}
+  explicit BrInst(BasicBlock &current, const BrInstDetails &details) : Instruction(TerminatorOps::Br, {}, {}, current),
+                                                                       dest(Conditional{details.cond, details.thenBranch, details.elseBranch}) {}
+
   [[nodiscard]] bool isConditional() const {
     return std::holds_alternative<Conditional>(dest);
   }
@@ -332,7 +354,7 @@ private:
 struct GepInstDetails {
   const std::string &name;
   CRef<Type> type;
-  Value& pointer;
+  Value &pointer;
   Ref<Value> index{};
 };
 
@@ -354,7 +376,7 @@ struct GepInst : Instruction {
   }
   void accept(Executor &executor) override;
   Ref<Value> index{};
-  Value& pointer;
+  Value &pointer;
 };
 
 struct RetInst : Instruction {

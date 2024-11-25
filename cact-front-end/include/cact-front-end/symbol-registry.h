@@ -60,7 +60,7 @@ struct Scope {
   }
 
 private:
-  observer_ptr<Scope> parent; // the parent scope
+  observer_ptr<Scope> parent{}; // the parent scope
   std::map<std::string, int> variableMap; // variable ID map
   std::vector<std::shared_ptr<CactConstVar>> variableVec; // variables
 };

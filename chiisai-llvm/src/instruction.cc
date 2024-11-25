@@ -74,9 +74,9 @@ void BinaryInst::accept(Executor &executor) {
   };
 
   if (isIntBinary())
-    executor.reg(name()) = Result{intOps[static_cast<BinaryOps>(opCode)](lhsReg.toInteger(), rhsReg.toInteger())};
+    executor.reg(name()) = Result::fromInteger(intOps.at(static_cast<BinaryOps>(opCode))(lhsReg.toInteger(), rhsReg.toInteger()));
   else if (isFloatBinary())
-    executor.reg(name()) = Result{floatOps[static_cast<BinaryOps>(opCode)](lhsReg.toFloating(), rhsReg.toFloating())};
+    executor.reg(name()) = Result::fromFloating(floatOps.at(static_cast<BinaryOps>(opCode))(lhsReg.toFloating(), rhsReg.toFloating()));
   else
     throw std::runtime_error("What the fucking binary instruction is this?");
 }
@@ -199,14 +199,20 @@ void GepInst::accept(llvm::Executor &executor) {
     throw std::runtime_error("GEP instruction must have a pointer as its source");
 
   if (!index)
-    executor.reg(name()) = SpanAddress::fromValue(makeRef(pointer));
+    executor.reg(name()) = Result(SpanAddress{makeRef(pointer), 0});
   else
-    executor.reg(name()) = SpanAddress::fromArray(makeCRef(pointer), executor.reg(index->name()).as<size_t>());
+    executor.reg(name()) = Result(SpanAddress{makeCRef(pointer), executor.reg(index).as<size_t>()});
 }
 
 void RetInst::accept(Executor &executor) {
   executor.returnReg = ret == nullptr ? std::nullopt : std::make_optional(executor.reg(ret->name()));
   executor.returnFlag = true;
   executor.popFrame();
+}
+
+void AllocaInst::accept(Executor &executor) {
+  if (!size)
+    throw std::runtime_error("Alloca instruction must have a size");
+  executor.allocate(name(), size);
 }
 }

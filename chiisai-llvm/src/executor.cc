@@ -6,12 +6,12 @@
 #include <chiisai-llvm/constant-scalar.h>
 namespace llvm {
 llvm::Result &llvm::Executor::reg(CRef<Value> value) {
-  if (auto constant = dyn_cast_ref<Constant>(value)) {
-    if (auto constantScalar = dyn_cast_ref<ConstantScalar>(constant)) {
+  if (auto constant = cast<Constant>(value)) {
+    if (auto constantScalar = cast<ConstantScalar>(constant)) {
 
     } else
       throw std::runtime_error("constant pointer or array cannot be stored in a register");
   }
-  return callFrames.top().regs.at(value->name());
+  return callFrames.back().regs.at(value->name());
 }
 }

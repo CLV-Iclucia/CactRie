@@ -199,6 +199,10 @@ public:
     return container.size();
   }
 
+  void clear() {
+    container.clear();
+  }
+
 private:
   std::list<observer_ptr<Base>> container{};
 };

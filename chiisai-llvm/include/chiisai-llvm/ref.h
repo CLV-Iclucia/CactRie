@@ -9,28 +9,35 @@
 #include <chiisai-llvm/mystl/not_null.h>
 namespace llvm {
 
-template <typename T>
+template<typename T>
 using Ref = mystl::observer_ptr<T>;
 
-template <typename T>
+template<typename T>
 using CRef = mystl::observer_ptr<const T>;
 
-template <typename T>
-Ref<T> makeRef(T& t) {
+template<typename T>
+Ref<T> makeRef(T &t) {
   return mystl::make_observer(&t);
 }
 
-template <typename T>
-CRef<T> makeCRef(const T& t) {
+template<typename T>
+CRef<T> makeCRef(const T &t) {
   return mystl::make_observer(&t);
 }
 
-template <typename Derived, typename Base>
+template<typename Derived, typename Base>
 bool isa(Ref<Base> base) {
   return mystl::dyn_cast_ref<Derived, Base>(base) != nullptr;
 }
 
-template <typename Ptr>
+template<typename Derived, typename Base>
+auto cast(Ref<Base> base) {
+  if (!isa<Derived>(base))
+    throw std::bad_cast();
+  return mystl::dyn_cast_ref<Derived, Base>(base);
+}
+
+template<typename Ptr>
 using NotNull = mystl::not_null<Ptr>;
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_REF_H

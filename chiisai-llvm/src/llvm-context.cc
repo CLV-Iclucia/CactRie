@@ -56,30 +56,30 @@ CRef<FunctionType> LLVMContext::functionType(const std::vector<CRef<Type>> &cont
 }
 
 CRef<Type> LLVMContext::voidType() const {
-  return cref(typeSystem->voidInstance);
+  return makeCRef(typeSystem->voidInstance);
 }
 
 CRef<Type> LLVMContext::floatType() const {
-  return cref(typeSystem->floatInstance);
+  return makeCRef(typeSystem->floatInstance);
 }
 
 CRef<Type> LLVMContext::doubleType() const {
-  return cref(typeSystem->doubleInstance);
+  return makeCRef(typeSystem->doubleInstance);
 }
 
 CRef<IntegerType> LLVMContext::boolType() const {
-  return cref(typeSystem->boolInstance);
+  return makeCRef(typeSystem->boolInstance);
 }
 
 CRef<IntegerType> LLVMContext::intType() const {
-  return cref(typeSystem->intInstance);
+  return makeCRef(typeSystem->intInstance);
 }
 
 CRef<IntegerType> LLVMContext::longType() const {
-  return cref(typeSystem->longInstance);
+  return makeCRef(typeSystem->longInstance);
 }
 
-CRef<Constant> LLVMContext::constant(CRef<Type> type, const std::string &str) {
+Ref<Constant> LLVMContext::constant(CRef<Type> type, const std::string &str) {
   return constantPool->constant(type, str);
 }
 
@@ -105,6 +105,12 @@ Scalar LLVMContext::evalConstScalar(CRef<ConstantScalar> constScalar) const {
     throw std::runtime_error("Invalid boolean value");
   }
   throw std::runtime_error("Invalid constant scalar type");
+}
+CRef<ConstantScalar> LLVMContext::constantZero(CRef<Type> type) const {
+  return constantPool->constantZero(type);
+}
+CRef<Constant> LLVMContext::builtinVoidValue() const {
+  return constantPool->constant(voidType(), "__builtin_void_typed_value");
 }
 
 }  // namespace llvm

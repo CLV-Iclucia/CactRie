@@ -38,9 +38,14 @@ public:
   [[nodiscard]] CRef<IntegerType> boolType() const;
   [[nodiscard]] CRef<IntegerType> intType() const;
   [[nodiscard]] CRef<IntegerType> longType() const;
-  [[nodiscard]] CRef<Constant> constant(CRef<Type> type, const std::string& str);
+  // for constant scalar, str should be the corresponding string of the number
+  // for constant array, str should be the name of the array
+  // all global array that are marked const should be stored in the constant pool
+  [[nodiscard]] Ref<Constant> constant(CRef<Type> type, const std::string& str);
   [[nodiscard]] CRef<PointerType> castFromArrayType(CRef<ArrayType> arrayType) const;
+  [[nodiscard]] CRef<ConstantScalar> constantZero(CRef<Type> type) const;
   [[nodiscard]] Scalar evalConstScalar(CRef<ConstantScalar> constScalar) const;
+  [[nodiscard]] CRef<Constant> builtinVoidValue() const;
 private:
   std::unique_ptr<TypeSystem> typeSystem{};
   std::unique_ptr<ConstantPool> constantPool{};

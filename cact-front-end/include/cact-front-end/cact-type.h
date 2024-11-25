@@ -86,10 +86,10 @@ struct CactType {
   // e.g. with "int a[2][2]",  a.size(1) == 2 * 4 == 8
   // This would equal to the size of a[0] or a[1]
   [[nodiscard]]
-  uint32_t size(uint32_t __current_dim) const {
+  uint32_t size(uint32_t _current_dim) const {
     uint32_t product = sizeOf(this->basic_type);
     uint32_t dimension = this->dim();
-    for (uint32_t i = __current_dim; i < dimension; i++)
+    for (uint32_t i = _current_dim; i < dimension; i++)
       product *= this->array_dims[i];
     return product;
   }

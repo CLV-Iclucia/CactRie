@@ -28,16 +28,24 @@ struct Result {
   using Integer = std::variant<int32_t, int64_t>;
   using Floating = std::variant<float, double>;
 
-  template<typename... Ts>
-  explicit Result(std::variant<Ts...> value) {
-    bool matched = ((std::holds_alternative<Ts>(value) ? (this->value = value, true) : false) || ...);
-    if (!matched) {
-      throw std::invalid_argument("Invalid type for std::variant");
-    }
+  Result() = default;
+  template<typename T>
+  explicit Result(T value) : value(value) {}
+  static Result fromInteger(Result::Integer value) {
+    if (std::holds_alternative<int32_t>(value))
+      return Result{std::get<int32_t>(value)};
+    if (std::holds_alternative<int64_t>(value))
+      return Result{std::get<int64_t>(value)};
+    throw std::runtime_error("Cannot convert to integer");
   }
-
-  explicit Result(bool value) : value(value) {}
-  explicit Result(SpanAddress value) : value(value) {}
+  static Result fromFloating(Result::Floating value) {
+    if (std::holds_alternative<float>(value))
+      return Result{std::get<float>(value)};
+    if (std::holds_alternative<double>(value))
+      return Result{std::get<double>(value)};
+    throw std::runtime_error("Cannot convert to floating point");
+  }
+  Result &operator=(const Result &other) = default;
 
   std::variant<bool, int32_t, int64_t, float, double, SpanAddress> value;
   [[nodiscard]] bool isBool() const {
@@ -102,18 +110,25 @@ struct Executor {
   Result &reg(const std::string &name) {
     return callFrames.back().regs.at(name);
   }
+  void allocate(const std::string &name, size_t size) {
+    if (callFrames.back().memory.contains(name))
+      throw std::runtime_error("Variable already exists");
+    callFrames.back().memory.insert({name, std::vector<Result>(size)});
+  }
   Result load(SpanAddress span) const {
     CRef<std::unordered_map<std::string, std::vector<Result>>> mem{};
     if (span.begin.isGlobal())
       mem = makeCRef(globalMemory);
-    else mem = makeCRef(callFrames.at(span.begin.frameIndex.value()).memory);
+    else
+      mem = makeCRef(callFrames.at(span.begin.frameIndex.value()).memory);
     return mem->at(span.begin.value->name()).at(span.index);
   }
   void store(SpanAddress span, Result result) {
     Ref<std::unordered_map<std::string, std::vector<Result>>> mem{};
     if (span.begin.isGlobal())
       mem = makeRef(globalMemory);
-    else mem = makeRef(callFrames.at(span.begin.frameIndex.value()).memory);
+    else
+      mem = makeRef(callFrames.at(span.begin.frameIndex.value()).memory);
     mem->at(span.begin.value->name()).at(span.index) = result;
   }
   Module &module;

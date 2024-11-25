@@ -24,7 +24,15 @@ struct Value : RAII, Executable {
   auto& users() {
     return m_users;
   }
+  [[nodiscard]] const auto& users() const {
+    return m_users;
+  }
+  // after replacement no user will be using this value and this value should be deleted
+  // we leave this work to the manager of the value
   void replaceAllUsesWith(Ref<Value> other);
+  [[nodiscard]] bool isUsed() const {
+    return !users().empty();
+  }
   void accept(Executor& executor) override {
     minilog::warn("value shouldn't be executed for class that inherits from Value");
   }

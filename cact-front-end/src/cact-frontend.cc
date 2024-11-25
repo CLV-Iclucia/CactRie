@@ -12,7 +12,7 @@ namespace cactfrontend {
 
 
 // get a CactType based on the type of the variant
-CactType constEvalResultType(const ConstEvalResult value) {
+CactType constEvalResultType(ConstEvalResult value) {
   // return a CactType object based on the type of the variant
   if (std::holds_alternative<int32_t>(value)) {
     return CactType(CactBasicType::Int32, false);
@@ -26,7 +26,7 @@ CactType constEvalResultType(const ConstEvalResult value) {
 }
 
 // get the basic type of the variant
-CactBasicType constEvalResultBasicType(const ConstEvalResult value) {
+CactBasicType constEvalResultBasicType(ConstEvalResult value) {
   if (std::holds_alternative<int32_t>(value)) {
     return CactBasicType::Int32;
   } else if (std::holds_alternative<float>(value)) {
@@ -41,7 +41,7 @@ CactBasicType constEvalResultBasicType(const ConstEvalResult value) {
 }
 
 // get the value of the variant
-inline std::optional<bool> conditionEvalResult(const ConstEvalResult value) {
+inline std::optional<bool> conditionEvalResult(ConstEvalResult value) {
   if (constEvalResultBasicType(value) == CactBasicType::Bool)
     return std::make_optional<bool>(std::get<bool>(value));
   else return std::nullopt;

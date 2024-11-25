@@ -1,6 +1,7 @@
 //
 // Created by creeper on 9/29/24.
 //
+#include <ranges>
 #include <chiisai-llvm/llvm-context.h>
 #include <chiisai-llvm/module-builder.h>
 #include <chiisai-llvm/mystl/castings.h>
@@ -11,7 +12,12 @@
 namespace llvm {
 
 std::any llvm::ModuleBuilder::visitModule(LLVMParser::ModuleContext *ctx) {
-
+  for (auto child : ctx->children) {
+    if (auto globalDecl = dynamic_cast<LLVMParser::GlobalDeclarationContext *>(child))
+      visitGlobalDeclaration(globalDecl);
+    if (auto funcDef = dynamic_cast<LLVMParser::FunctionDefinitionContext *>(child))
+      visitFunctionDefinition(funcDef);
+  }
   return {};
 }
 
@@ -26,10 +32,8 @@ std::any ModuleBuilder::visitArrayType(LLVMParser::ArrayTypeContext *ctx) {
   visitType(ctx->type());
   size_t size = std::stoul(ctx->IntegerLiteral()->getText());
   auto elementType = elementTypeNode->typeRef;
-  if (elementType == Type::voidType(*llvmContext)) {
-    // ERROR
+  if (elementType == Type::voidType(*llvmContext))
     throw std::runtime_error("Array type cannot have void type as its element type");
-  }
   ctx->typeRef = llvmContext->arrayType(elementType, size);
   return {};
 }
@@ -45,14 +49,14 @@ std::any ModuleBuilder::visitPointerType(LLVMParser::PointerTypeContext *ctx) {
   return {};
 }
 
-Ref<Value> ModuleBuilder::resolveValueUsage(LLVMParser::ValueContext *ctx) {
-  visitValue(ctx);
-  if (ctx->number()) {
+Ref<Value> ModuleBuilder::resolveImmediateValueUsage(LLVMParser::ImmediatelyUsableValueContext *ctx) {
+  visitImmediatelyUsableValue(ctx);
+  if (ctx->isConstant) {
     auto type = llvmContext->stobt(ctx->number()->scalarType()->getText());
     const auto &str = ctx->number()->literal()->getText();
     return llvmContext->constant(type, str);
   } else {
-    auto var = ctx->variable();
+    auto var = ctx->localIdentifier();
     return resolveVariableUsageAfterVisit(var);
   }
 }
@@ -62,10 +66,10 @@ Ref<Value> ModuleBuilder::resolveVariableUsageAfterVisit(LLVMParser::VariableCon
     return module->globalVariable(ctx->name);
 
   if (currentFunction->hasArg(ctx->name))
-    return ref(currentFunction->arg(ctx->name));
+    return makeRef(currentFunction->arg(ctx->name));
 
   if (currentFunction->hasIdentifier(ctx->name))
-    return ref(currentFunction->identifier(ctx->name));
+    return makeRef(currentFunction->identifier(ctx->name));
 
   // ERROR: cannot find the symbol
   throw std::runtime_error("Cannot find the symbol");
@@ -137,29 +141,29 @@ std::any ModuleBuilder::visitType(LLVMParser::TypeContext *ctx) {
 }
 
 std::any ModuleBuilder::visitArithmeticInstruction(LLVMParser::ArithmeticInstructionContext *ctx) {
-  auto lhs = ctx->unamedIdentifier();
+  auto lhs = ctx->localIdentifier();
   auto lhsName = variableName(lhs);
   if (currentFunction->hasArg(lhsName))
     throw std::runtime_error("Variable name already exists in the function arguments");
-  const auto &operands = ctx->value();
+  const auto &operands = ctx->immediatelyUsableValue();
 
   if (operands.size() != 2)
     throw std::runtime_error("Arithmetic instruction must have exactly two operands");
 
-  auto operandLeftRef = resolveValueUsage(operands[0]);
-  auto operandRightRef = resolveValueUsage(operands[1]);
+  auto operandLeftRef = resolveImmediateValueUsage(operands[0]);
+  auto operandRightRef = resolveImmediateValueUsage(operands[1]);
 
   if (!Instruction::checkBinaryInstType(operandLeftRef, operandRightRef))
     throw std::runtime_error("Binary instruction operands must have the same type");
 
   auto opcode = stoinst(ctx->binaryOperation()->getText());
-  IRBuilder(*currentBasicBlock).createBinaryInst(opcode,
-                                                 {
-                                                     .name = lhsName,
-                                                     .type = operandLeftRef->type(),
-                                                     .lhs = operandLeftRef,
-                                                     .rhs = operandRightRef,
-                                                 });
+  IRBuilder(*currentBasicBlock).createBinaryInst(
+      opcode, {
+          .name = lhsName,
+          .type = operandLeftRef->type(),
+          .lhs = operandLeftRef,
+          .rhs = operandRightRef,
+      });
 
   return {};
 }
@@ -167,11 +171,11 @@ std::any ModuleBuilder::visitArithmeticInstruction(LLVMParser::ArithmeticInstruc
 std::any ModuleBuilder::visitComparisonInstruction(LLVMParser::ComparisonInstructionContext *ctx) {
   auto cmpOp = ctx->comparisonOperation()->getText();
   auto predicateStr = ctx->comparisonPredicate()->getText();
-  auto lhsRef = resolveValueUsage(ctx->value(0));
-  auto rhsRef = resolveValueUsage(ctx->value(1));
+  auto lhsRef = resolveImmediateValueUsage(ctx->immediatelyUsableValue(0));
+  auto rhsRef = resolveImmediateValueUsage(ctx->immediatelyUsableValue(1));
   IRBuilder(*currentBasicBlock).createCmpInst(stoinst(cmpOp), {
       .ctx = *llvmContext,
-      .name = ctx->unamedIdentifier()->getText(),
+      .name = ctx->localIdentifier()->getText(),
       .lhs = lhsRef,
       .rhs = rhsRef,
       .predicate = stopdct(predicateStr)
@@ -180,8 +184,8 @@ std::any ModuleBuilder::visitComparisonInstruction(LLVMParser::ComparisonInstruc
 }
 
 std::any ModuleBuilder::visitLoadInstruction(LLVMParser::LoadInstructionContext *ctx) {
-  auto dest = ctx->unamedIdentifier();
-  visitUnamedIdentifier(dest);
+  auto dest = ctx->localIdentifier();
+  visitLocalIdentifier(dest);
   auto destName = variableName(dest);
 
   if (currentFunction->hasIdentifier(destName))
@@ -225,15 +229,12 @@ std::any ModuleBuilder::visitAllocaInstruction(LLVMParser::AllocaInstructionCont
                                                  });
   return {};
 }
-std::any ModuleBuilder::visitValue(LLVMParser::ValueContext *ctx) {
-  auto var = ctx->variable();
+std::any ModuleBuilder::visitImmediatelyUsableValue(LLVMParser::ImmediatelyUsableValueContext *ctx) {
+  auto var = ctx->localIdentifier();
   auto number = ctx->number();
   if (var) {
-    visitVariable(var);
     ctx->isConstant = false;
-    ctx->isGlobal = var->isGlobal;
   } else if (number) {
-    visitNumber(number);
     ctx->isConstant = true;
   } else
     throw std::runtime_error("Value must be either a variable or a number");
@@ -241,20 +242,20 @@ std::any ModuleBuilder::visitValue(LLVMParser::ValueContext *ctx) {
 }
 
 std::any ModuleBuilder::visitGepInstruction(LLVMParser::GepInstructionContext *ctx) {
-  auto gepVal = ctx->unamedIdentifier();
-  visitUnamedIdentifier(gepVal);
+  auto gepVal = ctx->localIdentifier();
+  visitLocalIdentifier(gepVal);
   auto gepValName = variableName(gepVal);
   if (currentFunction->hasIdentifier(gepValName))
     throw std::runtime_error("Variable name already exists in the function identifiers");
   if (currentFunction->hasArg(gepValName))
     throw std::runtime_error("Variable name already exists in the function arguments");
   auto var = resolveVariableUsage(ctx->variable());
-  auto indices = ctx->value();
-  std::vector<Ref<Value>> indicesRef;
-  indicesRef.reserve(indices.size());
-  for (auto index : indices)
-    indicesRef.push_back(resolveValueUsage(index));
-
+  auto indices = ctx->immediatelyUsableValue();
+  CRef<Value> indexRef{};
+  if (ctx->immediatelyUsableValue())
+    indexRef = resolveImmediateValueUsage(ctx->immediatelyUsableValue());
+  else
+    indexRef = llvmContext->constantZero(Type::intType(*llvmContext));
   CRef<PointerType> pointerType{};
   if (var->type()->isPointer())
     pointerType = dyn_cast_ref<PointerType>(var->type());
@@ -266,8 +267,8 @@ std::any ModuleBuilder::visitGepInstruction(LLVMParser::GepInstructionContext *c
       {
           .name = gepValName,
           .type = pointerType,
-          .pointer = var,
-          .indices = std::move(indicesRef)
+          .pointer = *var,
+          .index = indexRef
       });
   return {};
 }
@@ -317,6 +318,115 @@ std::any ModuleBuilder::visitConstantArray(LLVMParser::ConstantArrayContext *ctx
 std::any ModuleBuilder::visitScalarType(LLVMParser::ScalarTypeContext *ctx) {
   ctx->typeRef = llvmContext->stobt(ctx->getText());
   return {};
+}
+
+std::any ModuleBuilder::visitReturnInstruction(LLVMParser::ReturnInstructionContext *ctx) {
+  if (ctx->immediatelyUsableValue()) {
+    auto type = ctx->type();
+    auto value = resolveImmediateValueUsage(ctx->immediatelyUsableValue());
+    visitType(type);
+    if (value->type() != type->typeRef)
+      throw std::runtime_error("Return value type does not match the specified type");
+    if (value->type() != currentFunction->returnType())
+      throw std::runtime_error("Return value type does not match the function return type");
+    IRBuilder(*currentBasicBlock).createRetInst(value);
+  } else {
+    if (currentFunction->returnType() != Type::voidType(*llvmContext))
+      throw std::runtime_error("Return value type does not match the function return type: void expected");
+    IRBuilder(*currentBasicBlock).createRetInst(llvmContext->builtinVoidValue());
+  }
+  return {};
+}
+
+std::any ModuleBuilder::visitBranchInstruction(LLVMParser::BranchInstructionContext *ctx) {
+  if (ctx->I1()) {
+    auto cond = resolveValueUsage(ctx->localIdentifier(0));
+    if (cond->type() != Type::boolType(*llvmContext))
+      throw std::runtime_error("Branch condition must be of boolean type");
+    auto &thenBranch = currentFunction->basicBlock(ctx->localIdentifier(1)->getText());
+    auto &elseBranch = currentFunction->basicBlock(ctx->localIdentifier(2)->getText());
+    IRBuilder(*currentBasicBlock).createBrInst(
+        {
+            .cond = cond,
+            .thenBranch = thenBranch,
+            .elseBranch = elseBranch
+        });
+  } else {
+    IRBuilder(*currentBasicBlock).createBrInst(currentFunction->basicBlock(ctx->localIdentifier(0)->getText()));
+  }
+}
+
+std::any ModuleBuilder::visitCallInstruction(LLVMParser::CallInstructionContext *ctx) {
+  const auto &funcName = ctx->globalIdentifier()->getText();
+  if (!module->hasFunction(funcName))
+    throw std::runtime_error("Function name not found in the module");
+  auto func = module->function(funcName);
+  auto realArgCtx = ctx->functionArguments();
+  visitFunctionArguments(realArgCtx);
+  const auto &realArgTypes = realArgCtx->argTypes;
+  const auto &realArgNames = realArgCtx->argNames;
+  std::vector<Ref<Value>> args(realArgTypes.size());
+  for (size_t i = 0; i < realArgTypes.size(); ++i) {
+    auto arg = resolveValueUsage(realArgTypes.at(i), realArgNames.at(i));
+    if (arg->type() != realArgTypes.at(i))
+      throw std::runtime_error("Argument type does not match the function argument type");
+    args[i] = arg;
+  }
+  IRBuilder(*currentBasicBlock).createCallInst(
+      {
+          .name = ctx->localIdentifier()->getText(),
+          .function = *func,
+          .realArgs = std::move(args),
+      });
+  return {};
+}
+
+std::any ModuleBuilder::visitPhiInstruction(LLVMParser::PhiInstructionContext *ctx) {
+  auto mergeValCtx = ctx->localIdentifier();
+  visitLocalIdentifier(mergeValCtx);
+  const auto &mergeValName = variableName(mergeValCtx);
+  if (currentFunction->hasIdentifier(mergeValName))
+    throw std::runtime_error("Variable name already exists in the function identifiers");
+  if (currentFunction->hasArg(mergeValName))
+    throw std::runtime_error("Variable name already exists in the function arguments");
+  auto type = ctx->type();
+  visitType(type);
+  auto phiType = type->typeRef;
+  auto phiValues = ctx->phiValue();
+  std::vector<PhiValue> values(phiValues.size());
+  for (size_t i = 0; i < phiValues.size(); ++i) {
+    auto phiValCtx = phiValues[i];
+    visitPhiValue(phiValCtx);
+    auto incomingBlock = phiValCtx->block;
+    auto incomingVal = phiValCtx->value;
+    values.at(i) = PhiValue{incomingBlock, incomingVal};
+    if (i && values.at(i).value->type() != values.at(i - 1).value->type())
+      throw std::runtime_error("Phi values must have the same type");
+  }
+  IRBuilder(*currentBasicBlock).createPhiInst(
+      {
+          .name = mergeValName,
+          .type = values.front().value->type(),
+          .incomingValues = std::move(values)
+      });
+  return {};
+}
+
+std::any ModuleBuilder::visitPhiValue(LLVMParser::PhiValueContext *ctx) {
+  const auto &label = ctx->localIdentifier()->getText();
+  auto value = resolveImmediateValueUsage(ctx->immediatelyUsableValue());
+  ctx->block = makeCRef(currentFunction->basicBlock(label));
+  ctx->value = value;
+  return {};
+}
+Ref<Value> ModuleBuilder::resolveValueUsage(CRef<Type> type, const std::string &name) {
+  if (name.at(0) == '%') {
+    auto argRef = currentFunction->hasArg(name) ? makeRef(currentFunction->arg(name))
+                                                : makeRef(currentFunction->identifier(name));
+    if (argRef->type() != type)
+      throw std::runtime_error("Argument type does not match the specified type");
+  } else
+    return llvmContext->constant(type, name);
 }
 
 }

@@ -6,7 +6,8 @@ parser grammar LLVMParser;
     #include <chiisai-llvm/ref.h>
     #include <chiisai-llvm/type.h>
     #include <chiisai-llvm/basic-block.h>
-    #include <chiisai-llvm/constants.h>
+    #include <chiisai-llvm/constant.h>
+    #include <chiisai-llvm/array-type.h>
 }
 options {
     tokenVocab=LLVMLexer;
@@ -39,27 +40,21 @@ arrayType
 
 globalIdentifier: At NamedIdentifier;
 
-localIdentifier: Percent NamedIdentifier;
-
-unamedIdentifier: Percent NumericIdentifier;
-
-localVariable: localIdentifier | unamedIdentifier;
+localIdentifier: Percent (NamedIdentifier | NumericIdentifier);
 
 variable
     locals[
     bool isGlobal,
-    std::string name,
-]: globalIdentifier | localVariable;
+]: globalIdentifier | localIdentifier;
 
 literal : IntegerLiteral | FloatLiteral;
 
 number: scalarType literal;
 
-pointee
+immediatelyUsableValue
     locals[
-    bool isGlobal,
     bool isConstant,
-]: variable | number;
+]: localIdentifier | number;
 
 module: (globalDeclaration | functionDefinition)*;
 
@@ -119,35 +114,39 @@ instruction
     | gepInstruction
     ;
 
-returnInstruction: Ret type pointee?;
+returnInstruction: Ret (type immediatelyUsableValue)?;
 
-branchInstruction: Br I1 variable Comma Label localVariable Comma Label localVariable
-                | Br Label localVariable;
+branchInstruction: Br I1 localIdentifier Comma Label localIdentifier Comma Label localIdentifier
+                | Br Label localIdentifier;
 
-callInstruction: (unamedIdentifier Equals)? Call type globalIdentifier functionArguments;
+callInstruction: (localIdentifier Equals)? Call type globalIdentifier functionArguments;
 
 arithmeticInstruction
-    : unamedIdentifier Equals binaryOperation type pointee Comma pointee
+    : localIdentifier Equals binaryOperation type immediatelyUsableValue Comma immediatelyUsableValue
     ;
 
 loadInstruction
-    : unamedIdentifier Equals Load type Comma type Asterisk variable (Comma Align IntegerLiteral)?
+    : localIdentifier Equals Load type Comma type Asterisk variable (Comma Align IntegerLiteral)?
     ;
 
 storeInstruction
-    : Store type pointee Comma type Asterisk variable (Comma Align IntegerLiteral)?
+    : Store type immediatelyUsableValue Comma type Asterisk variable (Comma Align IntegerLiteral)?
     ;
 
 phiInstruction
-    : Phi type phiValue (Comma phiValue)*
+    : localIdentifier Equals Phi type phiValue (Comma phiValue)*
     ;
 
-phiValue: LeftBrace unamedIdentifier Comma pointee RightBrace;
+phiValue
+    locals [
+        CRef<BasicBlock> block,
+        Ref<Value> value,
+    ]: LeftBrace localIdentifier Comma immediatelyUsableValue RightBrace;
 
 comparisonOperation : Icmp | Fcmp;
 
 comparisonInstruction
-    : unamedIdentifier Equals comparisonOperation comparisonPredicate type pointee Comma pointee
+    : localIdentifier Equals comparisonOperation comparisonPredicate type immediatelyUsableValue Comma immediatelyUsableValue
     ;
 
 allocaInstruction
@@ -167,6 +166,9 @@ terminatorInstruction
     | branchInstruction
     ;
 
+// GetElementPtr instruction
+// currently, we don't support multiple indices
+// multidimensional arrays should be flattened
 gepInstruction
-    : unamedIdentifier Equals GetElementPtr type Comma type Asterisk variable Comma pointee (Comma pointee)*
+    : localIdentifier Equals GetElementPtr type Comma type Asterisk variable (Comma immediatelyUsableValue)?
     ;

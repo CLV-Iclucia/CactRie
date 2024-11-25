@@ -13,12 +13,12 @@ void Value::replaceAllUsesWith(Ref<Value> other) {
         user->usedValues().begin(), user->usedValues().end(), user->usedValues().begin(),
         [=, this](Ref<Value> value) {
           if (value.get() == this) {
-            minilog::info("replacing use of {} with {}, user: {}", value->name(), other->name(), user->name());
+            minilog::info("replacing use of {} with {}, user: {}", value->name(), other->name(), user->moduleName());
             return other;
           }
           return value;
         });
   }
-
+  users().clear();
 }
 }
