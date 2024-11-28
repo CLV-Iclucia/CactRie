@@ -19,5 +19,6 @@ foreach (DEP ${DEPS})
 endforeach ()
 
 add_subdirectory(cact-front-end)
+add_subdirectory(mystl)
 add_subdirectory(chiisai-llvm)
 add_subdirectory(cact-rie)

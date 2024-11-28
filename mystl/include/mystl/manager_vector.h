@@ -7,7 +7,7 @@
 #include <vector>
 #include <memory>
 #include "observer_ptr.h"
-namespace llvm::mystl {
+namespace mystl {
 /**
  * @brief A vector that manages the lifetime of the objects it contains
  * typical vector cannot provide pointer to the object it contains since the object may be moved

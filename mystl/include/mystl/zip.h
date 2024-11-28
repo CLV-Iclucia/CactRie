@@ -7,7 +7,7 @@
 #include <tuple>
 #include <vector>
 #include <iterator>
-namespace llvm::mystl {
+namespace mystl {
 
 template <typename T>
 using select_access_t = std::conditional_t<

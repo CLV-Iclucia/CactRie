@@ -7,7 +7,7 @@
 #include "observer_ptr.h"
 #include <memory>
 #include <vector>
-namespace llvm::mystl {
+namespace mystl {
 /**
  * @brief A vector that holds polymorphic objects
  * @tparam Base the base class of the polymorphic objects

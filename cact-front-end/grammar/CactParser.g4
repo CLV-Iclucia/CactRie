@@ -115,7 +115,10 @@ assignStatement
     ]: leftValue Equal expression Semicolon;
 
 // expression_statement -> expression ;
-expressionStatement: (expression)? Semicolon;
+expressionStatement
+    locals [
+        std::shared_ptr<CactExpr> expr,
+    ]: (expression)? Semicolon;
 
 // return_statement -> return expression? ;
 returnStatement

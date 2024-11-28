@@ -5,7 +5,7 @@
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MYSTL_CASTINGS_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MYSTL_CASTINGS_H
 #include "observer_ptr.h"
-namespace llvm::mystl {
+namespace mystl {
 
 template <typename Derived, typename Base>
 observer_ptr<std::conditional_t<std::is_const_v<Base>, const Derived, Derived>>

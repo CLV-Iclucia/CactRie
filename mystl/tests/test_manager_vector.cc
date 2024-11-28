@@ -5,9 +5,9 @@
 #include <ranges>
 #include <algorithm>
 #include <vector>
-#include <chiisai-llvm/mystl/manager_vector.h>
+#include <mystl/manager_vector.h>
 
-using namespace llvm::mystl;
+using namespace mystl;
 
 TEST(ManagerVectorTest, BasicTypeOperations) {
   manager_vector<int> vec;

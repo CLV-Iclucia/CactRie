@@ -8,30 +8,26 @@
 #include <memory>
 #include <vector>
 #include <list>
-namespace llvm::mystl {
-template <typename Base>
+namespace mystl {
+template<typename Base>
 struct poly_list {
 public:
-  template <typename Derived, typename... Args>
-  requires std::is_base_of_v<Base, Derived>
-  void emplace_back(Args&&... args) {
+  template<typename Derived, typename... Args> requires std::is_base_of_v<Base, Derived>
+  void emplace_back(Args &&... args) {
     container.emplace_back(std::make_unique<Derived>(std::forward<Args>(args)...));
   }
 
-  template <typename Derived, typename... Args>
-  requires std::is_base_of_v<Base, Derived>
-  void emplace_front(Args&&... args) {
+  template<typename Derived, typename... Args> requires std::is_base_of_v<Base, Derived>
+  void emplace_front(Args &&... args) {
     container.emplace_front(std::make_unique<Derived>(std::forward<Args>(args)...));
   }
 
-  template <typename Derived>
-  requires std::is_base_of_v<Base, Derived>
+  template<typename Derived> requires std::is_base_of_v<Base, Derived>
   void push_back(std::unique_ptr<Derived> ptr) {
     container.push_back(std::move(ptr));
   }
 
-  template <typename Derived>
-  requires std::is_base_of_v<Base, Derived>
+  template<typename Derived> requires std::is_base_of_v<Base, Derived>
   void push_front(std::unique_ptr<Derived> ptr) {
     container.push_front(std::move(ptr));
   }
@@ -40,8 +36,8 @@ public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type = observer_ptr<Base>;
     using difference_type = std::ptrdiff_t;
-    using pointer = observer_ptr<Base>*;
-    using reference = observer_ptr<Base>&;
+    using pointer = observer_ptr<Base> *;
+    using reference = observer_ptr<Base> &;
 
     explicit iterator(typename std::list<std::unique_ptr<Base>>::iterator it)
         : it_(it) {}
@@ -54,7 +50,7 @@ public:
       return observer_ptr<Base>(it_->get());
     }
 
-    iterator& operator++() {
+    iterator &operator++() {
       ++it_;
       return *this;
     }
@@ -65,7 +61,7 @@ public:
       return temp;
     }
 
-    iterator& operator--() {
+    iterator &operator--() {
       --it_;
       return *this;
     }
@@ -76,15 +72,16 @@ public:
       return temp;
     }
 
-    bool operator==(const iterator& other) const {
+    bool operator==(const iterator &other) const {
       return it_ == other.it_;
     }
 
-    bool operator!=(const iterator& other) const {
+    bool operator!=(const iterator &other) const {
       return !(*this == other);
     }
 
   private:
+    friend poly_list;
     typename std::list<std::unique_ptr<Base>>::iterator it_;
   };
 
@@ -107,22 +104,23 @@ public:
   [[nodiscard]] size_t size() const {
     return container.size();
   }
+
+  void clear() {
+    container.clear();
+  }
 private:
   std::list<std::unique_ptr<Base>> container;
 };
 
-
-template <typename Base>
+template<typename Base>
 struct poly_view_list {
 public:
-  template <typename Derived>
-  requires std::is_base_of_v<Base, Derived>
+  template<typename Derived> requires std::is_base_of_v<Base, Derived>
   void push_back(observer_ptr<Derived> ptr) {
     container.push_back(static_cast<observer_ptr<Base>>(ptr));
   }
 
-  template <typename Derived>
-  requires std::is_base_of_v<Base, Derived>
+  template<typename Derived> requires std::is_base_of_v<Base, Derived>
   void push_front(observer_ptr<Derived> ptr) {
     container.push_front(static_cast<observer_ptr<Base>>(ptr));
   }
@@ -131,8 +129,8 @@ public:
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type = observer_ptr<Base>;
     using difference_type = std::ptrdiff_t;
-    using pointer = observer_ptr<Base>*;
-    using reference = observer_ptr<Base>&;
+    using pointer = observer_ptr<Base> *;
+    using reference = observer_ptr<Base> &;
 
     explicit iterator(typename std::list<observer_ptr<Base>>::iterator it)
         : it_(it) {}
@@ -145,7 +143,7 @@ public:
       return *it_;
     }
 
-    iterator& operator++() {
+    iterator &operator++() {
       ++it_;
       return *this;
     }
@@ -156,7 +154,7 @@ public:
       return temp;
     }
 
-    iterator& operator--() {
+    iterator &operator--() {
       --it_;
       return *this;
     }
@@ -167,15 +165,16 @@ public:
       return temp;
     }
 
-    bool operator==(const iterator& other) const {
+    bool operator==(const iterator &other) const {
       return it_ == other.it_;
     }
 
-    bool operator!=(const iterator& other) const {
+    bool operator!=(const iterator &other) const {
       return !(*this == other);
     }
 
   private:
+    friend poly_view_list;
     typename std::list<observer_ptr<Base>>::iterator it_;
   };
 

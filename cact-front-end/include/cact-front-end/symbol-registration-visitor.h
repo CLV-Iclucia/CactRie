@@ -20,10 +20,10 @@ namespace cactfrontend {
 // A visitor to register symbols
 struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
   const std::vector<std::tuple<std::string, CactBasicType, FuncParameters>> built_in_functions = {
-      std::tuple("print_int",    CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Int32)}),
-      std::tuple("print_float",  CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Float)}),
-      std::tuple("print_double", CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Double)}),
-      std::tuple("print_bool",   CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Bool)}),
+      std::tuple("print_int",    CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Int32, {})}),
+      std::tuple("print_float",  CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Float, {})}),
+      std::tuple("print_double", CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Double, {})}),
+      std::tuple("print_bool",   CactBasicType::Void,   FuncParameters{CactFuncParam("x", CactBasicType::Bool, {})}),
       std::tuple("get_int",      CactBasicType::Int32,  FuncParameters()),
       std::tuple("get_float",    CactBasicType::Float,  FuncParameters()),
       std::tuple("get_double",   CactBasicType::Double, FuncParameters()),
@@ -106,7 +106,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("ConstantDefinition");
     // record name and type
     auto name = ctx->Identifier()->getText();
-    auto constant = CactConstant(name, ctx->need_type);
+    auto constant = CactConstant(name, ctx->need_type, current_scope);
 
     for (auto &dim_ctx : ctx->IntegerConstant()) {
       int dim = std::stoi(dim_ctx->getText());
@@ -232,7 +232,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("VariableDefinition");
     // record name and type
     auto name = ctx->Identifier()->getText();
-    auto variable = CactVariable(name, ctx->need_type);
+    auto variable = CactVariable(name, ctx->need_type, current_scope);
 
     for (auto &dim_ctx : ctx->IntegerConstant()) {
       int dim = std::stoi(dim_ctx->getText());
@@ -347,7 +347,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
     startSemanticCheck("FunctionParameter");
     // record name and type
     auto name = ctx->Identifier()->getText();
-    auto parameter = CactFuncParam(name, getDataType(ctx->dataType()));
+    auto parameter = CactFuncParam(name, getDataType(ctx->dataType()), current_scope);
 
     // if the first pair of brackets is empty, push 0 to the array_dims
     if (ctx->IntegerConstant().size() < ctx->LeftBracket().size())

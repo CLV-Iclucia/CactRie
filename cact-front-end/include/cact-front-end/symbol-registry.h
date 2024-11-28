@@ -20,7 +20,7 @@ struct SymbolRegistry;
 struct Scope {
   std::string scopeName; // the name of a function scope (if any)
   // register a variable in the scope
-  void registerVariable(const CactConstVar symbol) {
+  void registerVariable(const CactConstVar& symbol) {
     // check if variable with same name is already in the scope
     if (this->findVarLocal(symbol.name))
       throw std::runtime_error("conflicting declaration ‘" + symbol.toString() + "’");
@@ -148,6 +148,11 @@ struct SymbolRegistry {
 
     result += ")";
     return result;
+  }
+
+  bool isGlobal(std::shared_ptr<CactConstVar> var) {
+    auto globalVar = globalScope->getVariable(var->name);
+    return globalVar == var;
   }
 
 private:

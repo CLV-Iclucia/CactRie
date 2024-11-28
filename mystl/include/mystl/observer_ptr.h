@@ -7,7 +7,7 @@
 #include <cassert>
 #include "hash.h"
 #include <functional>
-namespace llvm::mystl {
+namespace mystl {
 template<typename T>
 requires (!std::is_pointer_v<T>)
 class observer_ptr {
@@ -73,9 +73,9 @@ observer_ptr<const T> make_observer(const T *ptr) {
 
 namespace std {
 template<typename T>
-struct hash<llvm::mystl::observer_ptr<T>> {
-  size_t operator()(const llvm::mystl::observer_ptr<T> &ptr) const {
-    return llvm::mystl::hash<llvm::mystl::observer_ptr<T>>{}(ptr);
+struct hash<mystl::observer_ptr<T>> {
+  size_t operator()(const mystl::observer_ptr<T> &ptr) const {
+    return mystl::hash<mystl::observer_ptr<T>>{}(ptr);
   }
 };
 }

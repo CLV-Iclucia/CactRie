@@ -319,6 +319,11 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     assert(0);
   }
 
+  std::any visitExpressionStatement(ExpressionStatementCtx *ctx) override {
+    ctx->expr = std_any_to_expr_ptr(visit(ctx->expression()));
+    return {};
+  }
+
   // visit a relational expression
   std::any visitRelationalExpression(RelationalExpressionCtx *ctx) override {
     auto bool_const_ctx = ctx->BooleanConstant();

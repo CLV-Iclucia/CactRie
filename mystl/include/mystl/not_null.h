@@ -7,7 +7,7 @@
 
 #include <cstddef>
 #include <stdexcept>
-namespace llvm::mystl {
+namespace mystl {
 
 template<typename Ptr>
 struct not_null {

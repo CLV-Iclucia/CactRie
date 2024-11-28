@@ -91,7 +91,6 @@ std::any LLVMIRGenerator::visitFunctionDefinition(CactParser::FunctionDefinition
 
   allocateLocalVariables(funcBody);
 
-  // use ranges to rewrite the above code
   ifID.emplace_back(0);
   whileID.emplace_back(0);
   for (auto item : funcBody->blockItem()) {
@@ -101,55 +100,60 @@ std::any LLVMIRGenerator::visitFunctionDefinition(CactParser::FunctionDefinition
   irCodeStream << "}\n";
   return {};
 }
+
+std::string LLVMIRGenerator::returnStatementIRGen(const std::string &labelPrefix,
+                                                  CactParser::ReturnStatementContext *ctx) {
+  if (ctx->expression()) {
+    const auto &[code, regName] = evaluationCodeGen(ctx->expr);
+    return code + std::format("ret {} %{}\n",
+                              basicTypeString(ctx->expr->resultBasicType()),
+                              regName);
+  } else
+    return std::format("ret void\n");
+}
+
 std::string LLVMIRGenerator::statementIRGen(const std::string &labelPrefix, CactParser::StatementContext *ctx) {
-  if (ctx->ifStatement()) {
-    auto ifCtx = ctx->ifStatement();
+  if (auto ifCtx = ctx->ifStatement()) {
     auto reduced = reduceIfBranch(ifCtx);
     if (reduced)
       return statementIRGen(labelPrefix, reduced.value());
     const auto &ifLabel = std::format("{}.if{}", labelPrefix, ifID.back()++);
     return ifStatementIRGen(ifLabel, ifCtx);
-  }
-  if (ctx->whileStatement()) {
-    auto whileCtx = ctx->whileStatement();
+  } else if (auto whileCtx = ctx->whileStatement()) {
     auto reduced = reduceWhileLoop(whileCtx);
     if (reduced)
       return statementIRGen(labelPrefix, reduced.value());
     const auto &whileLabel = std::format("{}.while{}", labelPrefix, whileID.back()++);
     return whileStatementIRGen(whileLabel, whileCtx);
-  }
-  if (ctx->returnStatement()) {
-    auto returnCtx = ctx->returnStatement();
-    if (returnCtx->expression()) {
-      const auto &[code, regName] = evaluationCodeGen(returnCtx->expr);
-      return code + std::format("ret {} %{}\n",
-                                basicTypeString(returnCtx->expr->resultBasicType()),
-                                regName);
-    } else {
-      return std::format("ret void\n");
-    }
-  }
-  if (ctx->expressionStatement()) {
-
-  }
-  if (ctx->assignStatement()) {
-
-  }
-  if (ctx->breakStatement()) {
+  } else if (auto returnCtx = ctx->returnStatement()) {
+    return returnStatementIRGen(labelPrefix, returnCtx);
+  } else if (auto exprCtx = ctx->expressionStatement()) {
+    const auto &[code, regName] = evaluationCodeGen(exprCtx->expr);
+    return code;
+  } else if (auto assignCtx = ctx->assignStatement()) {
+    const auto &[lhsFetchCode, lvaluePtrRegName] = fetchAddressCodeGen(assignCtx->lvalue);
+    const auto &[rhsEvalCode, rhsRegName] = evaluationCodeGen(assignCtx->expr);
+    return lhsFetchCode + rhsEvalCode
+        + std::format("store {} %{}, {}* %{}\n",
+                      basicTypeString(assignCtx->expr->resultBasicType()),
+                      rhsRegName,
+                      basicTypeString(assignCtx->lvalue->resultBasicType()),
+                      lvaluePtrRegName);
+  } else if (ctx->breakStatement()) {
     return std::format("br label %{}\n", endingLabel(labelPrefix));
-  }
-  if (ctx->continueStatement()) {
+  } else if (ctx->continueStatement()) {
     return std::format("br label %{}\n", condCheckLabel(labelPrefix));
-  }
-  if (ctx->block()) {
+  } else if (ctx->block()) {
     ifID.emplace_back(0);
     whileID.emplace_back(0);
-    for (auto item : ctx->block()->blockItem()) {
+    for (auto item : ctx->block()->blockItem())
       if (auto stmt = item->statement())
         irCodeStream << statementIRGen({}, stmt);
-    }
-  }
-  return {};
+    ifID.pop_back();
+    whileID.pop_back();
+  } else
+    throw std::runtime_error("unsupported statement type");
+  return "";
 }
 std::string LLVMIRGenerator::whileStatementIRGen(const std::string &labelPrefix,
                                                  CactParser::WhileStatementContext *ctx) {
@@ -169,16 +173,18 @@ std::string LLVMIRGenerator::whileStatementIRGen(const std::string &labelPrefix,
 std::string LLVMIRGenerator::ifStatementIRGen(const std::string &labelPrefix, CactParser::IfStatementContext *ctx) {
   assert(!ctx->cond_expr->isConstant());
   const auto &[condEvalCode, condRegName] = evaluationCodeGen(ctx->cond_expr);
-  const auto &thenBranchCode = statementIRGen(thenBranchLabel(labelPrefix), ctx->statement(0));
-  if (ctx->statement().size() == 1)
-    return condEvalCode + "\n"
+  auto thenBranch = ctx->statement(0);
+  auto elseBranch = ctx->statement().size() == 2 ? ctx->statement(1) : nullptr;
+  const auto &thenBranchCode = statementIRGen(thenBranchLabel(labelPrefix), thenBranch);
+  if (!elseBranch)
+    return condEvalCode
         + std::format("br i1 %{}, label %{}, label %{}\n", condRegName, thenBranchLabel(labelPrefix),
                       endingLabel(labelPrefix))
         + thenBranchLabel(labelPrefix) + ":\n"
         + thenBranchCode
         + std::format("br label %{}\n", endingLabel(labelPrefix));
-  const auto &elseBranchCode = statementIRGen(elseBranchLabel(labelPrefix), ctx->statement(1));
-  return condEvalCode + "\n"
+  const auto &elseBranchCode = statementIRGen(elseBranchLabel(labelPrefix), elseBranch);
+  return condEvalCode
       + std::format("br i1 %{}, label %{}, label %{}\n", condRegName, thenBranchLabel(labelPrefix),
                     elseBranchLabel(labelPrefix))
       + thenBranchLabel(labelPrefix) + ":\n"
@@ -204,62 +210,132 @@ static std::string binaryToLLVMOp(const BinaryOperator &op, CactBasicType type) 
       {typeid(MulOperator), "fmul"},
       {typeid(DivOperator), "fdiv"},
   };
-  if (type == CactBasicType::Int32) {
+  if (type == CactBasicType::Int32)
     return intOpMap.at(typeid(op));
-  } else {
+  else
     return floatOpMap.at(typeid(op));
-  }
 }
 
 LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::evaluationCodeGen(std::shared_ptr<CactExpr> expr) {
-  assert(!expr->isConstant());
-  if (expr->isBinaryExpression()) {
-    auto lhs = evaluationCodeGen(expr->left_expr);
-    auto rhs = evaluationCodeGen(expr->right_expr);
-    const auto &lhsReg = lhs.resultName;
-    const auto &rhsReg = rhs.resultName;
+  if (expr == nullptr)
+    return {};
+  if (expr->isConstant()) {
+    return {
+        .code = "",
+        .result = std::visit([](auto &&arg) {
+          return std::to_string(arg);
+        }, expr->getConstantValue())
+    };
+  } else if (expr->isBinaryExpression()) {
+    const auto &lhs = evaluationCodeGen(expr->left_expr);
+    const auto &rhs = evaluationCodeGen(expr->right_expr);
+    const auto &lhsReg = lhs.result;
+    const auto &rhsReg = rhs.result;
     const auto &op = expr->binary_operator;
-    if (auto idxOp = std::dynamic_pointer_cast<IndexOperator>(op)) {
-      const auto &arrayReg = lhsReg;
-      const auto &indexReg = rhsReg;
-      const auto &resultReg = temporaryName(temporaryID++);
-      assert(expr->right_expr->resultBasicType() == CactBasicType::Int32);
-      return {.code =
-      lhs.code + rhs.code
-          + std::format("%{} = getelementptr inbounds {}, {}* %{}, i32 %{}\n",
-                        resultReg,
-                        basicTypeString(expr->left_expr->resultBasicType()),
-                        basicTypeString(expr->right_expr->resultBasicType()),
-                        arrayReg,
-                        indexReg),
-          .resultName = resultReg};
+    const auto &resultReg = assignReg();
+    return {
+        .code = lhs.code + rhs.code
+            + std::format("%{} = {} {} %{}, %{}\n",
+                          resultReg,
+                          binaryToLLVMOp(*op, expr->resultBasicType()),
+                          basicTypeString(expr->resultBasicType()),
+                          lhsReg, rhsReg),
+        .result = resultReg
+    };
+  } else if (expr->isVariable()) {
+    return variableEvaluationCodeGen(expr->variable);
+  } else if (expr->isFunctionCall()) {
+    const auto &func = expr->function;
+    const auto &args = expr->args;
+    std::string argList;
+    for (size_t i = 0; i < args.size(); ++i) {
+      const auto &arg = args[i];
+      const auto &argReg = evaluationCodeGen(arg).result;
+      argList += std::format("{} %{}", basicTypeString(arg->resultBasicType()), argReg);
+      if (i != args.size() - 1)
+        argList += ", ";
     }
-    return {.code =
-    lhs.code + rhs.code
-        + std::format("%{} = {} {} {}, {}\n",
-                      temporaryName(temporaryID++),
-                      binaryToLLVMOp(*op, expr->resultBasicType()),
-                      basicTypeString(expr->resultBasicType()),
-                      lhsReg,
-                      rhsReg),
-        .resultName = temporaryName(temporaryID++)
+    const auto &resultReg = temporaryName(temporaryID++);
+    return {
+        .code = std::format("%{} = call {} @{}({})\n",
+                            resultReg,
+                            basicTypeString(func->return_type),
+                            func->name,
+                            argList),
+        .result = resultReg
+    };
+  }
+
+  if (expr->isUnaryExpression()) {
+    const auto &unaryOp = expr->unary_operator;
+    const auto &operand = evaluationCodeGen(expr->expr);
+    const auto &operandReg = operand.result;
+    const auto &resultReg = temporaryName(temporaryID++);
+    return {
+        .code = operand.code
+            + std::format("%{} = {} {} %{}\n",
+                          resultReg,
+                          unaryOp->unaryOpString(),
+                          basicTypeString(expr->resultBasicType()),
+                          operandReg),
+        .result = resultReg
     };
   }
   throw std::runtime_error("unsupported expression type");
 }
 
+void LLVMIRGenerator::allocateVariable(std::shared_ptr<CactConstVar> var, const std::string &newName) {
+  // Handle array type variables
+  if (var->type.isArray()) {
+    irCodeStream << std::format("%{} = alloca {} {}\n", address(newName),
+                                basicTypeString(var->type.basic_type),
+                                var->type.size());
+
+    if (var->isInitialized()) {
+      for (size_t i = 0; i < var->init_values.size(); ++i) {
+        const auto &ptrReg = temporaryName(temporaryID++);
+        irCodeStream << std::format("%{} = getelementptr {} {}, {}* {}, i32 {}\n",
+                                    ptrReg,
+                                    basicTypeString(var->type.basic_type),
+                                    basicTypeString(var->type.basic_type),
+                                    address(newName),
+                                    i);
+        const auto &initValStr = std::visit([](auto &&arg) {
+          return std::to_string(arg);
+        }, var->init_values[i]);
+        irCodeStream << std::format("store {} {}, {}* %{}\n",
+                                    basicTypeString(var->type.basic_type),
+                                    initValStr,
+                                    basicTypeString(var->type.basic_type),
+                                    ptrReg);
+      }
+    }
+  } else {
+    // handle scalar type variables
+    irCodeStream << std::format("%{} = alloca {}\n", address(newName),
+                                basicTypeString(var->type.basic_type));
+    if (var->isInitialized()) {
+      const auto &initValStr = std::visit([](auto &&arg) {
+        return std::to_string(arg);
+      }, var->init_values.at(0));
+      irCodeStream << std::format("store {} {}, {}* %{}\n",
+                                  basicTypeString(var->type.basic_type),
+                                  initValStr,
+                                  basicTypeString(var->type.basic_type),
+                                  address(newName));
+    }
+  }
+}
+
 void LLVMIRGenerator::allocateLocalVariables(CactParser::BlockContext *block, int depth) {
+  // Process variable declarations in the current block
   for (auto item : block->blockItem())
     if (auto decl = item->declaration())
-      if (auto varDecl = decl->variableDeclaration()) {
-        for (auto varDef : varDecl->variableDefinition()) {
-          const auto &originalName = varDef->Identifier()->getText();
-          const auto &newName = renameLocalIdentifier(originalName, block);
-          irCodeStream << std::format("{} = alloca {}\n", address(newName), basicTypeString(varDef->need_type));
+      if (auto varDecl = decl->variableDeclaration())
+        for (auto varDef : varDecl->variableDefinition())
+          allocateVariable(varDef->variable, rename(varDef->variable));
 
-        }
-      }
-
+  // Recursively handle nested blocks
   for (auto item : block->blockItem())
     if (auto stmt = item->statement())
       if (auto nestedBlock = stmt->block())
@@ -268,6 +344,92 @@ void LLVMIRGenerator::allocateLocalVariables(CactParser::BlockContext *block, in
 
 void LLVMIRGenerator::allocateLocalVariables(CactParser::BlockContext *block) {
   allocateLocalVariables(block, 0);
+}
+
+LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::indexOpCodeGen(std::shared_ptr<CactExpr> lhs,
+                                                                         std::shared_ptr<CactExpr> rhs,
+                                                                         IndexResolvingMode mode) {
+  assert(lhs->isVariable());
+  assert(rhs->resultBasicType() == CactBasicType::Int32);
+  auto fetchStart = fetchAddressCodeGen(lhs);
+  auto idxEval = evaluationCodeGen(rhs);
+  const auto &startReg = fetchStart.result;
+  const auto &idxReg = idxEval.result;
+
+  const auto &ptrReg = assignReg();
+
+  const auto &gepInst = std::format("%{} = getelementptr {}, {}* %{}, i32 %{}\n",
+                                    ptrReg,
+                                    basicTypeString(lhs->resultBasicType()),
+                                    basicTypeString(rhs->resultBasicType()),
+                                    startReg,
+                                    idxReg);
+
+  if (mode == Address)
+    return {.code = fetchStart.code + idxEval.code + gepInst,
+        .result = ptrReg};
+  else if (mode == Value) {
+    const auto &loadReg = assignReg();
+    return {.code = fetchStart.code + idxEval.code + gepInst
+        + std::format("%{} = load {}, {}* %{}\n",
+                      loadReg,
+                      basicTypeString(lhs->resultBasicType()),
+                      basicTypeString(lhs->resultBasicType()),
+                      ptrReg),
+        .result = loadReg};
+  } else
+    throw std::runtime_error("unsupported mode");
+}
+
+// when this is visited, it must be global variable/constant
+std::any LLVMIRGenerator::visitDeclaration(CactParser::DeclarationContext *ctx) {
+  if (auto varDecl = ctx->variableDeclaration()) {
+    for (auto varDef : varDecl->variableDefinition()) {
+      const auto &var = varDef->variable;
+      assert(registry->isGlobal(var));
+      irCodeStream << std::format("@{} = global {} {}\n",
+                                  var->name,
+                                  basicTypeString(var->type.basic_type),
+                                  var->isInitialized() ? std::visit([](auto &&arg) {
+                                    return std::to_string(arg);
+                                  }, var->init_values.at(0)) : "");
+    }
+  }
+  return {};
+}
+
+LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::fetchAddressCodeGen(std::shared_ptr<CactExpr> expr) {
+  assert(expr->isVariable());
+  const auto &var = expr->variable;
+  if (!var->indexing_times) {
+    return {
+        .code = "",
+        .result = addressOf(var->symbol)
+    };
+  }
+  const auto &indexEval = evaluationCodeGen(var->offset);
+  const auto &indexReg = indexEval.result;
+  const auto &ptrReg = assignReg();
+  const auto &gepInst = std::format("%{} = getelementptr {}, {}* {}, i32 {}\n",
+                                    ptrReg,
+                                    basicTypeString(var->symbol->type.basic_type),
+                                    basicTypeString(var->offset->resultBasicType()),
+                                    addressOf(var->symbol),
+                                    indexReg);
+  return {
+      .code = indexEval.code + gepInst,
+      .result = ptrReg
+  };
+}
+LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::variableEvaluationCodeGen(std::shared_ptr<CactConstVarArray> var) {
+  const auto &regName = assignReg();
+  return {
+      .code = std::format("%{} = load {}, {}\n",
+                          regName,
+                          basicTypeString(var->symbol->type.basic_type),
+                          addressOf(var->symbol)),
+      .result = regName
+  };
 }
 
 }

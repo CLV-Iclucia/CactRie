@@ -6,6 +6,7 @@
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H
 #include <cassert>
 #include <memory>
+#include <functional>
 namespace cactfrontend {
 template<typename T>
 class observer_ptr {
@@ -43,4 +44,12 @@ observer_ptr<T> make_observer(T *ptr) {
 
 }
 
+namespace std {
+template<typename T>
+struct hash<cactfrontend::observer_ptr<T>> {
+size_t operator()(const cactfrontend::observer_ptr<T> &ptr) const {
+  return hash<T*>{}(ptr.get());
+}
+};
+}
 #endif //CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H

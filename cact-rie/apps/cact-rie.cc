@@ -8,47 +8,33 @@
 #include <antlr-runtime/ANTLRInputStream.h>
 #include <antlr-runtime/CommonTokenStream.h>
 #include <cxxopts.hpp>
+#include <cact-front-end/ir-generator.h>
 // declarations
 // extern bool lexical_syntax_analysis(antlr4::tree::ParseTree * &tree, std::ifstream &stream, std::string source_file_name);
 // extern bool semantic_analysis(antlr4::tree::ParseTree *tree);
 
-auto parseArgs(int argc, char *argv[]) {
-  cxxopts::Options options(argv[0], "Cact frontend compiler");
+auto configOptions(char *argv[]) {
+  cxxopts::Options options(argv[0], "Cact compiler, your best tsundere girlfriend!");
   options.add_options()
-      ("h,help", "Print usage")
-      ("i,input", "Input file", cxxopts::value<std::string>());
-  auto result = options.parse(argc, argv);
-  if (result.count("help")) {
-    std::cout << options.help() << std::endl;
-    exit(0);
-  }
-  if (!result.count("input")) {
-    std::cerr << "Input file is required" << std::endl;
-    std::cout << options.help() << std::endl;
-    exit(1);
-  }
-  return result;
+      ("emit-llvm", "Emit LLVM IR", cxxopts::value<bool>()->default_value("true"))
+      ("h,help", "Print help");
+  options.allow_unrecognised_options();
+  return options;
 }
 
-int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " <input file>" << std::endl;
-    return 1;
-  }
-  
-  std::ifstream stream(argv[1]);
+int compileToLLVM(const std::filesystem::path& file) {
+  std::ifstream stream(file);
   if (!stream) {
-    std::cerr << "Failed to open file: " << argv[1] << std::endl;
+    std::cerr << "Failed to open file: " << file << std::endl;
     return 1;
   }
 
   // print the source file's content
-  std::ifstream streamCopy(argv[1]);
+  std::ifstream streamCopy(file);
   std::cout << "Source file content:" << std::endl;
   std::cout << streamCopy.rdbuf() << std::endl;
 
-
-  antlr4::tree::ParseTree * tree;
+  antlr4::tree::ParseTree *tree;
 
   antlr4::ANTLRInputStream input(stream);
   cactfrontend::CactLexer lexer(&input);
@@ -57,7 +43,7 @@ int main(int argc, char *argv[]) {
   lexer.removeErrorListeners();
   parser.removeErrorListeners();
 
-  cactfrontend::CactSyntaxErrorListener cact_error_listener(argv[1]);
+  cactfrontend::CactSyntaxErrorListener cact_error_listener(file);
   lexer.addErrorListener(&cact_error_listener);
   parser.addErrorListener(&cact_error_listener);
 
@@ -80,15 +66,12 @@ int main(int argc, char *argv[]) {
 
   // call function to perform semantic analysis
 
-
-  cactfrontend::SymbolRegistrationErrorCheckVisitor visitor;
-
   // check if there is any syntax error
-  cactfrontend::SymbolRegistrationErrorCheckVisitor visitor_pass1;
+  cactfrontend::SymbolRegistrationErrorCheckVisitor symbolRegistrationVisitor;
 
   // check if there is any semantic error
   try {
-    visitor_pass1.visit(tree);
+    symbolRegistrationVisitor.visit(tree);
     std::cout << "Semantic check completed." << std::endl;
   }
   catch (const std::exception &ex) {
@@ -97,11 +80,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  auto visitor_pass2 = cactfrontend::ConstEvalVisitor(visitor_pass1.registry);
+  auto constEvalVisitor = cactfrontend::ConstEvalVisitor(symbolRegistrationVisitor.registry);
 
   // evaluate constant expression and generate expression tree in the tree nodes
   try {
-    visitor_pass2.visit(tree);
+    constEvalVisitor.visit(tree);
     std::cout << "Expression generation completed." << std::endl;
   }
   catch (const std::exception &ex) {
@@ -110,6 +93,49 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-
+  auto srcFileName = file.stem().string();
+  auto irCodeStream = std::ofstream(srcFileName + ".ll");
+  auto llvmIRGenerator = cactfrontend::LLVMIRGenerator(std::cout, srcFileName, symbolRegistrationVisitor.registry);
+  try {
+    llvmIRGenerator.visit(tree);
+    std::cout << "IR generation completed." << std::endl;
+  }
+  catch (const std::exception &ex) {
+    std::cerr << "IR generation failed." << std::endl;
+    std::cerr << ex.what() << std::endl;
+    return 1;
+  }
   return 0;
+}
+
+int main(int argc, char *argv[]) {
+
+  auto options = configOptions(argv);
+  auto args = options.parse(argc, argv);
+  if (args.count("help")) {
+    std::cout << options.help() << std::endl;
+    return 0;
+  }
+  const auto& unmatched = args.unmatched();
+
+  if (unmatched.empty()) {
+    std::cerr << "Please provide a source file." << std::endl;
+    return 1;
+  }
+
+  if (unmatched.size() > 1) {
+    std::cerr << "Please provide only one source file." << std::endl;
+    return 1;
+  }
+
+  if (!args["emit-llvm"].as<bool>())
+    return 0;
+
+  std::cout << "Compiling " << unmatched[0] << std::endl;
+  std::filesystem::path sourceFilePath(unmatched[0]);
+  if (!std::filesystem::exists(sourceFilePath)) {
+    std::cerr << "Source file does not exist." << std::endl;
+    return 1;
+  }
+  return compileToLLVM(sourceFilePath);
 }

@@ -7,7 +7,7 @@
 
 #include <functional>
 #include <vector>
-namespace llvm::mystl {
+namespace mystl {
 template<typename T>
 struct hash {};
 
@@ -23,8 +23,8 @@ template<typename T, typename U>
 struct hash<std::pair<T, U>> {
   size_t operator()(const std::pair<T, U> &pair) const {
     size_t seed = 0;
-    llvm::mystl::hash_combine(seed, pair.first);
-    llvm::mystl::hash_combine(seed, pair.second);
+    mystl::hash_combine(seed, pair.first);
+    mystl::hash_combine(seed, pair.second);
     return seed;
   }
 };
@@ -34,7 +34,7 @@ struct hash<std::vector<T>> {
   size_t operator()(const std::vector<T> &vec) const {
     size_t seed = 0;
     for (const auto &elem : vec) {
-      llvm::mystl::hash_combine(seed, elem);
+      mystl::hash_combine(seed, elem);
     }
     return seed;
   }

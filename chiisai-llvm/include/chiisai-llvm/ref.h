@@ -6,6 +6,7 @@
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_REF_H
 #include <chiisai-llvm/mystl/observer_ptr.h>
 #include <chiisai-llvm/mystl/castings.h>
+#include <chiisai-llvm/mystl/ref_counted.h>
 #include <chiisai-llvm/mystl/not_null.h>
 namespace llvm {
 
@@ -14,6 +15,9 @@ using Ref = mystl::observer_ptr<T>;
 
 template<typename T>
 using CRef = mystl::observer_ptr<const T>;
+
+template<typename T>
+using Rc = mystl::ref_counted<T>;
 
 template<typename T>
 Ref<T> makeRef(T &t) {
