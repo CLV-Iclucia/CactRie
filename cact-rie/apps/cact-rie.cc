@@ -98,6 +98,7 @@ int compileToLLVM(const std::filesystem::path& file) {
   auto llvmIRGenerator = cactfrontend::LLVMIRGenerator(std::cout, srcFileName, symbolRegistrationVisitor.registry);
   try {
     llvmIRGenerator.visit(tree);
+    irCodeStream.close();
     std::cout << "IR generation completed." << std::endl;
   }
   catch (const std::exception &ex) {

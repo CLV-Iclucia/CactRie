@@ -18,6 +18,7 @@ Call: 'call';
 Load: 'load';
 Store: 'store';
 Alloca: 'alloca';
+GetElementPtr: 'getelementptr';
 Phi: 'phi';
 Add: 'add';
 Sub: 'sub';

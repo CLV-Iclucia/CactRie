@@ -15,7 +15,7 @@ namespace cactfrontend {
 // CactType constEvalResultType(const ConstEvalResult value);
 
 // get the basic type of the variant
-CactBasicType constEvalResultBasicType(const ConstEvalResult value);
+CactBasicType constEvalResultBasicType(ConstEvalResult value);
 
 // // get the value of the variant
 // inline std::optional<bool> conditionEvalResult(const ConstEvalResult value);
@@ -23,16 +23,16 @@ CactBasicType constEvalResultBasicType(const ConstEvalResult value);
 
 struct OperandTypeChecker {
   const std::string error_message;
-  const std::set<CactBasicType> valid_oprand_types;
+  const std::set<CactBasicType> valid_operand_types;
 
   // constructor
-  explicit OperandTypeChecker(const std::string _error_message, const std::set<CactBasicType> _valid_oprand_types) :
-      error_message(_error_message), valid_oprand_types(_valid_oprand_types) {}
+  explicit OperandTypeChecker(const std::string& _error_message, const std::set<CactBasicType> _valid_oprand_types) :
+      error_message(_error_message), valid_operand_types(_valid_oprand_types) {}
 
   // type check
   [[nodiscard]]
   bool inValidSet(const CactBasicType _basic_type) const {
-    return valid_oprand_types.contains(_basic_type);
+    return valid_operand_types.contains(_basic_type);
   }
 };
 
@@ -74,7 +74,7 @@ struct Operator {
 
   [[nodiscard]]
   std::set<CactBasicType> getValidOperandTypes() const {
-    return operand_type_checker->valid_oprand_types;
+    return operand_type_checker->valid_operand_types;
   }
 
 private:
@@ -82,10 +82,12 @@ private:
   const OperandTypeChecker *operand_type_checker;
 };
 
+struct CactExpr;
+
 struct UnaryOperator : Operator {
   explicit UnaryOperator() : Operator(CactOperatorType::UnaryNop, &operand_checker_all) {}
-  explicit UnaryOperator(CactOperatorType __op_type, const OperandTypeChecker *__op_checker) : Operator(__op_type,
-                                                                                                        __op_checker) {}
+  explicit UnaryOperator(CactOperatorType _op_type, const OperandTypeChecker *_op_checker) : Operator(_op_type,
+                                                                                                      _op_checker) {}
 
   [[nodiscard]]
   virtual std::optional<ConstEvalResult> unaryConstCheck(const ConstEvalResult x) const = 0;
@@ -148,7 +150,7 @@ struct LogicalNotOperator : UnaryOperator {
 
 struct BinaryOperator : Operator {
   BinaryOperator(CactOperatorType _op_type, const OperandTypeChecker *_op_checker) : Operator(_op_type,
-                                                                                                _op_checker) {}
+                                                                                              _op_checker) {}
 
   [[nodiscard]]
   virtual std::optional<ConstEvalResult> binaryConstCheck(const ConstEvalResult lhs,
@@ -171,6 +173,9 @@ struct BinaryOperator : Operator {
     if (isValidOperandDataType(xType)) {
       return xType == constEvalResultBasicType(y);
     }
+    return false;
+  }
+  virtual bool isConditional() const {
     return false;
   }
 };
@@ -282,6 +287,9 @@ struct LogicalOrOperator : BinaryOperator {
     default: return std::nullopt;
     }
   }
+  [[nodiscard]] bool isConditional() const override {
+    return true;
+  }
 };
 
 struct LogicalAndOperator : BinaryOperator {
@@ -295,6 +303,9 @@ struct LogicalAndOperator : BinaryOperator {
     case CactBasicType::Bool: return {std::get<bool>(lhs) && std::get<bool>(rhs)};
     default: return std::nullopt;
     }
+  }
+  [[nodiscard]] bool isConditional() const override {
+    return true;
   }
 };
 
@@ -312,6 +323,9 @@ struct LessOperator : BinaryOperator {
     default: return std::nullopt;
     }
   }
+  [[nodiscard]] bool isConditional() const override {
+    return true;
+  }
 };
 
 struct GreaterOperator : BinaryOperator {
@@ -327,6 +341,9 @@ struct GreaterOperator : BinaryOperator {
     case CactBasicType::Double: return {std::get<double>(lhs) > std::get<double>(rhs)};
     default: return std::nullopt;
     }
+  }
+  [[nodiscard]] bool isConditional() const override {
+    return true;
   }
 };
 
@@ -344,6 +361,9 @@ struct LessEqualOperator : BinaryOperator {
     default: return std::nullopt;
     }
   }
+  [[nodiscard]] bool isConditional() const override {
+    return true;
+  }
 };
 
 struct GreaterEqualOperator : BinaryOperator {
@@ -359,6 +379,9 @@ struct GreaterEqualOperator : BinaryOperator {
     case CactBasicType::Double: return {std::get<double>(lhs) >= std::get<double>(rhs)};
     default: return std::nullopt;
     }
+  }
+  [[nodiscard]] bool isConditional() const override {
+    return true;
   }
 };
 
@@ -377,6 +400,9 @@ struct EqualOperator : BinaryOperator {
     default: return std::nullopt;
     }
   }
+  [[nodiscard]] bool isConditional() const override {
+    return true;
+  }
 };
 
 struct NotEqualOperator : BinaryOperator {
@@ -393,6 +419,9 @@ struct NotEqualOperator : BinaryOperator {
     case CactBasicType::Bool: return {std::get<bool>(lhs) != std::get<bool>(rhs)};
     default: return std::nullopt;
     }
+  }
+  [[nodiscard]] bool isConditional() const override {
+    return true;
   }
 };
 

@@ -52,7 +52,9 @@ struct CactExpr {
   [[nodiscard]] bool isFunctionCall()     const { return expr_type == ExprType::FunctionCall; }
   [[nodiscard]] bool isUnaryExpression()  const { return expr_type == ExprType::UnaryExpression; }
   [[nodiscard]] bool isBinaryExpression() const { return expr_type == ExprType::BinaryExpression; }
-
+  [[nodiscard]] bool isConditional() const {
+    return isBinaryExpression() && binary_operator->isConditional();
+  }
   // set up this struct for variable or constant
   void setVariable(std::shared_ptr<CactConstVarArray> _variable);
   void setConstant(ConstEvalResult _const_value);
@@ -117,6 +119,7 @@ struct CactBinaryExpr : CactExpr {
 struct CactConstVarArray {
   std::shared_ptr<CactConstVar> symbol;
   std::shared_ptr<CactExpr> offset;
+  std::shared_ptr<CactExpr> flattenedIndex;
   uint32_t indexing_times; // 0 means not indexed, 1 means indexed once, etc.
 
   // constructor

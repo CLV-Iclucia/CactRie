@@ -150,7 +150,9 @@ struct SymbolRegistry {
     return result;
   }
 
-  bool isGlobal(std::shared_ptr<CactConstVar> var) {
+  bool isGlobal(const std::shared_ptr<CactConstVar>& var) {
+    if (!globalScope->findVarLocal(var->name))
+      return false;
     auto globalVar = globalScope->getVariable(var->name);
     return globalVar == var;
   }

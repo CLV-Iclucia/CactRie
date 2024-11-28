@@ -1,6 +1,7 @@
 //
 // Created by creeper on 11/25/24.
 //
+#include <iostream>
 #include <cact-front-end/cact-expr.h>
 
 namespace cactfrontend {
@@ -36,6 +37,38 @@ void CactConstVarArray::setOffsetByIndices() {
       expr_tmp_ptr = std::make_shared<CactExpr>((int32_t) (this->symbol->type.size(i)));
       expr_tmp_ptr = std::make_shared<CactBinaryExpr>(std::make_shared<MulOperator>(), indices[i], expr_tmp_ptr);
       offset = std::make_shared<CactBinaryExpr>(std::make_shared<AddOperator>(), offset, expr_tmp_ptr);
+    }
+  }
+
+  int32_t const_flattened_idx = 0;
+  for (int i = 0; i < this->indexing_times; i++) {
+    // indexing times might be less than the dimension of the array
+    if (this->indexing_times <= i) {
+      break;
+    }
+
+    if (indices[i]->isConstant()) {
+      assert(symbol->type.size(i) % sizeOf(symbol->type.basic_type) == 0);
+      const_flattened_idx += std::get<int32_t>(indices[i]->getConstantValue()) * this->symbol->type.size(i) / sizeOf(this->symbol->type.basic_type);
+    }
+  }
+
+  flattenedIndex = std::make_shared<CactExpr>(const_flattened_idx);
+
+  // calculate non-constant offset
+  std::shared_ptr<CactExpr> expr_ptr_flattened;
+
+  for (int i = 0; i < this->indexing_times; i++) {
+    // indexing times might be less than the dimension of the array
+    if (this->indexing_times <= i) {
+      break;
+    }
+
+    if (!indices[i]->isConstant()) {
+      assert(symbol->type.size(i) % sizeOf(symbol->type.basic_type) == 0);
+      expr_ptr_flattened = std::make_shared<CactExpr>(ConstEvalResult{(int32_t)(symbol->type.size(i) / sizeOf(symbol->type.basic_type))});
+      expr_ptr_flattened = std::make_shared<CactBinaryExpr>(std::make_shared<MulOperator>(), indices[i], expr_ptr_flattened);
+      flattenedIndex = std::make_shared<CactBinaryExpr>(std::make_shared<AddOperator>(), offset, expr_ptr_flattened);
     }
   }
 }

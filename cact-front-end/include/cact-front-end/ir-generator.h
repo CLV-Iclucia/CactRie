@@ -15,8 +15,8 @@ namespace cactfrontend {
 
 struct LocalIdentifierMangler {
   std::unordered_map<observer_ptr<Scope>, size_t> scopeIDMap{};
-  std::string rename(std::shared_ptr<CactConstVar> var) {
-    const auto& name = var->name;
+  std::string rename(const std::shared_ptr<CactConstVar>& var) {
+    const auto &name = var->name;
     auto scope = var->scope;
     if (!scopeIDMap.contains(scope))
       scopeIDMap[scope] = scopeIDMap.size();
@@ -36,13 +36,14 @@ struct LLVMIRGenerator final : public CactBaseVisitor {
   explicit LLVMIRGenerator(std::ostream &os, const std::string &name, std::shared_ptr<SymbolRegistry> registry)
       : irCodeStream(os), moduleName(name), registry(std::move(registry)) {}
 
-  // visit a compilation unit
+  void declareExternalFunctions();
   std::any visitCompilationUnit(CactParser::CompilationUnitContext *ctx) override {
     // output the module name
     irCodeStream << "; ModuleID = '"
                  << "'\nsource_filename = \""
                  << moduleName
                  << ".cact\"\n";
+    declareExternalFunctions();
     for (auto &child : ctx->children)
       visit(child);
     return {};
@@ -60,7 +61,7 @@ struct LLVMIRGenerator final : public CactBaseVisitor {
 
 private:
 
-  void allocateVariable(std::shared_ptr<CactConstVar> var, const std::string &newName);
+  void allocateVariable(const std::shared_ptr<CactConstVar> &var, const std::string &newName);
 
   void allocateLocalVariables(CactParser::BlockContext *block);
 
@@ -71,14 +72,13 @@ private:
     std::string result;
   };
 
-  enum IndexResolvingMode {
-    Address,
-    Value
-  };
-
-  EvaluationCodegenResult fetchAddressCodeGen(std::shared_ptr<CactExpr> expr);
-  EvaluationCodegenResult evaluationCodeGen(std::shared_ptr<CactExpr> expr);
-  EvaluationCodegenResult indexOpCodeGen(std::shared_ptr<CactExpr> lhs, std::shared_ptr<CactExpr> rhs, IndexResolvingMode);
+  EvaluationCodegenResult fetchAddressCodeGen(const std::shared_ptr<CactExpr> &expr);
+  EvaluationCodegenResult evaluationCodeGen(const std::shared_ptr<CactExpr> &expr);
+  EvaluationCodegenResult arithmeticBinaryOpCodeGen(const std::shared_ptr<CactExpr> &expr);
+  EvaluationCodegenResult logicalBinaryOpCodeGen(const std::shared_ptr<CactExpr> &expr);
+  EvaluationCodegenResult unaryOpCodegen(const std::shared_ptr<CactExpr> &unary);
+  EvaluationCodegenResult functionCallCodegen(const std::shared_ptr<CactExpr> &expr);
+  LLVMIRGenerator::EvaluationCodegenResult variableEvaluationCodeGen(const std::shared_ptr<CactExpr> &SharedPtr);
   static std::string basicTypeString(const CactBasicType &type) {
     static std::map<CactBasicType, std::string> typeMap = {
         {CactBasicType::Int32, "i32"},
@@ -94,9 +94,9 @@ private:
   // nullopt: cannot reduce
   // nullptr: reduce to empty statement, this while can be removed
   // statement: the statement to replace the while loop
-  std::optional<CactParser::StatementContext *> reduceWhileLoop(CactParser::WhileStatementContext *ctx);
+  static std::optional<CactParser::StatementContext *> reduceWhileLoop(CactParser::WhileStatementContext *ctx);
 
-  // nullopt: cannot reduce
+  // nullptr: cannot reduce
   // nullptr: reduce to empty statement, this if can be removed
   // statement: the statement to replace the if statement
   std::optional<CactParser::StatementContext *> reduceIfBranch(CactParser::IfStatementContext *ctx);
@@ -111,7 +111,7 @@ private:
   }
 
   std::string assignReg() {
-    return temporaryName(temporaryID++);
+    return "%" + temporaryName(temporaryID++);
   }
 
   int temporaryID = 0;
@@ -122,7 +122,6 @@ private:
   std::string moduleName;
   std::shared_ptr<SymbolRegistry> registry{};
   std::string returnStatementIRGen(const std::string &labelPrefix, CactParser::ReturnStatementContext *ctx);
-  LLVMIRGenerator::EvaluationCodegenResult variableEvaluationCodeGen(std::shared_ptr<CactConstVarArray> SharedPtr);
 };
 
 }
