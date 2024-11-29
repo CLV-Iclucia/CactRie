@@ -38,11 +38,7 @@ struct LLVMIRGenerator final : public CactBaseVisitor {
 
   void declareExternalFunctions();
   std::any visitCompilationUnit(CactParser::CompilationUnitContext *ctx) override {
-    // output the module name
-    irCodeStream << "; ModuleID = '"
-                 << "'\nsource_filename = \""
-                 << moduleName
-                 << ".cact\"\n";
+    irCodeStream << std::format("; ModuleID = '{}'\nsource_filename = \"{}.cact\"\n", moduleName, moduleName);
     declareExternalFunctions();
     for (auto &child : ctx->children)
       visit(child);
@@ -104,7 +100,7 @@ private:
     return localIdentifierMangler.rename(var);
   }
   std::string addressOf(std::shared_ptr<CactConstVar> var) {
-    return registry->isGlobal(var) ? "@" : "%" + rename(var);
+    return registry->isGlobal(var) ? "@" + var->name : "%" + rename(var);
   }
   std::string temporaryName(int id) {
     return std::to_string(id);
@@ -122,6 +118,10 @@ private:
   std::string moduleName;
   std::shared_ptr<SymbolRegistry> registry{};
   std::string returnStatementIRGen(const std::string &labelPrefix, CactParser::ReturnStatementContext *ctx);
+  void initializeArray(const std::string &name, const CactType &type, const std::vector<ConstEvalResult> &initValues);
+  void emitStore(const std::string &dest, const CactType &type, const std::string &value);
+  void emitAlloca(const std::string &name, const CactType &type, size_t arraySize);
+  void emitGlobalVariable(const std::shared_ptr<CactConstVar> &var, bool isConstant);
 };
 
 }
