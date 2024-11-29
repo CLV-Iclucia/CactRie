@@ -53,8 +53,12 @@ struct CactExpr {
   [[nodiscard]] bool isFunctionCall()     const { return expr_type == ExprType::FunctionCall; }
   [[nodiscard]] bool isUnaryExpression()  const { return expr_type == ExprType::UnaryExpression; }
   [[nodiscard]] bool isBinaryExpression() const { return expr_type == ExprType::BinaryExpression; }
-  [[nodiscard]] bool isConditional() const {
-    return isBinaryExpression() && binary_operator->isConditional();
+  [[nodiscard]] bool isPredicate() const {
+    return isBinaryExpression() && binary_operator->isPredicate();
+  }
+  [[nodiscard]] bool isLogicalOp() const {
+    return isBinaryExpression() && (std::dynamic_pointer_cast<LogicalAndOperator>(binary_operator) ||
+                                    std::dynamic_pointer_cast<LogicalOrOperator>(binary_operator));
   }
   // set up this struct for variable or constant
   void setVariable(std::shared_ptr<CactConstVarArray> _variable);

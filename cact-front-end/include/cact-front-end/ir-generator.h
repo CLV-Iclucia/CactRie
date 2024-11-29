@@ -71,7 +71,7 @@ private:
   EvaluationCodegenResult fetchAddressCodeGen(const std::shared_ptr<CactExpr> &expr);
   EvaluationCodegenResult evaluationCodeGen(const std::shared_ptr<CactExpr> &expr);
   EvaluationCodegenResult arithmeticBinaryOpCodeGen(const std::shared_ptr<CactExpr> &expr);
-  EvaluationCodegenResult logicalBinaryOpCodeGen(const std::shared_ptr<CactExpr> &expr);
+  EvaluationCodegenResult predicateBinaryOpCodeGen(const std::shared_ptr<CactExpr> &expr);
   EvaluationCodegenResult unaryOpCodegen(const std::shared_ptr<CactExpr> &unary);
   EvaluationCodegenResult functionCallCodegen(const std::shared_ptr<CactExpr> &expr);
   LLVMIRGenerator::EvaluationCodegenResult variableEvaluationCodeGen(const std::shared_ptr<CactExpr> &SharedPtr);

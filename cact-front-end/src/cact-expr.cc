@@ -96,12 +96,8 @@ void CactConstVarArray::setOffsetByIndices() {
     if (!indices[i]->isConstant()) {
       assert(this->symbol->type.size(i + 1) % sizeOf(this->symbol->type.basic_type) == 0);
       assert(this->symbol->type.size(i) % sizeOf(this->symbol->type.basic_type) == 0);
-      std::shared_ptr<CactExpr> expr_tmp_ptr = std::make_shared<CactExpr>((int32_t) (this->symbol->type.size(i + 1) /
-          sizeOf(this->symbol->type.basic_type)));
+      std::shared_ptr<CactExpr> expr_tmp_ptr = std::make_shared<CactExpr>((int32_t) (this->symbol->type.size(i + 1) / sizeOf(this->symbol->type.basic_type)));
       expr_tmp_ptr = std::make_shared<CactBinaryExpr>(std::make_shared<MulOperator>(), indices[i], expr_tmp_ptr);
-      expr_tmp_ptr = std::make_shared<CactBinaryExpr>(std::make_shared<DivOperator>(), expr_tmp_ptr,
-                                                      std::make_shared<CactExpr>((int32_t) (this->symbol->type.size(i) /
-                                                            sizeOf(this->symbol->type.basic_type))));
       flattenedIndex = std::make_shared<CactBinaryExpr>(std::make_shared<AddOperator>(), flattenedIndex, expr_tmp_ptr);
     }
   }

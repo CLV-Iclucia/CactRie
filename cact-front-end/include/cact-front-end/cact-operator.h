@@ -175,7 +175,7 @@ struct BinaryOperator : Operator {
     }
     return false;
   }
-  virtual bool isConditional() const {
+  virtual bool isPredicate() const {
     return false;
   }
 };
@@ -287,9 +287,6 @@ struct LogicalOrOperator : BinaryOperator {
     default: return std::nullopt;
     }
   }
-  [[nodiscard]] bool isConditional() const override {
-    return true;
-  }
 };
 
 struct LogicalAndOperator : BinaryOperator {
@@ -303,9 +300,6 @@ struct LogicalAndOperator : BinaryOperator {
     case CactBasicType::Bool: return {std::get<bool>(lhs) && std::get<bool>(rhs)};
     default: return std::nullopt;
     }
-  }
-  [[nodiscard]] bool isConditional() const override {
-    return true;
   }
 };
 
@@ -323,7 +317,7 @@ struct LessOperator : BinaryOperator {
     default: return std::nullopt;
     }
   }
-  [[nodiscard]] bool isConditional() const override {
+  [[nodiscard]] bool isPredicate() const override {
     return true;
   }
 };
@@ -342,7 +336,7 @@ struct GreaterOperator : BinaryOperator {
     default: return std::nullopt;
     }
   }
-  [[nodiscard]] bool isConditional() const override {
+  [[nodiscard]] bool isPredicate() const override {
     return true;
   }
 };
@@ -361,7 +355,7 @@ struct LessEqualOperator : BinaryOperator {
     default: return std::nullopt;
     }
   }
-  [[nodiscard]] bool isConditional() const override {
+  [[nodiscard]] bool isPredicate() const override {
     return true;
   }
 };
@@ -380,7 +374,7 @@ struct GreaterEqualOperator : BinaryOperator {
     default: return std::nullopt;
     }
   }
-  [[nodiscard]] bool isConditional() const override {
+  [[nodiscard]] bool isPredicate() const override {
     return true;
   }
 };
@@ -400,7 +394,7 @@ struct EqualOperator : BinaryOperator {
     default: return std::nullopt;
     }
   }
-  [[nodiscard]] bool isConditional() const override {
+  [[nodiscard]] bool isPredicate() const override {
     return true;
   }
 };
@@ -420,7 +414,7 @@ struct NotEqualOperator : BinaryOperator {
     default: return std::nullopt;
     }
   }
-  [[nodiscard]] bool isConditional() const override {
+  [[nodiscard]] bool isPredicate() const override {
     return true;
   }
 };

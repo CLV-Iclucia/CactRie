@@ -48,9 +48,16 @@ static std::string address(const std::string &name) {
 std::string LLVMIRGenerator::addressOf(std::shared_ptr<CactConstVar> var) {
   auto currentFunc = registry->getFunction(currentFunctionName);
   assert(currentFunc);
-  const auto& params = currentFunc->parameters;
-  if (std::find_if(params.begin(), params.end(), [&var](const auto& param) { return param.name == var->name; }) != params.end())
-    return address(var->name);
+  const auto &params = currentFunc->parameters;
+  if (std::find_if(params.begin(), params.end(), [&var](const auto &param) { return param.name == var->name; })
+      != params.end()) {
+    auto param =
+        std::find_if(params.begin(), params.end(), [&var](const auto &param) { return param.name == var->name; });
+    if (param->type.isArray())
+      return "%" + var->name;
+    else
+      return address(var->name);
+  }
   return registry->isGlobal(var) ? "@" + var->name : address(rename(var));
 }
 
@@ -119,7 +126,9 @@ std::any LLVMIRGenerator::visitFunctionDefinition(CactParser::FunctionDefinition
   irCodeStream << "entry:\n";
   for (auto &param : ctx->function->parameters) {
     auto type = param.type;
-    std::string typeStr = basicTypeString(type.basic_type) + (type.isArray() ? "*" : "");
+    if (type.isArray())
+      continue;
+    std::string typeStr = basicTypeString(type.basic_type);
     irCodeStream << std::format("{} = alloca {}\n", address(param.name), typeStr);
     irCodeStream << std::format("store {} %{}, {}* {}\n", typeStr, param.name, typeStr, address(param.name));
   }
@@ -127,10 +136,11 @@ std::any LLVMIRGenerator::visitFunctionDefinition(CactParser::FunctionDefinition
 
   ifID.emplace_back(0);
   whileID.emplace_back(0);
-  for (auto item : funcBody->blockItem()) {
+  for (auto item : funcBody->blockItem())
     if (auto stmt = item->statement())
       irCodeStream << statementIRGen({}, stmt);
-  }
+  if (ctx->function->return_type == CactBasicType::Void)
+    irCodeStream << "ret void\n";
   ifID.pop_back();
   whileID.pop_back();
   irCodeStream << "}\n";
@@ -254,10 +264,17 @@ static std::string binaryToLLVMOp(const BinaryOperator &op, CactBasicType type) 
       {typeid(MulOperator), "fmul"},
       {typeid(DivOperator), "fdiv"},
   };
+  static std::map<std::type_index, std::string> boolOpMap = {
+      {typeid(LogicalAndOperator), "and"},
+      {typeid(LogicalOrOperator), "or"},
+  };
   if (type == CactBasicType::Int32)
     return intOpMap.at(typeid(op));
-  else
+  else if (type == CactBasicType::Float || type == CactBasicType::Double)
     return floatOpMap.at(typeid(op));
+  else if (type == CactBasicType::Bool)
+    return boolOpMap.at(typeid(op));
+  throw std::runtime_error("unsupported binary operator");
 }
 
 static std::string binaryToLLVMPredicate(const BinaryOperator &op, CactBasicType type) {
@@ -317,8 +334,8 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::evaluationCodeGen(cons
         }, expr->getConstantValue())
     };
   } else if (expr->isBinaryExpression()) {
-    if (expr->isConditional())
-      return logicalBinaryOpCodeGen(expr);
+    if (expr->isPredicate())
+      return predicateBinaryOpCodeGen(expr);
     else
       return arithmeticBinaryOpCodeGen(expr);
   } else if (expr->isVariable())
@@ -363,9 +380,8 @@ void LLVMIRGenerator::allocateVariable(const std::shared_ptr<CactConstVar> &var,
     const size_t arraySize = var->type.size() / sizeOf(var->type.basic_type);
     emitAlloca(newName, var->type, arraySize);
 
-    if (var->isInitialized()) {
+    if (var->isInitialized())
       initializeArray(newName, var->type, var->init_values);
-    }
   } else {
     emitAlloca(newName, var->type);
     if (var->isInitialized()) {
@@ -450,7 +466,7 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::fetchAddressCodeGen(co
   const auto &gepInst = std::format("{} = getelementptr {}, {}* {}, i32 {}\n",
                                     ptrReg,
                                     basicTypeString(var->symbol->type.basic_type),
-                                    basicTypeString(var->flattenedIndex->resultBasicType()),
+                                    basicTypeString(var->symbol->type.basic_type),
                                     addressOf(var->symbol),
                                     indexReg);
   return {
@@ -503,9 +519,9 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::arithmeticBinaryOpCode
   };
 }
 
-LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::logicalBinaryOpCodeGen(const std::shared_ptr<CactExpr> &expr) {
+LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::predicateBinaryOpCodeGen(const std::shared_ptr<CactExpr> &expr) {
   auto binaryOp = expr->binary_operator;
-  assert(binaryOp->isConditional());
+  assert(binaryOp->isPredicate());
   auto left = expr->left_expr;
   auto right = expr->right_expr;
   const auto &[leftEvalCode, leftRegName] = evaluationCodeGen(left);
