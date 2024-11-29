@@ -169,11 +169,13 @@ std::string LLVMIRGenerator::statementIRGen(const std::string &labelPrefix, Cact
   } else if (ctx->block()) {
     ifID.emplace_back(0);
     whileID.emplace_back(0);
+    std::string code = "";
     for (auto item : ctx->block()->blockItem())
       if (auto stmt = item->statement())
-        irCodeStream << statementIRGen(labelPrefix, stmt);
+        code += statementIRGen(labelPrefix, stmt);
     ifID.pop_back();
     whileID.pop_back();
+    return code;
   } else
     throw std::runtime_error("unsupported statement type");
   return {};
