@@ -124,10 +124,31 @@ struct CactType {
     return this->basic_type == CactBasicType::Int32 && !isArray();
   }
 
+  // compare two array_dims for equality
+  [[nodiscard]]
+  bool check_array_dims_available(const std::vector<uint32_t> &rhs_array) const {
+    if (this->array_dims.size() != rhs_array.size())
+      return false;
+
+    int num_array_dims = this->array_dims.size();
+    if (num_array_dims == 0)
+      return true;
+
+    int begin_dim = 0;
+    if (this->array_dims[0] == 0 || rhs_array[0] == 0)
+      begin_dim = 1;
+
+    for (int i = begin_dim; i < num_array_dims; i++)
+      if (this->array_dims[i] != rhs_array[i])
+        return false;
+
+    return true;
+  }
+
   // compare two CactType for equality
   [[nodiscard]]
   bool operator==(const CactType &rhs) const {
-    return this->basic_type == rhs.basic_type && this->array_dims == rhs.array_dims;
+    return this->basic_type == rhs.basic_type && this->check_array_dims_available(rhs.array_dims);
   }
 
   // generate string from type

@@ -39,6 +39,12 @@ struct CactConstVar {
     return (this->is_const ? "const " : "") + this->type.toString() + " " + this->name;
   }
 
+  // is constant
+  [[nodiscard]]
+  bool isConstant() const {
+    return this->is_const;
+  }
+
   // check if the variable is initialized
   [[nodiscard]]
   bool isInitialized() const {

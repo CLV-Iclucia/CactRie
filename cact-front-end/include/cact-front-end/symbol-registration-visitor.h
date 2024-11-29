@@ -446,7 +446,7 @@ struct SymbolRegistrationErrorCheckVisitor : public CactParserBaseVisitor {
 
     // an array cannot become a valid left-hand-side value
     visit(left_value_ctx);
-    if (!left_value_ctx->symbol->isModifiableLValue())
+    if (left_value_ctx->symbol->isConstant() || !left_value_ctx->type.validOperandType())
       throw std::runtime_error("expression must be a modifiable lvalue");
 
     // Check type compatibility

@@ -1,0 +1,44 @@
+void really_complex_control_flow_func(int a, double b[][3][3], int c[2], bool d, float g[]) {
+    int e = 114514;
+    float f[2] = {1919.8f, 1.0f};
+    while (true) {
+        if (a < 5) {
+            if (c[1] < 3) {
+                if (a < 2) {
+                    if (d) {
+                        e = 1919;
+                    } else {
+                        e = 810;
+                        break;
+                    }
+                } else {
+                    e = 810;
+                    continue;
+                }
+            } else if (a > 1) {
+                e = 810;
+                f[a] = 810.0f;
+                continue;
+            } else if (false) {
+                g[0] = 114514.0f;
+            }
+        } else {
+            e = 810;
+            break;
+        }
+        a = a + 1;
+        c[a] = e;
+        b[c[a]][a - 1][a * 2] = 1.0;
+    }
+}
+
+int main() {
+    int a = 0;
+    double b[2][3][3] = {{{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}, {7.0, 8.0, 9.0}},
+                         {{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}, {7.0, 8.0, 9.0}}};
+    int c[2] = {1, 2};
+    bool d = true;
+    float e[2] = {1.0f, 2.0f};
+    really_complex_control_flow_func(a, b, c, d, e);
+    return 0;
+}

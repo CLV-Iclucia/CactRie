@@ -6,7 +6,6 @@ deps/*.jar
 cact-front-end/grammar/*.tokens
 cact-front-end/grammar/*.interp
 cact-front-end/autogen
-cact-rie/tests/*
 build
 cact-front-end/grammar/.antlr
 chiisai-llvm/CMakeFiles
