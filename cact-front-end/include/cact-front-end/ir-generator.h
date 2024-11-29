@@ -92,16 +92,14 @@ private:
   // statement: the statement to replace the while loop
   static std::optional<CactParser::StatementContext *> reduceWhileLoop(CactParser::WhileStatementContext *ctx);
 
-  // nullptr: cannot reduce
+  // nullopt: cannot reduce
   // nullptr: reduce to empty statement, this if can be removed
   // statement: the statement to replace the if statement
   std::optional<CactParser::StatementContext *> reduceIfBranch(CactParser::IfStatementContext *ctx);
   std::string rename(std::shared_ptr<CactConstVar> var) {
     return localIdentifierMangler.rename(var);
   }
-  std::string addressOf(std::shared_ptr<CactConstVar> var) {
-    return registry->isGlobal(var) ? "@" + var->name : "%" + rename(var);
-  }
+  std::string addressOf(std::shared_ptr<CactConstVar> var);
   std::string temporaryName(int id) {
     return std::to_string(id);
   }
@@ -117,6 +115,7 @@ private:
   std::ostream &irCodeStream;
   std::string moduleName;
   std::shared_ptr<SymbolRegistry> registry{};
+  std::string currentFunctionName{};
   std::string returnStatementIRGen(const std::string &labelPrefix, CactParser::ReturnStatementContext *ctx);
   void initializeArray(const std::string &name, const CactType &type, const std::vector<ConstEvalResult> &initValues);
   void emitStore(const std::string &dest, const CactType &type, const std::string &value);

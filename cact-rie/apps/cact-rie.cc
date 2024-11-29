@@ -95,7 +95,7 @@ int compileToLLVM(const std::filesystem::path& file) {
 
   auto srcFileName = file.stem().string();
   auto irCodeStream = std::ofstream(srcFileName + ".ll");
-  auto llvmIRGenerator = cactfrontend::LLVMIRGenerator(std::cout, srcFileName, symbolRegistrationVisitor.registry);
+  auto llvmIRGenerator = cactfrontend::LLVMIRGenerator(irCodeStream, srcFileName, symbolRegistrationVisitor.registry);
   try {
     llvmIRGenerator.visit(tree);
     irCodeStream.close();

@@ -33,18 +33,25 @@ static std::string innerWhileLabel(const std::string &label) {
   size_t pos = label.size();
 
   while (pos != std::string::npos) {
-    pos = label.rfind('.', pos - 1);
-    std::string candidate = label.substr(pos == std::string::npos ? 0 : pos + 1);
-
-    if (std::regex_match(candidate, whileRegex))
-      return label.substr(0, pos == std::string::npos ? 0 : pos);
+    size_t prvPos = label.rfind('.', pos - 1);
+    if (std::regex_match(label.substr(prvPos + 1, pos - prvPos - 1), whileRegex))
+      return label.substr(0, pos);
+    pos = prvPos;
   }
-
   return "";
 }
 
 static std::string address(const std::string &name) {
   return std::format("%{}.addr", name);
+}
+
+std::string LLVMIRGenerator::addressOf(std::shared_ptr<CactConstVar> var) {
+  auto currentFunc = registry->getFunction(currentFunctionName);
+  assert(currentFunc);
+  const auto& params = currentFunc->parameters;
+  if (std::find_if(params.begin(), params.end(), [&var](const auto& param) { return param.name == var->name; }) != params.end())
+    return address(var->name);
+  return registry->isGlobal(var) ? "@" + var->name : address(rename(var));
 }
 
 std::optional<CactParser::StatementContext *> LLVMIRGenerator::reduceIfBranch(CactParser::IfStatementContext *ctx) {
@@ -93,6 +100,10 @@ std::any LLVMIRGenerator::visitFunctionDefinition(CactParser::FunctionDefinition
   whileID.clear();
   localIdentifierMangler.clear();
   temporaryID = 0;
+  currentFunctionName = ctx->Identifier()->getText();
+
+  // alloca for all the params
+  // and store the params
 
   for (auto &param : ctx->function->parameters) {
     auto type = param.type;
@@ -106,7 +117,12 @@ std::any LLVMIRGenerator::visitFunctionDefinition(CactParser::FunctionDefinition
   auto funcBody = ctx->block();
   irCodeStream << "{\n";
   irCodeStream << "entry:\n";
-
+  for (auto &param : ctx->function->parameters) {
+    auto type = param.type;
+    std::string typeStr = basicTypeString(type.basic_type) + (type.isArray() ? "*" : "");
+    irCodeStream << std::format("{} = alloca {}\n", address(param.name), typeStr);
+    irCodeStream << std::format("store {} %{}, {}* {}\n", typeStr, param.name, typeStr, address(param.name));
+  }
   allocateLocalVariables(funcBody);
 
   ifID.emplace_back(0);
@@ -118,6 +134,7 @@ std::any LLVMIRGenerator::visitFunctionDefinition(CactParser::FunctionDefinition
   ifID.pop_back();
   whileID.pop_back();
   irCodeStream << "}\n";
+  currentFunctionName = "";
   return {};
 }
 
@@ -136,13 +153,13 @@ std::string LLVMIRGenerator::statementIRGen(const std::string &labelPrefix, Cact
   if (auto ifCtx = ctx->ifStatement()) {
     auto reduced = reduceIfBranch(ifCtx);
     if (reduced)
-      return statementIRGen(labelPrefix, reduced.value());
+      return reduced.value() ? statementIRGen(labelPrefix, reduced.value()) : "";
     const auto &ifLabel = std::format("{}.if{}", labelPrefix, ifID.back()++);
     return ifStatementIRGen(ifLabel, ifCtx);
   } else if (auto whileCtx = ctx->whileStatement()) {
     auto reduced = reduceWhileLoop(whileCtx);
     if (reduced)
-      return statementIRGen(labelPrefix, reduced.value());
+      return reduced.value() ? statementIRGen(labelPrefix, reduced.value()) : "";
     const auto &whileLabel = std::format("{}.while{}", labelPrefix, whileID.back()++);
     return whileStatementIRGen(whileLabel, whileCtx);
   } else if (auto returnCtx = ctx->returnStatement()) {
@@ -183,7 +200,7 @@ std::string LLVMIRGenerator::statementIRGen(const std::string &labelPrefix, Cact
 
 std::string LLVMIRGenerator::whileStatementIRGen(const std::string &labelPrefix,
                                                  CactParser::WhileStatementContext *ctx) {
-  assert(!ctx->cond_expr->isConstant());
+  assert(!ctx->cond_expr->isConstant() || std::get<bool>(ctx->cond_expr->getConstantValue()));
   const auto &[condEvalCode, condRegName] = evaluationCodeGen(ctx->cond_expr);
   const auto &loopBodyCode = statementIRGen(loopBodyLabel(labelPrefix), ctx->statement());
   const auto &endLabel = endingLabel(labelPrefix);
@@ -447,8 +464,9 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::variableEvaluationCode
   if (!var->indexing_times) {
     const auto &regName = assignReg();
     return {
-        .code = std::format("{} = load {}, {}\n",
+        .code = std::format("{} = load {}, {}* {}\n",
                             regName,
+                            basicTypeString(var->symbol->type.basic_type),
                             basicTypeString(var->symbol->type.basic_type),
                             addressOf(var->symbol)),
         .result = regName
@@ -494,11 +512,11 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::logicalBinaryOpCodeGen
   const auto &[rightEvalCode, rightRegName] = evaluationCodeGen(right);
   const auto &resultReg = assignReg();
   const auto &cmpInst = expr->left_expr->resultBasicType() == CactBasicType::Int32
-                        ? std::format("icmp {} i32 {}, {}",
+                        ? std::format("icmp {} i32 {}, {}\n",
                                       binaryToLLVMPredicate(*binaryOp, expr->resultBasicType()),
                                       leftRegName,
                                       rightRegName)
-                        : std::format("fcmp {} {} {}, {}",
+                        : std::format("fcmp {} {} {}, {}\n",
                                       basicTypeString(expr->resultBasicType()),
                                       binaryToLLVMPredicate(*binaryOp, expr->resultBasicType()),
                                       leftRegName, rightRegName);

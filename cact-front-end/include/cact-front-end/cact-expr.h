@@ -45,6 +45,7 @@ struct CactExpr {
   explicit CactExpr(observer_ptr<CactFunction> _func, const std::vector<std::shared_ptr<CactExpr>>& _args) {
     setFunctionCall(_func, _args);
   }
+  
 
   // check the expression's type
   [[nodiscard]] bool isVariable()         const { return expr_type == ExprType::Variable; }
@@ -60,6 +61,7 @@ struct CactExpr {
   void setConstant(ConstEvalResult _const_value);
   void setFunctionCall(observer_ptr<CactFunction> _func, const std::vector<std::shared_ptr<CactExpr>>& _args);
 
+  // get the value of the constant
   [[nodiscard]]
   ConstEvalResult getConstantValue() const {
     assert(isConstant());
@@ -68,6 +70,8 @@ struct CactExpr {
 
   [[nodiscard]] CactBasicType resultBasicType() const;
 
+
+// protected:
   std::shared_ptr<CactConstVarArray> variable; // the variable
   ConstEvalResult const_value; // the value of the constant
   observer_ptr<CactFunction> function; // the function

@@ -9,6 +9,7 @@
 #include <cact-front-end/cact-type.h>
 #include <string>
 #include <vector>
+#include <iostream>
 
 namespace cactfrontend {
 
@@ -55,6 +56,8 @@ protected:
   bool is_const{}; // if is const type
   bool initialized{}; // initialized or not, defaultly false for variable
 };
+
+void printInitValues(CactConstVar &symbol);
 
 struct CactConstant : CactConstVar {
   // constructor

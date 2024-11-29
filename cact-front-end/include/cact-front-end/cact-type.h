@@ -43,6 +43,7 @@ static inline std::string type2String(CactBasicType basic_type) {
       {CactBasicType::Bool,   "bool"  },
       {CactBasicType::Float,  "float" },
       {CactBasicType::Double, "double"},
+      {CactBasicType::Void, "void"}
   };
 
   std::string result = basic_typeToString.at(basic_type);
