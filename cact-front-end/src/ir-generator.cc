@@ -312,12 +312,11 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::evaluationCodeGen(cons
 }
 
 void LLVMIRGenerator::emitAlloca(const std::string &name, const CactType &type, size_t arraySize = 0) {
-  if (arraySize > 0) {
-    irCodeStream << std::format("{} = alloca [{} x {}]\n", address(name),
-                                arraySize, basicTypeString(type.basic_type));
-  } else {
+  if (arraySize > 0)
+    irCodeStream << std::format("{} = alloca {}, {}\n", address(name),
+                                basicTypeString(type.basic_type), arraySize);
+  else
     irCodeStream << std::format("{} = alloca {}\n", address(name), basicTypeString(type.basic_type));
-  }
 }
 
 void LLVMIRGenerator::emitStore(const std::string &dest, const CactType &type, const std::string &value) {
