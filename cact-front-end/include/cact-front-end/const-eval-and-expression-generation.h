@@ -141,12 +141,17 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
   // visit a if statement
   std::any visitIfStatement(IfStatementCtx *ctx) override {
     ctx->cond_expr = std_any_to_expr_ptr(visit(ctx->condition()));
+    // visit all statements as children of ifStatement
+    for (auto &stmt : ctx->statement()) {
+      visitStatement(stmt);
+    }
     return {};
   }
 
   // visit a while statement
   std::any visitWhileStatement(WhileStatementCtx *ctx) override {
     ctx->cond_expr = std_any_to_expr_ptr(visit(ctx->condition()));
+    visit(ctx->statement());
     return {};
   }
 
