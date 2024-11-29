@@ -172,7 +172,7 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     }
     else if (ctx->BooleanConstant()) {
       bool boolean_value = (ctx->BooleanConstant()->getText().compare("true") == 0) ? true : false;
-      return std::make_shared<CactExpr>(boolean_value);
+      return std::make_shared<CactExpr>(ConstEvalResult(boolean_value));
     }
     assert(0);
   }
@@ -325,7 +325,8 @@ struct ConstEvalVisitor : CactParserBaseVisitor {
     auto add_expr_ctxs = ctx->addExpression();
 
     if (bool_const_ctx) {
-      return std_any_to_expr_ptr(visit(bool_const_ctx));
+      bool boolean_value = (bool_const_ctx->getText().compare("true") == 0) ? true : false;
+      return std::make_shared<CactExpr>(ConstEvalResult(boolean_value));
     }
     else if (add_expr_ctxs.size() == 1) {
       return std_any_to_expr_ptr(visit(add_expr_ctxs.at(0)));

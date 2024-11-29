@@ -66,28 +66,28 @@ int main(int argc, char *argv[]) {
   cactfrontend::SymbolRegistrationErrorCheckVisitor visitor_pass1;
   
   // check if there is any semantic error
-  try {
+  // try {
     visitor_pass1.visit(tree);
     std::cout << "Semantic check completed." << std::endl;
-  }
-  catch (const std::exception &ex) {
-    std::cerr << "Semantic error(s) found in the source file. Compilation failed." << std::endl;
-    std::cerr << ex.what() << std::endl;
-    return 1;
-  }
+  // }
+  // catch (const std::exception &ex) {
+  //   std::cerr << "Semantic error(s) found in the source file. Compilation failed." << std::endl;
+  //   std::cerr << ex.what() << std::endl;
+  //   return 1;
+  // }
 
   auto visitor_pass2 = cactfrontend::ConstEvalVisitor(visitor_pass1.registry);
 
   // evaluate constant expression and generate expression tree in the tree nodes
-  try {
+  // try {
     visitor_pass2.visit(tree);
     std::cout << "Expression generation completed." << std::endl;
-  }
-  catch (const std::exception &ex) {
-    std::cerr << "Semantic error(s) found in the source file. Compilation failed." << std::endl;
-    std::cerr << ex.what() << std::endl;
-    return 1;
-  }
+  // }
+  // catch (const std::exception &ex) {
+  //   std::cerr << "Semantic error(s) found in the source file. Compilation failed." << std::endl;
+  //   std::cerr << ex.what() << std::endl;
+  //   return 1;
+  // }
 
 
   return 0;
