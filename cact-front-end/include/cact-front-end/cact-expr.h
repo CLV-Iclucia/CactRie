@@ -189,29 +189,17 @@ struct CactConstVarArray {
     // calculate constant offset
     int32_t const_offset = 0;
     for (int i = 0; i < this->indexing_times; i++) {
-      // indexing times might be less than the dimension of the array
-      if (this->indexing_times <= i) {
-        break;
-      }
-
       if (indices[i]->isConstant()) {
-        const_offset += std::get<int32_t>(indices[i]->getConstantValue()) * this->symbol->type.size(i);
+        const_offset += std::get<int32_t>(indices[i]->getConstantValue()) * this->symbol->type.size(i + 1);
       }
     }
 
-    offset = std::make_shared<CactExpr>(const_offset);
-
-    // calculate non-constant offset
-    std::shared_ptr<CactExpr> expr_tmp_ptr;
+    offset = std::make_shared<CactExpr>(ConstEvalResult(const_offset));
 
     for (int i = 0; i < this->indexing_times; i++) {
-      // indexing times might be less than the dimension of the array
-      if (this->indexing_times <= i) {
-        break;
-      }
-
       if (!indices[i]->isConstant()) {
-        expr_tmp_ptr = std::make_shared<CactExpr>((int32_t)(this->symbol->type.size(i)));
+        // calculate non-constant offset
+        std::shared_ptr<CactExpr> expr_tmp_ptr = std::make_shared<CactExpr>((int32_t)(this->symbol->type.size(i + 1)));
         expr_tmp_ptr = std::make_shared<CactBinaryExpr>(std::make_shared<MulOperator>(), indices[i], expr_tmp_ptr);
         offset = std::make_shared<CactBinaryExpr>(std::make_shared<AddOperator>(), offset, expr_tmp_ptr);
       }

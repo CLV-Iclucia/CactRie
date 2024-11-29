@@ -7,6 +7,7 @@
 #include <cact-front-end/cact-expr.h>
 #include <optional>
 #include <memory>
+#include <iostream>
 
 namespace cactfrontend {
 
@@ -45,6 +46,24 @@ inline std::optional<bool> conditionEvalResult(const ConstEvalResult value) {
   if (constEvalResultBasicType(value) == CactBasicType::Bool)
     return std::make_optional<bool>(std::get<bool>(value));
   else return std::nullopt;
+}
+
+// print out a ConstEvalResult
+void print_ConstEvalResult(const ConstEvalResult &result) {
+  std::visit([](auto &&arg) { std::cout << arg; }, result);
+}
+
+// print the initial values
+// this function cannot be inlined
+void printInitValues(CactConstVar &symbol) {
+  std::cout << "{";
+  for (auto &value : symbol.init_values) {
+    print_ConstEvalResult(value);
+    // if not the last element, print a comma
+    if (&value != &symbol.init_values.back())
+      std::cout << ", ";
+  }
+  std::cout << "}"<< std::endl;
 }
 
 }

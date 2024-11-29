@@ -13,6 +13,8 @@ namespace cactfrontend {
 // an alias for std::variant<int32_t, float, double>
 typedef std::variant<int32_t, float, double, bool> ConstEvalResult;
 
+void print_ConstEvalResult(const ConstEvalResult &result);
+
 // A reference to an expression. Contains a pointer to different sub-expressions and an operator
 enum class ExprType {
   Constant,
