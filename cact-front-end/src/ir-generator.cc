@@ -171,7 +171,7 @@ std::string LLVMIRGenerator::statementIRGen(const std::string &labelPrefix, Cact
     whileID.emplace_back(0);
     for (auto item : ctx->block()->blockItem())
       if (auto stmt = item->statement())
-        irCodeStream << statementIRGen({}, stmt);
+        irCodeStream << statementIRGen(labelPrefix, stmt);
     ifID.pop_back();
     whileID.pop_back();
   } else
@@ -415,8 +415,6 @@ void LLVMIRGenerator::allocateLocalVariables(CactParser::BlockContext *block, in
 void LLVMIRGenerator::allocateLocalVariables(CactParser::BlockContext *block) {
   allocateLocalVariables(block, 0);
 }
-
-
 
 LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::fetchAddressCodeGen(const std::shared_ptr<CactExpr> &expr) {
   assert(expr->isVariable());
