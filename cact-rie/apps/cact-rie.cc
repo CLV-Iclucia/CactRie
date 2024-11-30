@@ -5,10 +5,11 @@
 #include <cact-front-end/cact-syntax-error-listener.h>
 #include <cact-front-end/symbol-registration-visitor.h>
 #include <cact-front-end/const-eval-and-expression-generation.h>
+#include <cact-front-end/ir-generator.h>
+#include <cact-front-end/llvm-ir-formatter.h>
 #include <antlr-runtime/ANTLRInputStream.h>
 #include <antlr-runtime/CommonTokenStream.h>
 #include <cxxopts.hpp>
-#include <cact-front-end/ir-generator.h>
 // declarations
 // extern bool lexical_syntax_analysis(antlr4::tree::ParseTree * &tree, std::ifstream &stream, std::string source_file_name);
 // extern bool semantic_analysis(antlr4::tree::ParseTree *tree);
@@ -22,7 +23,7 @@ auto configOptions(char *argv[]) {
   return options;
 }
 
-int compileToLLVM(const std::filesystem::path& file) {
+int compileToLLVM(const std::filesystem::path &file) {
   std::ifstream stream(file);
   if (!stream) {
     std::cerr << "Failed to open file: " << file << std::endl;
@@ -94,11 +95,15 @@ int compileToLLVM(const std::filesystem::path& file) {
   }
 
   auto srcFileName = file.stem().string();
-  auto irCodeStream = std::ofstream(srcFileName + ".ll");
+  auto formattedIRCodeStream = std::ofstream(srcFileName + ".ll");
+  auto irFormatter = cactfrontend::LLVMIRFormatter();
+  irFormatter.setOutputStream(formattedIRCodeStream);
+  auto irCodeStream = std::stringstream();
   auto llvmIRGenerator = cactfrontend::LLVMIRGenerator(irCodeStream, srcFileName, symbolRegistrationVisitor.registry);
   try {
     llvmIRGenerator.visit(tree);
-    irCodeStream.close();
+    irFormatter.format(irCodeStream);
+    formattedIRCodeStream.close();
     std::cout << "IR generation completed." << std::endl;
   }
   catch (const std::exception &ex) {
@@ -117,7 +122,7 @@ int main(int argc, char *argv[]) {
     std::cout << options.help() << std::endl;
     return 0;
   }
-  const auto& unmatched = args.unmatched();
+  const auto &unmatched = args.unmatched();
 
   if (unmatched.empty()) {
     std::cerr << "Please provide a source file." << std::endl;

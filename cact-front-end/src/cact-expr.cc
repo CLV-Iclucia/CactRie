@@ -55,8 +55,11 @@ CactBasicType CactExpr::resultBasicType() const {
     return variable->symbol->type.basic_type;
   if (isUnaryExpression())
     return expr->resultBasicType();
-  if (isBinaryExpression())
+  if (isBinaryExpression()) {
+    if (binary_operator->isPredicate() || isLogicalOp())
+      return CactBasicType::Bool;
     return left_expr->resultBasicType();
+  }
   if (isFunctionCall())
     return function->return_type;
   assert(0);

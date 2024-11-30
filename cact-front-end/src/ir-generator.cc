@@ -27,6 +27,14 @@ static std::string elseBranchLabel(const std::string &label) {
   return std::format("{}.else", label);
 }
 
+static std::string shortCircuitThenLabel(const std::string &label) {
+  return std::format("{}.sc.then", label);
+}
+
+static std::string shortCircuitElseLabel(const std::string &label) {
+  return std::format("{}.sc.else", label);
+}
+
 // for a label, find the label corresponding to the nearest inner while loop
 static std::string innerWhileLabel(const std::string &label) {
   std::regex whileRegex(R"(while\d+)");
@@ -35,6 +43,19 @@ static std::string innerWhileLabel(const std::string &label) {
   while (pos != std::string::npos) {
     size_t prvPos = label.rfind('.', pos - 1);
     if (std::regex_match(label.substr(prvPos + 1, pos - prvPos - 1), whileRegex))
+      return label.substr(0, pos);
+    pos = prvPos;
+  }
+  return "";
+}
+
+static std::string innerIfLabel(const std::string &label) {
+  std::regex ifRegex(R"(if\d+)");
+  size_t pos = label.size();
+
+  while (pos != std::string::npos) {
+    size_t prvPos = label.rfind('.', pos - 1);
+    if (std::regex_match(label.substr(prvPos + 1, pos - prvPos - 1), ifRegex))
       return label.substr(0, pos);
     pos = prvPos;
   }
@@ -143,7 +164,7 @@ std::any LLVMIRGenerator::visitFunctionDefinition(CactParser::FunctionDefinition
     irCodeStream << "ret void\n";
   ifID.pop_back();
   whileID.pop_back();
-  irCodeStream << "}\n";
+  irCodeStream << "}\n\n";
   currentFunctionName = "";
   return {};
 }
@@ -171,7 +192,7 @@ std::string LLVMIRGenerator::statementIRGen(const std::string &labelPrefix, Cact
     if (reduced)
       return reduced.value() ? statementIRGen(labelPrefix, reduced.value()) : "";
     const auto &whileLabel = std::format("{}.while{}", labelPrefix, whileID.back()++);
-    return whileStatementIRGen(whileLabel, whileCtx);
+    return whileStatementIRGen(whileLabel, whileCtx->cond_expr, whileCtx->statement());
   } else if (auto returnCtx = ctx->returnStatement()) {
     return returnStatementIRGen(labelPrefix, returnCtx);
   } else if (auto exprCtx = ctx->expressionStatement()) {
@@ -196,7 +217,7 @@ std::string LLVMIRGenerator::statementIRGen(const std::string &labelPrefix, Cact
   } else if (ctx->block()) {
     ifID.emplace_back(0);
     whileID.emplace_back(0);
-    std::string code = "";
+    std::string code;
     for (auto item : ctx->block()->blockItem())
       if (auto stmt = item->statement())
         code += statementIRGen(labelPrefix, stmt);
@@ -209,44 +230,101 @@ std::string LLVMIRGenerator::statementIRGen(const std::string &labelPrefix, Cact
 }
 
 std::string LLVMIRGenerator::whileStatementIRGen(const std::string &labelPrefix,
-                                                 CactParser::WhileStatementContext *ctx) {
-  assert(!ctx->cond_expr->isConstant() || std::get<bool>(ctx->cond_expr->getConstantValue()));
-  const auto &[condEvalCode, condRegName] = evaluationCodeGen(ctx->cond_expr);
-  const auto &loopBodyCode = statementIRGen(loopBodyLabel(labelPrefix), ctx->statement());
-  const auto &endLabel = endingLabel(labelPrefix);
+                                                 const std::shared_ptr<CactExpr> &cond,
+                                                 CactParser::StatementContext *loopBodyCtx) {
+  assert(!cond->isConstant() || std::get<bool>(cond->getConstantValue()));
+  // while (a && b) { ... }
+  // -> br label %condCheck
+  //    condCheck:
+  //    eval(a)
+  //    br i1 %a, label circuit(true), label end
+  //    circuit(true):
+  //    eval(b)
+  //    br i1 %b, label %loopBody, label %end
+  //    loopBody:
+  //    ...
+  //    br label %condCheck
   return std::format("br label %{}\n", condCheckLabel(labelPrefix))
       + condCheckLabel(labelPrefix) + ":\n"
-      + condEvalCode
-      + std::format("br i1 {}, label %{}, label %{}\n", condRegName, loopBodyLabel(labelPrefix), endLabel)
+      + shortCircuitConditionalJumpIRGen(condCheckLabel(labelPrefix), cond, loopBodyLabel(labelPrefix), endingLabel(labelPrefix))
       + loopBodyLabel(labelPrefix) + ":\n"
-      + loopBodyCode
-      + std::format("br label %{}\n", condCheckLabel(labelPrefix))
-      + endLabel + ":\n";
+      + statementIRGenWithJump(labelPrefix, loopBodyCtx, condCheckLabel(labelPrefix))
+      + endingLabel(labelPrefix) + ":\n";
+}
+
+std::string LLVMIRGenerator::statementIRGenWithJump(const std::string& labelPrefix, CactParser::StatementContext* ctx, const std::string& jumpLabel) {
+  const auto& stmtCode = statementIRGen(labelPrefix, ctx);
+  if (stmtCode.empty())
+    return std::format("br label %{}\n", jumpLabel);
+  else {
+    // get the last line of code in stmtCode, which should be between the last two '\n'
+    auto lastLine = stmtCode.substr(stmtCode.rfind('\n', stmtCode.size() - 2) + 1);
+    if (lastLine.find("ret") != std::string::npos || lastLine.find("br") != std::string::npos)
+      return stmtCode;
+    else
+      return stmtCode + std::format("br label %{}\n", jumpLabel);
+  }
 }
 
 std::string LLVMIRGenerator::ifStatementIRGen(const std::string &labelPrefix, CactParser::IfStatementContext *ctx) {
   assert(!ctx->cond_expr->isConstant());
-  const auto &[condEvalCode, condRegName] = evaluationCodeGen(ctx->cond_expr);
-  auto thenBranch = ctx->statement(0);
-  auto elseBranch = ctx->statement().size() == 2 ? ctx->statement(1) : nullptr;
-  const auto &thenBranchCode = statementIRGen(thenBranchLabel(labelPrefix), thenBranch);
-  if (!elseBranch)
-    return condEvalCode
-        + std::format("br i1 {}, label %{}, label %{}\n", condRegName, thenBranchLabel(labelPrefix),
-                      endingLabel(labelPrefix))
-        + thenBranchLabel(labelPrefix) + ":\n"
-        + thenBranchCode
-        + std::format("br label %{}\n", endingLabel(labelPrefix));
-  const auto &elseBranchCode = statementIRGen(elseBranchLabel(labelPrefix), elseBranch);
-  return condEvalCode
-      + std::format("br i1 {}, label %{}, label %{}\n", condRegName, thenBranchLabel(labelPrefix),
-                    elseBranchLabel(labelPrefix))
-      + thenBranchLabel(labelPrefix) + ":\n"
-      + thenBranchCode
-      + std::format("br label %{}\n", endingLabel(labelPrefix))
-      + elseBranchLabel(labelPrefix) + ":\n"
-      + elseBranchCode
-      + std::format("br label %{}\n", endingLabel(labelPrefix));
+  if (ctx->statement().size() == 1) {
+    const auto &thenLabel = thenBranchLabel(labelPrefix);
+    return shortCircuitConditionalJumpIRGen(labelPrefix, ctx->cond_expr, thenLabel, endingLabel(labelPrefix))
+        + thenLabel + ":\n"
+        + statementIRGenWithJump(labelPrefix, ctx->statement(0), endingLabel(labelPrefix))
+        + endingLabel(labelPrefix) + ":\n";
+  } else if (ctx->statement().size() == 2) {
+    const auto &thenLabel = thenBranchLabel(labelPrefix);
+    const auto &elseLabel = elseBranchLabel(labelPrefix);
+    return shortCircuitConditionalJumpIRGen(labelPrefix, ctx->cond_expr, thenLabel, elseLabel)
+        + thenLabel + ":\n"
+        + statementIRGenWithJump(labelPrefix, ctx->statement(0), endingLabel(labelPrefix))
+        + elseLabel + ":\n"
+        + statementIRGenWithJump(labelPrefix, ctx->statement(1), endingLabel(labelPrefix))
+        + endingLabel(labelPrefix) + ":\n";
+  }
+  throw std::runtime_error("if statement has more than 2 branches");
+}
+
+std::string LLVMIRGenerator::shortCircuitConditionalJumpIRGen(const std::string &labelPrefix,
+                                                              const std::shared_ptr<CactExpr> &cond,
+                                                              const std::string &thenBranchLabel,
+                                                              const std::string &elseBranchLabel) {
+  assert(cond->resultBasicType() == CactBasicType::Bool);
+  if (cond->isConstant()) {
+    if (std::get<bool>(cond->getConstantValue()))
+      return std::format("br label %{}\n", thenBranchLabel);
+    else
+      return std::format("br label %{}\n", elseBranchLabel);
+  }
+  if (!cond->isLogicalOp()) {
+    const auto &[condEvalCode, condRegName] = evaluationCodeGen(cond);
+    return condEvalCode + std::format("br i1 {}, label %{}, label %{}\n",
+                                      condRegName, thenBranchLabel, elseBranchLabel);
+  }
+  if (auto logicalAnd = dynamic_pointer_cast<LogicalAndOperator>(cond->binary_operator)) {
+    const auto &thenLabel = shortCircuitThenLabel(labelPrefix);
+
+    if (cond->left_expr->isConstant() && !std::get<bool>(cond->left_expr->getConstantValue()))
+      return std::format("br label %{}\n", elseBranchLabel);
+    else if (cond->left_expr->isConstant() && std::get<bool>(cond->left_expr->getConstantValue()))
+      return shortCircuitConditionalJumpIRGen(labelPrefix, cond->right_expr, thenBranchLabel, elseBranchLabel);
+    return shortCircuitConditionalJumpIRGen(labelPrefix, cond->left_expr, thenLabel, elseBranchLabel)
+        + thenLabel + ":\n"
+        + shortCircuitConditionalJumpIRGen(thenLabel, cond->right_expr, thenBranchLabel, elseBranchLabel);
+  } else if (auto logicalOr = dynamic_pointer_cast<LogicalOrOperator>(cond->binary_operator)) {
+    const auto &elseLabel = shortCircuitElseLabel(labelPrefix);
+
+    if (cond->left_expr->isConstant() && std::get<bool>(cond->left_expr->getConstantValue()))
+      return std::format("br label %{}\n", thenBranchLabel);
+    else if (cond->left_expr->isConstant() && !std::get<bool>(cond->left_expr->getConstantValue()))
+      return shortCircuitConditionalJumpIRGen(labelPrefix, cond->right_expr, thenBranchLabel, elseBranchLabel);
+    return shortCircuitConditionalJumpIRGen(labelPrefix, cond->left_expr, thenBranchLabel, elseLabel)
+        + elseLabel + ":\n"
+        + shortCircuitConditionalJumpIRGen(elseLabel, cond->right_expr, thenBranchLabel, elseBranchLabel);
+  } else
+    throw std::runtime_error("unsupported logical operator");
 }
 
 static std::string binaryToLLVMOp(const BinaryOperator &op, CactBasicType type) {
@@ -264,16 +342,10 @@ static std::string binaryToLLVMOp(const BinaryOperator &op, CactBasicType type) 
       {typeid(MulOperator), "fmul"},
       {typeid(DivOperator), "fdiv"},
   };
-  static std::map<std::type_index, std::string> boolOpMap = {
-      {typeid(LogicalAndOperator), "and"},
-      {typeid(LogicalOrOperator), "or"},
-  };
   if (type == CactBasicType::Int32)
     return intOpMap.at(typeid(op));
   else if (type == CactBasicType::Float || type == CactBasicType::Double)
     return floatOpMap.at(typeid(op));
-  else if (type == CactBasicType::Bool)
-    return boolOpMap.at(typeid(op));
   throw std::runtime_error("unsupported binary operator");
 }
 
@@ -336,6 +408,8 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::evaluationCodeGen(cons
   } else if (expr->isBinaryExpression()) {
     if (expr->isPredicate())
       return predicateBinaryOpCodeGen(expr);
+    else if (expr->isLogicalOp())
+      return logicalOpCodeGen(expr);
     else
       return arithmeticBinaryOpCodeGen(expr);
   } else if (expr->isVariable())
@@ -575,6 +649,39 @@ void LLVMIRGenerator::declareExternalFunctions() {
   irCodeStream << "declare i32 @get_int()\n";
   irCodeStream << "declare float @get_float()\n";
   irCodeStream << "declare double @get_double()\n";
+}
+LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::logicalOpCodeGen(const std::shared_ptr<CactExpr> &cond) {
+  assert(cond->isLogicalOp());
+  const auto &resultReg = assignReg();
+  const auto &evalLabel = std::format("{}.eval", resultReg.substr(1));
+  const auto &trueLabel = std::format("{}.true", resultReg.substr(1));
+  const auto &falseLabel = std::format("{}.false", resultReg.substr(1));
+  const auto &endLabel = std::format("{}.eval.end", resultReg.substr(1));
+  // short-circuit evaluation
+  // a && b
+  // ->
+  // eval(a)
+  // br i1 %a, label circuit(true, x.eval), label x.false
+  // circuit(true, x.eval):
+  // eval(b)
+  // br i1 %b, label x.true, label x.false
+  // x.true:
+  // br x.eval.end
+  // x.false:
+  // br x.eval.end
+  // x.eval.end:
+  // newReg = phi i1 [x.true, 1], [x.false, 0]
+  return {
+      .code = shortCircuitConditionalJumpIRGen(evalLabel, cond, trueLabel, falseLabel)
+          + trueLabel + ":\n"
+          + std::format("br label %{}\n", endLabel)
+          + falseLabel + ":\n"
+          + std::format("br label %{}\n", endLabel)
+          + endLabel + ":\n"
+          + std::format("{} = phi i1 [1, {}], [0, {}]\n",
+                        resultReg, trueLabel, falseLabel),
+      .result = resultReg
+  };
 }
 
 }

@@ -45,9 +45,11 @@ struct LLVMIRGenerator final : public CactBaseVisitor {
     return {};
   }
 
-  std::string ifStatementIRGen(const std::string &labelPrefix, CactParser::IfStatementContext *ctx);
+  std::string shortCircuitConditionalJumpIRGen(const std::string &labelPrefix, const std::shared_ptr<CactExpr>& cond, const std::string &thenBranchLabel, const std::string& elseBranchLabel);
 
-  std::string whileStatementIRGen(const std::string &labelPrefix, CactParser::WhileStatementContext *ctx);
+  std::string whileStatementIRGen(const std::string &labelPrefix,
+                                  const std::shared_ptr<CactExpr> &cond,
+                                  CactParser::StatementContext *loopBodyCtx);
 
   std::string statementIRGen(const std::string &labelPrefix, CactParser::StatementContext *ctx);
 
@@ -121,6 +123,11 @@ private:
   void emitStore(const std::string &dest, const CactType &type, const std::string &value);
   void emitAlloca(const std::string &name, const CactType &type, size_t arraySize);
   void emitGlobalVariable(const std::shared_ptr<CactConstVar> &var, bool isConstant);
+  std::string ifStatementIRGen(const std::string &labelPrefix, CactParser::IfStatementContext *ctx);
+  LLVMIRGenerator::EvaluationCodegenResult logicalOpCodeGen(const std::shared_ptr<CactExpr> &SharedPtr);
+  std::string statementIRGenWithJump(const std::string &labelPrefix,
+                                     CactParser::StatementContext *ctx,
+                                     const std::string &jumpLabel);
 };
 
 }
