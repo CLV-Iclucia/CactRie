@@ -42,4 +42,4 @@ for test in tests:
         break
 
 # remove temp dir
-# os.system("rm -r " + temp_dir)
+os.system("rm -r " + temp_dir)
