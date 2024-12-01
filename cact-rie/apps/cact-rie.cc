@@ -18,12 +18,13 @@ auto configOptions(char *argv[]) {
   cxxopts::Options options(argv[0], "Cact compiler, your best tsundere girlfriend!");
   options.add_options()
       ("emit-llvm", "Emit LLVM IR", cxxopts::value<bool>()->default_value("true"))
+      ("o, output", "Output file", cxxopts::value<std::string>())
       ("h,help", "Print help");
   options.allow_unrecognised_options();
   return options;
 }
 
-int compileToLLVM(const std::filesystem::path &file) {
+int compileToLLVM(const std::filesystem::path &file, const std::filesystem::path &output) {
   std::ifstream stream(file);
   if (!stream) {
     std::cerr << "Failed to open file: " << file << std::endl;
@@ -31,10 +32,6 @@ int compileToLLVM(const std::filesystem::path &file) {
   }
 
   // print the source file's content
-  std::ifstream streamCopy(file);
-  std::cout << "Source file content:" << std::endl;
-  std::cout << streamCopy.rdbuf() << std::endl;
-
   antlr4::tree::ParseTree *tree;
 
   antlr4::ANTLRInputStream input(stream);
@@ -95,7 +92,7 @@ int compileToLLVM(const std::filesystem::path &file) {
   }
 
   auto srcFileName = file.stem().string();
-  auto formattedIRCodeStream = std::ofstream(srcFileName + ".ll");
+  auto formattedIRCodeStream = std::ofstream(output);
   auto irFormatter = cactfrontend::LLVMIRFormatter();
   irFormatter.setOutputStream(formattedIRCodeStream);
   auto irCodeStream = std::stringstream();
@@ -143,5 +140,7 @@ int main(int argc, char *argv[]) {
     std::cerr << "Source file does not exist." << std::endl;
     return 1;
   }
-  return compileToLLVM(sourceFilePath);
+  auto srcFileName = sourceFilePath.stem().string();
+  std::filesystem::path output = args.count("output") ? args["output"].as<std::string>() : srcFileName + ".ll";
+  return compileToLLVM(sourceFilePath, output);
 }

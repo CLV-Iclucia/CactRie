@@ -40,6 +40,19 @@ static std::string shortCircuitElseLabel(const std::string &label) {
   return std::format("{}.sc.else", label);
 }
 
+static std::string constantToLLVMString(const ConstEvalResult &result) {
+  if (std::holds_alternative<int>(result))
+    return std::to_string(std::get<int>(result));
+  else if (std::holds_alternative<float>(result))
+    return std::format("0x{:0<16X}", std::bit_cast<uint32_t>(std::get<float>(result)));
+  else if (std::holds_alternative<double>(result))
+    return std::format("0x{:0<16X}", std::bit_cast<uint64_t>(std::get<double>(result)));
+  else if (std::holds_alternative<bool>(result))
+    return std::to_string(static_cast<int>(std::get<bool>(result)));
+  else
+    throw std::runtime_error("unsupported constant type");
+}
+
 // for a label, find the label corresponding to the nearest inner while loop
 static std::string innerWhileLabel(const std::string &label) {
   std::regex whileRegex(R"(while\d+)");
@@ -84,7 +97,7 @@ std::string LLVMIRGenerator::addressOf(std::shared_ptr<CactConstVar> var) {
     else
       return address(var->name);
   }
-  return registry->isGlobal(var) ? "@" + var->name : address(rename(var));
+  return registry->isGlobal(var) ? "@" + var->name + ".global" : address(rename(var));
 }
 
 std::optional<CactParser::StatementContext *> LLVMIRGenerator::reduceIfBranch(CactParser::IfStatementContext *ctx) {
@@ -426,9 +439,7 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::evaluationCodeGen(cons
   if (expr->isConstant()) {
     return {
         .code = "",
-        .result = std::visit([](auto &&arg) {
-          return std::to_string(arg);
-        }, expr->getConstantValue())
+        .result = constantToLLVMString(expr->getConstantValue())
     };
   } else if (expr->isBinaryExpression()) {
     if (expr->isPredicate())
@@ -468,8 +479,32 @@ void LLVMIRGenerator::initializeArray(const std::string &name, const CactType &t
                                 ptrReg, basicTypeString(type.basic_type),
                                 basicTypeString(type.basic_type), address(name), i);
 
-    const auto &initValStr = std::visit([](auto &&arg) { return std::to_string(arg); }, initValues[i]);
+    if (type.basic_type == CactBasicType::Bool)
+      assert(std::holds_alternative<bool>(initValues[i]));
+    if (type.basic_type == CactBasicType::Int32)
+      assert(std::holds_alternative<int>(initValues[i]));
+    if (type.basic_type == CactBasicType::Float)
+      assert(std::holds_alternative<float>(initValues[i]));
+    if (type.basic_type == CactBasicType::Double)
+      assert(std::holds_alternative<double>(initValues[i]));
+    const auto &initValStr = constantToLLVMString(initValues[i]);
     emitStore(ptrReg, type, initValStr);
+  }
+}
+
+static void adjustInitValues(CactBasicType type, std::vector<ConstEvalResult> &initValues) {
+  if (type == CactBasicType::Bool) {
+    for (auto &val : initValues)
+      if (std::holds_alternative<int>(val))
+        val = std::get<int>(val) != 0;
+  } else if (type == CactBasicType::Float) {
+    for (auto &val : initValues)
+      if (std::holds_alternative<int>(val))
+        val = static_cast<float>(std::get<int>(val));
+  } else if (type == CactBasicType::Double) {
+    for (auto &val : initValues)
+      if (std::holds_alternative<int>(val))
+        val = static_cast<double>(std::get<int>(val));
   }
 }
 
@@ -478,13 +513,17 @@ void LLVMIRGenerator::allocateVariable(const std::shared_ptr<CactConstVar> &var,
     assert(var->type.size() % sizeOf(var->type.basic_type) == 0);
     const size_t arraySize = var->type.size() / sizeOf(var->type.basic_type);
     emitAlloca(newName, var->type, arraySize);
-
-    if (var->isInitialized())
-      initializeArray(newName, var->type, var->init_values);
+    if (var->isInitialized()) {
+      auto initValues = var->init_values;
+      adjustInitValues(var->type.basic_type, initValues);
+      initializeArray(newName, var->type, initValues);
+    }
   } else {
     emitAlloca(newName, var->type);
     if (var->isInitialized()) {
-      const auto &initValStr = std::visit([](auto &&arg) { return std::to_string(arg); }, var->init_values.at(0));
+      auto initVal = var->init_values;
+      adjustInitValues(var->type.basic_type, initVal);
+      const auto &initValStr = constantToLLVMString(initVal.at(0));
       emitStore(address(newName), var->type, initValStr);
     }
   }
@@ -494,16 +533,16 @@ void LLVMIRGenerator::emitGlobalVariable(const std::shared_ptr<CactConstVar> &va
   const std::string globalKind = isConstant ? "constant" : "global";
   if (!var->type.isArray()) {
     const std::string initValStr = var->isInitialized()
-                                   ? std::visit([](auto &&arg) { return std::to_string(arg); }, var->init_values.at(0))
+                                   ? std::format("{}", constantToLLVMString(var->init_values.at(0)))
                                    : "";
-    irCodeStream << std::format("@{} = {} {} {}\n", var->name, globalKind,
+    irCodeStream << std::format("@{} = {} {} {}\n", var->name + ".global", globalKind,
                                 basicTypeString(var->type.basic_type), initValStr);
   } else {
-    irCodeStream << std::format("@{} = {} [{} x {}] [", var->name, globalKind,
+    irCodeStream << std::format("@{} = {} [{} x {}] [", var->name + ".global", globalKind,
                                 var->type.size() / sizeOf(var->type.basic_type),
                                 basicTypeString(var->type.basic_type));
     for (size_t i = 0; i < var->init_values.size(); ++i) {
-      irCodeStream << std::visit([](auto &&arg) { return std::to_string(arg); }, var->init_values[i]);
+      irCodeStream << basicTypeString(var->type.basic_type) << " " << constantToLLVMString(var->init_values[i]);
       if (i != var->init_values.size() - 1) {
         irCodeStream << ", ";
       }
@@ -562,7 +601,13 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::fetchAddressCodeGen(co
 
 LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::variableEvaluationCodeGen(const std::shared_ptr<CactExpr> &expr) {
   const auto &var = expr->variable;
-  if (!var->indexing_times) {
+  if (var->symbol->isConstant() && !var->symbol->type.isArray()) {
+    return {
+        .code = "",
+        .result = constantToLLVMString(var->symbol->init_values.at(0))
+    };
+  }
+  if (!var->indexing_times && !var->symbol->type.isArray()) {
     const auto &regName = assignReg();
     return {
         .code = std::format("{} = load {}, {}* {}\n",
@@ -573,16 +618,19 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::variableEvaluationCode
         .result = regName
     };
   }
-  const auto &[addrCode, addrReg] = fetchAddressCodeGen(expr);
-  const auto &regName = assignReg();
-  return {
-      .code = addrCode + std::format("{} = load {}, {}* {}\n",
-                                     regName,
-                                     basicTypeString(var->symbol->type.basic_type),
-                                     basicTypeString(var->symbol->type.basic_type),
-                                     addrReg),
-      .result = regName
-  };
+  if (var->indexing_times == var->symbol->type.dim()) {
+    const auto &[addrCode, addrReg] = fetchAddressCodeGen(expr);
+    const auto &regName = assignReg();
+    return {
+        .code = addrCode + std::format("{} = load {}, {}* {}\n",
+                                       regName,
+                                       basicTypeString(var->symbol->type.basic_type),
+                                       basicTypeString(var->symbol->type.basic_type),
+                                       addrReg),
+        .result = regName
+    };
+  }
+  return fetchAddressCodeGen(expr);
 }
 
 LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::arithmeticBinaryOpCodeGen(const std::shared_ptr<CactExpr> &expr) {
@@ -639,10 +687,20 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::functionCallCodegen(co
     const auto &argCodegenResult = evaluationCodeGen(arg);
     argEvalCode += argCodegenResult.code;
     const auto &argReg = argCodegenResult.result;
-    argList += std::format("{} {}", basicTypeString(arg->resultBasicType()), argReg);
+    std::string typeStr =
+        basicTypeString(func->parameters[i].type.basic_type) + (func->parameters[i].type.isArray() ? "*" : "");
+    argList += std::format("{} {}", typeStr, argReg);
     if (i != args.size() - 1)
       argList += ", ";
   }
+  if (func->return_type == CactBasicType::Void)
+    return {
+        .code = argEvalCode + std::format("call {} @{}({})\n",
+                                          basicTypeString(func->return_type),
+                                          func->name,
+                                          argList),
+        .result = ""
+    };
   const auto &resultReg = assignReg();
   return {
       .code = argEvalCode + std::format("{} = call {} @{}({})\n",

@@ -8,7 +8,8 @@
 namespace cactfrontend {
 struct LocalVarCollector : CactParserBaseVisitor {
   std::any visitVariableDefinition(CactParser::VariableDefinitionContext *ctx) override {
-    localVars.emplace_back(ctx->variable);
+    if (!ctx->variable->isConstant() || ctx->variable->type.isArray())
+      localVars.emplace_back(ctx->variable);
     return {};
   }
   std::vector<std::shared_ptr<CactConstVar>> localVars{};
