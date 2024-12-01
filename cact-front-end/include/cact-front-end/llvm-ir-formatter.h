@@ -72,9 +72,8 @@ private:
   }
 
   void handleInstruction(const std::string &line) {
-    std::regex label_pattern(R"(label %\.\w+)");
-    std::string new_line = std::regex_replace(line, label_pattern, "label %$1");
-    outputLine(new_line, 2);
+    std::regex pattern(R"(label %\.(\w[\w\.]*))");
+    outputLine(std::regex_replace(line, pattern, R"(label %$1)"), 2);
   }
 
   void handleEmptyLine() {

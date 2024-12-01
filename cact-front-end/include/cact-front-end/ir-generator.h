@@ -61,10 +61,6 @@ private:
 
   void allocateVariable(const std::shared_ptr<CactConstVar> &var, const std::string &newName);
 
-  void allocateLocalVariables(CactParser::BlockContext *block);
-
-  void allocateLocalVariables(CactParser::BlockContext *block, int depth);
-
   struct EvaluationCodegenResult {
     std::string code;
     std::string result;
@@ -128,6 +124,7 @@ private:
   std::string statementIRGenWithJump(const std::string &labelPrefix,
                                      CactParser::StatementContext *ctx,
                                      const std::string &jumpLabel);
+  void allocateLocalVariables(const std::vector<std::shared_ptr<CactConstVar>> &vars);
 };
 
 }

@@ -1,9 +1,10 @@
 //
 // Created by creeper on 11/24/24.
 //
+#include <cact-front-end/ir-generator.h>
+#include <cact-front-end/local-var-collector.h>
 #include <typeindex>
 #include <regex>
-#include <cact-front-end/ir-generator.h>
 
 namespace cactfrontend {
 
@@ -29,6 +30,10 @@ static std::string elseBranchLabel(const std::string &label) {
 
 static std::string shortCircuitThenLabel(const std::string &label) {
   return std::format("{}.sc.then", label);
+}
+
+static std::string shortCircuitLeftLabel(const std::string &label) {
+  return std::format("{}.sc.left", label);
 }
 
 static std::string shortCircuitElseLabel(const std::string &label) {
@@ -122,7 +127,7 @@ std::optional<CactParser::StatementContext *> LLVMIRGenerator::reduceStatement(C
 std::any LLVMIRGenerator::visitFunctionDefinition(CactParser::FunctionDefinitionContext *ctx) {
   // visit all children
   irCodeStream
-      << std::format("define {} @{}(", type2String(ctx->function->return_type), ctx->Identifier()->getText());
+      << std::format("define {} @{}(", basicTypeString(ctx->function->return_type), ctx->Identifier()->getText());
 
   ifID.clear();
   whileID.clear();
@@ -153,15 +158,27 @@ std::any LLVMIRGenerator::visitFunctionDefinition(CactParser::FunctionDefinition
     irCodeStream << std::format("{} = alloca {}\n", address(param.name), typeStr);
     irCodeStream << std::format("store {} %{}, {}* {}\n", typeStr, param.name, typeStr, address(param.name));
   }
-  allocateLocalVariables(funcBody);
+  auto localVarCollector = LocalVarCollector();
+  localVarCollector.visit(funcBody);
+  allocateLocalVariables(localVarCollector.localVars);
 
   ifID.emplace_back(0);
   whileID.emplace_back(0);
   for (auto item : funcBody->blockItem())
     if (auto stmt = item->statement())
       irCodeStream << statementIRGen({}, stmt);
-  if (ctx->function->return_type == CactBasicType::Void)
-    irCodeStream << "ret void\n";
+
+  static std::map<CactBasicType, std::string> defaultReturn = {
+      {CactBasicType::Void, "void"},
+      {CactBasicType::Int32, "i32 0"},
+      {CactBasicType::Float, "float 0.0"},
+      {CactBasicType::Double, "double 0.0"},
+      {CactBasicType::Bool, "i1 0"},
+  };
+  // this is to remove possible dangling labels
+  // we can expect the DCE pass to remove the unreachable code
+  irCodeStream << std::format("ret {}\n", defaultReturn.at(ctx->function->return_type));
+
   ifID.pop_back();
   whileID.pop_back();
   irCodeStream << "}\n\n";
@@ -244,16 +261,21 @@ std::string LLVMIRGenerator::whileStatementIRGen(const std::string &labelPrefix,
   //    loopBody:
   //    ...
   //    br label %condCheck
+  const auto &shortCircuitCode =
+      shortCircuitConditionalJumpIRGen(labelPrefix, cond, loopBodyLabel(labelPrefix), endingLabel(labelPrefix));
+  const auto &loopBodyCode = statementIRGenWithJump(labelPrefix, loopBodyCtx, condCheckLabel(labelPrefix));
   return std::format("br label %{}\n", condCheckLabel(labelPrefix))
       + condCheckLabel(labelPrefix) + ":\n"
-      + shortCircuitConditionalJumpIRGen(condCheckLabel(labelPrefix), cond, loopBodyLabel(labelPrefix), endingLabel(labelPrefix))
+      + shortCircuitCode
       + loopBodyLabel(labelPrefix) + ":\n"
-      + statementIRGenWithJump(labelPrefix, loopBodyCtx, condCheckLabel(labelPrefix))
+      + loopBodyCode
       + endingLabel(labelPrefix) + ":\n";
 }
 
-std::string LLVMIRGenerator::statementIRGenWithJump(const std::string& labelPrefix, CactParser::StatementContext* ctx, const std::string& jumpLabel) {
-  const auto& stmtCode = statementIRGen(labelPrefix, ctx);
+std::string LLVMIRGenerator::statementIRGenWithJump(const std::string &labelPrefix,
+                                                    CactParser::StatementContext *ctx,
+                                                    const std::string &jumpLabel) {
+  const auto &stmtCode = statementIRGen(labelPrefix, ctx);
   if (stmtCode.empty())
     return std::format("br label %{}\n", jumpLabel);
   else {
@@ -270,19 +292,18 @@ std::string LLVMIRGenerator::ifStatementIRGen(const std::string &labelPrefix, Ca
   assert(!ctx->cond_expr->isConstant());
   if (ctx->statement().size() == 1) {
     const auto &thenLabel = thenBranchLabel(labelPrefix);
-    return shortCircuitConditionalJumpIRGen(labelPrefix, ctx->cond_expr, thenLabel, endingLabel(labelPrefix))
-        + thenLabel + ":\n"
-        + statementIRGenWithJump(labelPrefix, ctx->statement(0), endingLabel(labelPrefix))
-        + endingLabel(labelPrefix) + ":\n";
+    const auto &shortCircuitCode =
+        shortCircuitConditionalJumpIRGen(labelPrefix, ctx->cond_expr, thenLabel, endingLabel(labelPrefix));
+    const auto &thenCode = statementIRGenWithJump(labelPrefix, ctx->statement(0), endingLabel(labelPrefix));
+    return shortCircuitCode + thenLabel + ":\n" + thenCode + endingLabel(labelPrefix) + ":\n";
   } else if (ctx->statement().size() == 2) {
     const auto &thenLabel = thenBranchLabel(labelPrefix);
     const auto &elseLabel = elseBranchLabel(labelPrefix);
-    return shortCircuitConditionalJumpIRGen(labelPrefix, ctx->cond_expr, thenLabel, elseLabel)
-        + thenLabel + ":\n"
-        + statementIRGenWithJump(labelPrefix, ctx->statement(0), endingLabel(labelPrefix))
-        + elseLabel + ":\n"
-        + statementIRGenWithJump(labelPrefix, ctx->statement(1), endingLabel(labelPrefix))
-        + endingLabel(labelPrefix) + ":\n";
+    const auto &shortCircuitCode = shortCircuitConditionalJumpIRGen(labelPrefix, ctx->cond_expr, thenLabel, elseLabel);
+    const auto &thenCode = statementIRGenWithJump(labelPrefix, ctx->statement(0), endingLabel(labelPrefix));
+    const auto &elseCode = statementIRGenWithJump(labelPrefix, ctx->statement(1), endingLabel(labelPrefix));
+    return shortCircuitCode + thenLabel + ":\n" + thenCode + elseLabel + ":\n" + elseCode + endingLabel(labelPrefix)
+        + ":\n";
   }
   throw std::runtime_error("if statement has more than 2 branches");
 }
@@ -305,23 +326,27 @@ std::string LLVMIRGenerator::shortCircuitConditionalJumpIRGen(const std::string 
   }
   if (auto logicalAnd = dynamic_pointer_cast<LogicalAndOperator>(cond->binary_operator)) {
     const auto &thenLabel = shortCircuitThenLabel(labelPrefix);
+    const auto &leftLabel = shortCircuitLeftLabel(labelPrefix);
 
     if (cond->left_expr->isConstant() && !std::get<bool>(cond->left_expr->getConstantValue()))
       return std::format("br label %{}\n", elseBranchLabel);
     else if (cond->left_expr->isConstant() && std::get<bool>(cond->left_expr->getConstantValue()))
       return shortCircuitConditionalJumpIRGen(labelPrefix, cond->right_expr, thenBranchLabel, elseBranchLabel);
-    return shortCircuitConditionalJumpIRGen(labelPrefix, cond->left_expr, thenLabel, elseBranchLabel)
-        + thenLabel + ":\n"
+
+    const auto &leftCode = shortCircuitConditionalJumpIRGen(leftLabel, cond->left_expr, thenLabel, elseBranchLabel);
+    return leftCode + thenLabel + ":\n"
         + shortCircuitConditionalJumpIRGen(thenLabel, cond->right_expr, thenBranchLabel, elseBranchLabel);
   } else if (auto logicalOr = dynamic_pointer_cast<LogicalOrOperator>(cond->binary_operator)) {
     const auto &elseLabel = shortCircuitElseLabel(labelPrefix);
+    const auto &leftLabel = shortCircuitLeftLabel(labelPrefix);
 
     if (cond->left_expr->isConstant() && std::get<bool>(cond->left_expr->getConstantValue()))
       return std::format("br label %{}\n", thenBranchLabel);
     else if (cond->left_expr->isConstant() && !std::get<bool>(cond->left_expr->getConstantValue()))
       return shortCircuitConditionalJumpIRGen(labelPrefix, cond->right_expr, thenBranchLabel, elseBranchLabel);
-    return shortCircuitConditionalJumpIRGen(labelPrefix, cond->left_expr, thenBranchLabel, elseLabel)
-        + elseLabel + ":\n"
+
+    const auto &leftCode = shortCircuitConditionalJumpIRGen(leftLabel, cond->left_expr, thenBranchLabel, elseLabel);
+    return leftCode + elseLabel + ":\n"
         + shortCircuitConditionalJumpIRGen(elseLabel, cond->right_expr, thenBranchLabel, elseBranchLabel);
   } else
     throw std::runtime_error("unsupported logical operator");
@@ -423,7 +448,7 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::evaluationCodeGen(cons
 
 void LLVMIRGenerator::emitAlloca(const std::string &name, const CactType &type, size_t arraySize = 0) {
   if (arraySize > 0)
-    irCodeStream << std::format("{} = alloca {}, {}\n", address(name),
+    irCodeStream << std::format("{} = alloca {}, i32 {}\n", address(name),
                                 basicTypeString(type.basic_type), arraySize);
   else
     irCodeStream << std::format("{} = alloca {}\n", address(name), basicTypeString(type.basic_type));
@@ -506,23 +531,9 @@ std::any LLVMIRGenerator::visitDeclaration(CactParser::DeclarationContext *ctx) 
   return {};
 }
 
-void LLVMIRGenerator::allocateLocalVariables(CactParser::BlockContext *block, int depth) {
-  // Process variable declarations in the current block
-  for (auto item : block->blockItem())
-    if (auto decl = item->declaration())
-      if (auto varDecl = decl->variableDeclaration())
-        for (auto varDef : varDecl->variableDefinition())
-          allocateVariable(varDef->variable, rename(varDef->variable));
-
-  // Recursively handle nested blocks
-  for (auto item : block->blockItem())
-    if (auto stmt = item->statement())
-      if (auto nestedBlock = stmt->block())
-        allocateLocalVariables(nestedBlock, depth + 1);
-}
-
-void LLVMIRGenerator::allocateLocalVariables(CactParser::BlockContext *block) {
-  allocateLocalVariables(block, 0);
+void LLVMIRGenerator::allocateLocalVariables(const std::vector<std::shared_ptr<CactConstVar>> &vars) {
+  for (const auto &var : vars)
+    allocateVariable(var, rename(var));
 }
 
 LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::fetchAddressCodeGen(const std::shared_ptr<CactExpr> &expr) {
@@ -604,13 +615,13 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::predicateBinaryOpCodeG
   const auto &cmpInst = expr->left_expr->resultBasicType() == CactBasicType::Int32
                         ? std::format("{} = icmp {} i32 {}, {}\n",
                                       resultReg,
-                                      binaryToLLVMPredicate(*binaryOp, expr->resultBasicType()),
+                                      binaryToLLVMPredicate(*binaryOp, expr->left_expr->resultBasicType()),
                                       leftRegName,
                                       rightRegName)
                         : std::format("{} = fcmp {} {} {}, {}\n",
                                       resultReg,
                                       basicTypeString(expr->resultBasicType()),
-                                      binaryToLLVMPredicate(*binaryOp, expr->resultBasicType()),
+                                      binaryToLLVMPredicate(*binaryOp, expr->left_expr->resultBasicType()),
                                       leftRegName, rightRegName);
   return {
       .code = leftEvalCode + rightEvalCode + cmpInst,
