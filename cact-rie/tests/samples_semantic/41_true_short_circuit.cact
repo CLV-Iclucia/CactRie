@@ -1,0 +1,93 @@
+int a_global = 1;
+bool fucking_bool(int a) {
+    a_global = a_global + 1;
+    if (a_global > a) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+int main() {
+    int a = 1, b = 0, c = 5, d = 2;
+    int arr[5] = {0, 1, 2, 3, 4};
+    bool flag = false;
+
+    a = a + 1;
+    b = b + 3 + arr[a];
+    if (a == 1 && fucking_bool(b)) {
+        return 1;
+    } else if (a == 1 || b > 1) {
+        return 2;
+    }
+
+    if (true && true && a > 1 && arr[0] > 0 || arr[1] > 1 && c > 3) {
+        return 3;
+    }
+
+    if ((d + 2) > 2 && arr[4] > 4 || c > 2) {
+        return 4;
+    }
+
+    if (b > 1 && arr[2] > 2 || arr[3] == 3) {
+        return 5;
+    }
+
+    if (a > 1 || b > 0 && c != 5 && d > 2) {
+        return 6;
+    }
+
+    if (a == 2 && b > 3 || c > 4) {
+        return 7;
+    }
+
+    if (a > 2 && b > 3 && c > 4) {
+        return 8;
+    }
+
+    if (arr[0] > 0 && arr[2] > 2) {
+        return 9;
+    }
+
+    if (a > 2 || b > 1 && arr[3] <= 2 && d != 0 || arr[1] > 1) {
+        a = 114514;
+    }
+
+    if (flag) {
+        a = a + 1;
+    } else if (a > 114514 || fucking_bool(a)) {
+        while (a > 1 || b > 0 && arr[2] > 2) {
+            a = a + 1;
+            if (fucking_bool(a) && arr[b + 1] > 3 && fucking_bool(c))
+                flag = true;
+        }
+    } else if (flag && arr[1] > 1 || c > 5) {
+        a = a + 2;
+    } else if (a > 1 && d - 2 > 2 || c + 5 > 6) {
+        c = c * 114514;
+        if (true && true) {
+            bool a = false;
+            a = fucking_bool(114515);
+            if (a) {
+                int b = 1919810;
+                b = b + 1;
+                c = c + b + 1;
+            }
+        }
+    } else if (false && fucking_bool(c)) {
+        c = c * 998244353;
+        // This line should not be executed
+    } else if (true || fucking_bool(d)) {
+        d = d * 19260817;
+        // This line should not be executed
+    } else if (true && false) {
+        bool flag_dummy = true;
+        flag_dummy = fucking_bool(114514);
+        // This line should not be executed
+    } else if (false || false) {
+        bool flag_dummy;
+        flag_dummy = fucking_bool(10000007);
+    }
+
+    return 0;
+}

@@ -68,11 +68,13 @@ private:
   }
 
   void handleLabel(const std::string &line) {
-    outputLine(line, 1);
+    outputLine(line.at(0) == '.' ? line.substr(1) : line, 1);
   }
 
   void handleInstruction(const std::string &line) {
-    outputLine(line, 2);
+    std::regex label_pattern(R"(label %\.\w+)");
+    std::string new_line = std::regex_replace(line, label_pattern, "label %$1");
+    outputLine(new_line, 2);
   }
 
   void handleEmptyLine() {

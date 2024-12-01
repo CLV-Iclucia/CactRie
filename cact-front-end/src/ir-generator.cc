@@ -602,11 +602,13 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::predicateBinaryOpCodeG
   const auto &[rightEvalCode, rightRegName] = evaluationCodeGen(right);
   const auto &resultReg = assignReg();
   const auto &cmpInst = expr->left_expr->resultBasicType() == CactBasicType::Int32
-                        ? std::format("icmp {} i32 {}, {}\n",
+                        ? std::format("{} = icmp {} i32 {}, {}\n",
+                                      resultReg,
                                       binaryToLLVMPredicate(*binaryOp, expr->resultBasicType()),
                                       leftRegName,
                                       rightRegName)
-                        : std::format("fcmp {} {} {}, {}\n",
+                        : std::format("{} = fcmp {} {} {}, {}\n",
+                                      resultReg,
                                       basicTypeString(expr->resultBasicType()),
                                       binaryToLLVMPredicate(*binaryOp, expr->resultBasicType()),
                                       leftRegName, rightRegName);
