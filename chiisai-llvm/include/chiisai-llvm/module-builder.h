@@ -46,8 +46,7 @@ struct ModuleBuilder final : public LLVMParserVisitor {
   }
 
   std::any visitParameterList(LLVMParser::ParameterListContext *ctx) override {
-    auto params = ctx->parameter();
-    for (auto param : params) {
+    for (auto params = ctx->parameter(); auto param : params) {
       visitParameter(param);
       ctx->argTypes.emplace_back(param->argType);
       ctx->argNames.emplace_back(param->argName);
@@ -152,10 +151,6 @@ struct ModuleBuilder final : public LLVMParserVisitor {
     throw std::runtime_error("Number context should not be visited");
   }
 
-  void addExternalFunctions() {
-
-  }
-
   BuildResult build(LLVMParser::ModuleContext *ctx);
 
   Ref<Function> currentFunction{};
@@ -168,9 +163,13 @@ private:
   Ref<Value> resolveVariableUsage(LLVMParser::VariableContext *ctx);
   Ref<Value> resolveVariableUsageAfterVisit(LLVMParser::VariableContext *ctx) const;
   template<typename T>
-  std::string variableName(T *ctx) {
+  static std::string variableName(T *ctx) {
     return ctx->getText();
   }
+
+public:
+  std::any visitGlobalIdentifier(LLVMParser::GlobalIdentifierContext* context) override;
+  std::any visitLocalIdentifier(LLVMParser::LocalIdentifierContext* context) override;
 };
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_BUILDER_H

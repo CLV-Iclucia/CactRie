@@ -4,7 +4,7 @@
 #include <ranges>
 #include <chiisai-llvm/llvm-context.h>
 #include <chiisai-llvm/module-builder.h>
-#include <chiisai-llvm/mystl/castings.h>
+#include <mystl/castings.h>
 #include <chiisai-llvm/integer-type.h>
 #include <chiisai-llvm/array-type.h>
 #include <chiisai-llvm/pointer-type.h>
@@ -116,7 +116,8 @@ std::any ModuleBuilder::visitFunctionDefinition(LLVMParser::FunctionDefinitionCo
 }
 
 std::any ModuleBuilder::visitBasicBlock(LLVMParser::BasicBlockContext *ctx) {
-  ctx->basicBlockInstance = std::make_unique<BasicBlock>(ctx->Label()->getText());
+  ctx->basicBlockInstance =
+      std::make_unique<BasicBlock>(ctx->Label()->getText().substr(1), Type::labelType(*llvmContext));
   const auto &instructions = ctx->instruction();
   for (auto inst : instructions)
     visitInstruction(inst);
@@ -425,6 +426,7 @@ Ref<Value> ModuleBuilder::resolveValueUsage(CRef<Type> type, const std::string &
                                                 : makeRef(currentFunction->identifier(name));
     if (argRef->type() != type)
       throw std::runtime_error("Argument type does not match the specified type");
+    return argRef;
   } else
     return llvmContext->constant(type, name);
 }

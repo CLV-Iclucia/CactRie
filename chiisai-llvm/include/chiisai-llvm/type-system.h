@@ -13,16 +13,16 @@
 #include <chiisai-llvm/pointer-type.h>
 #include <chiisai-llvm/ref.h>
 #include <chiisai-llvm/properties.h>
-#include <chiisai-llvm/mystl/manager_vector.h>
+#include <mystl/manager_vector.h>
 namespace llvm {
 struct Type;
 struct TypeSystem : RAII {
-  TypeSystem() : basicTypeMap({{"void", cref(voidInstance)},
-                               {"float", cref(floatInstance)},
-                               {"double", cref(doubleInstance)},
-                               {"bool", cref(boolInstance)},
-                               {"int", cref(intInstance)},
-                               {"long", cref(longInstance)}}) {}
+  TypeSystem() : basicTypeMap({{"void", makeCRef(voidInstance)},
+                               {"float", makeCRef(floatInstance)},
+                               {"double", makeCRef(doubleInstance)},
+                               {"bool", makeCRef(boolInstance)},
+                               {"int", makeCRef(intInstance)},
+                               {"long", makeCRef(longInstance)}}) {}
 private:
   friend struct LLVMContext;
   // String to Basic Type
@@ -60,7 +60,7 @@ private:
 
 
   Type voidInstance{Type::TypeEnum::Void}, floatInstance{Type::TypeEnum::Float},
-      doubleInstance{Type::TypeEnum::Double};
+      doubleInstance{Type::TypeEnum::Double}, labelInstance{Type::TypeEnum::Label};
 
   IntegerType boolInstance{1}, intInstance{32}, longInstance{64};
 

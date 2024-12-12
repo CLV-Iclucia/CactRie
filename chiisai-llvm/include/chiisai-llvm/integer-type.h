@@ -8,7 +8,7 @@
 
 namespace llvm {
 
-struct IntegerType : Type {
+struct IntegerType final : Type {
   explicit IntegerType(size_t bitWidth) : Type(TypeEnum::Integer), m_bitWidth(bitWidth) {}
   [[nodiscard]]
   size_t bitWidth() const {

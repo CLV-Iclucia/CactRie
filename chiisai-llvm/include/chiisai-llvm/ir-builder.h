@@ -32,8 +32,10 @@ struct IRBuilder {
     auto phiInst = std::make_unique<PhiInst>(basicBlock, details);
     auto instRef = makeRef(*phiInst);
     basicBlock.addInstruction(std::move(phiInst));
-    for (auto &[bb, value] : details.incomingValues)
+    for (auto &[bb, value] : details.incomingValues) {
       addUse(instRef, value);
+      addUse(instRef, makeCRef(bb));
+    }
     return instRef;
   }
 
@@ -84,6 +86,7 @@ struct IRBuilder {
     auto brInst = std::make_unique<BrInst>(basicBlock, makeCRef(dest));
     auto instRef = makeRef(*brInst);
     basicBlock.addInstruction(std::move(brInst));
+    addUse(instRef, makeCRef(dest));
     return instRef;
   }
 
@@ -92,6 +95,8 @@ struct IRBuilder {
     auto instRef = makeRef(*brInst);
     basicBlock.addInstruction(std::move(brInst));
     addUse(instRef, cond.cond);
+    addUse(instRef, cond.thenBranch);
+    addUse(instRef, cond.elseBranch);
     return instRef;
   }
 private:

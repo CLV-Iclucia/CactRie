@@ -7,19 +7,16 @@
 #include <string>
 #include <format>
 #include <chiisai-llvm/type.h>
-#include <chiisai-llvm/mystl/poly_list.h>
+#include <mystl/poly_list.h>
 #include <minilog/logger.h>
 namespace llvm {
 
 struct User;
 struct Executor;
 struct Value : RAII, Executable {
-  explicit Value(const std::string& name, CRef<Type> type) : m_name(name), m_type(type) {}
+  explicit Value(const std::string& name, CRef<Type> type) : m_type(type), m_name(name) {}
   [[nodiscard]] auto type() const {
     return m_type;
-  }
-  [[nodiscard]] const std::string& name() const {
-    return m_name;
   }
   auto& users() {
     return m_users;
@@ -35,6 +32,9 @@ struct Value : RAII, Executable {
   }
   void accept(Executor& executor) override {
     minilog::warn("value shouldn't be executed for class that inherits from Value");
+  }
+  [[nodiscard]] const std::string& name() const {
+    return m_name;
   }
   ~Value() override = default;
 private:

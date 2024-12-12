@@ -4,10 +4,10 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_REF_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_REF_H
-#include <chiisai-llvm/mystl/observer_ptr.h>
-#include <chiisai-llvm/mystl/castings.h>
-#include <chiisai-llvm/mystl/ref_counted.h>
-#include <chiisai-llvm/mystl/not_null.h>
+#include <mystl/observer_ptr.h>
+#include <mystl/castings.h>
+#include <mystl/ref_counted.h>
+#include <mystl/not_null.h>
 namespace llvm {
 
 template<typename T>

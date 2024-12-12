@@ -5,8 +5,8 @@
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H
 #include <cassert>
-#include "hash.h"
 #include <functional>
+#include "hash.h"
 namespace mystl {
 template<typename T>
 requires (!std::is_pointer_v<T>)

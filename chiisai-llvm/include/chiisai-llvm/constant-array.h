@@ -4,12 +4,13 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_CONSTANT_ARRAY_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_CONSTANT_ARRAY_H
+
+#include <mystl/castings.h>
 #include <chiisai-llvm/constant.h>
 #include <chiisai-llvm/array-type.h>
-#include <chiisai-llvm/mystl/castings.h>
 namespace llvm {
 
-struct ConstantArray : Constant {
+struct ConstantArray final : Constant {
   ConstantArray(const std::string &name, CRef<Type> type, std::vector<Ref<Constant>>&& elements_) :
       Constant(name, type),
       elements(std::move(elements_)) {
@@ -20,6 +21,7 @@ struct ConstantArray : Constant {
         throw std::runtime_error("Array elements must have the same type");
     assert(dyn_cast_ref<ArrayType>(type)->elementType() == eleType);
   }
+  std::vector<Ref<Constant>> elements;
 };
 
 }

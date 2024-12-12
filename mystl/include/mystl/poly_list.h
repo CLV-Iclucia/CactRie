@@ -4,10 +4,12 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MYSTL_POLY_LIST_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MYSTL_POLY_LIST_H
-#include "observer_ptr.h"
+#include <type_traits>
 #include <memory>
 #include <vector>
 #include <list>
+
+#include "observer_ptr.h"
 namespace mystl {
 template<typename Base>
 struct poly_list {
@@ -17,6 +19,9 @@ public:
     container.emplace_back(std::make_unique<Derived>(std::forward<Args>(args)...));
   }
 
+  void emplace_back(std::unique_ptr<Base>&& ptr) {
+    container.emplace_back(std::move(ptr));
+  }
   template<typename Derived, typename... Args> requires std::is_base_of_v<Base, Derived>
   void emplace_front(Args &&... args) {
     container.emplace_front(std::make_unique<Derived>(std::forward<Args>(args)...));
@@ -118,6 +123,10 @@ public:
   template<typename Derived> requires std::is_base_of_v<Base, Derived>
   void push_back(observer_ptr<Derived> ptr) {
     container.push_back(static_cast<observer_ptr<Base>>(ptr));
+  }
+
+  void push_back(observer_ptr<Base> ptr) {
+    container.push_back(ptr);
   }
 
   template<typename Derived> requires std::is_base_of_v<Base, Derived>

@@ -7,8 +7,8 @@
 #include <chiisai-llvm/argument.h>
 #include <chiisai-llvm/function-type.h>
 #include <chiisai-llvm/instruction.h>
-#include <chiisai-llvm/mystl/poly_vector.h>
-#include <chiisai-llvm/mystl/manager_vector.h>
+#include <mystl/poly_vector.h>
+#include <mystl/manager_vector.h>
 namespace llvm {
 
 struct Module;
@@ -20,7 +20,7 @@ struct FunctionInfo {
 };
 
 struct BasicBlock;
-struct Function : Value {
+struct Function final : Value {
   explicit Function(const FunctionInfo& info) : Value(info.name, info.functionType), m_module(info.module) {
     for (size_t i = 0; i < info.argNames.size(); ++i)
       addArgument(info.argNames[i], info.functionType->argType(i));
@@ -30,7 +30,7 @@ struct Function : Value {
     m_argMap[name] = m_args.back();
     return *this;
   }
-  CRef<Type> returnType() const {
+  [[nodiscard]] CRef<Type> returnType() const {
     assert(isa<FunctionType>(type()));
     return cast<FunctionType>(type())->returnValueType();
   }
@@ -40,26 +40,29 @@ struct Function : Value {
       return *m_argMap[name];
     throw std::runtime_error("argument not found");
   }
-  bool hasArg(const std::string& name) const {
+  [[nodiscard]] bool hasArg(const std::string& name) const {
     return m_argMap.contains(name);
   }
-  bool hasBasicBlock(const std::string& name) const {
+  [[nodiscard]] bool hasBasicBlock(const std::string& name) const {
     return m_basicBlockMap.contains(name);
   }
-  bool hasIdentifier(const std::string& name) const {
+  [[nodiscard]] bool hasIdentifier(const std::string& name) const {
     return m_idBlockMap.contains(name);
   }
+
   BasicBlock& basicBlock(const std::string& name) {
     if (m_basicBlockMap.contains(name))
       return *m_basicBlockMap[name];
     throw std::runtime_error("basic block not found");
   }
-  Value& identifier(const std::string& name) const;
-  const mystl::manager_vector<Argument>& args() const { return m_args; }
+
+  [[nodiscard]] Value& identifier(const std::string& name) const;
+  [[nodiscard]] const mystl::manager_vector<Argument>& args() const { return m_args; }
   std::list<BasicBlock> basicBlocks{};
   Module& module() {return const_cast<Module&>(m_module);}
   [[nodiscard]] const Module& module() const { return m_module; }
   void accept(Executor& executor) override;
+
 private:
   mystl::manager_vector<Argument> m_args{};
   const Module& m_module;

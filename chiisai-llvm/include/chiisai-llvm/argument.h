@@ -7,7 +7,7 @@
 #include <chiisai-llvm/value.h>
 namespace llvm {
 
-struct Argument : Value {
+struct Argument final : Value {
   explicit Argument(const std::string &name, CRef<Type> type) : Value(name, type) {}
 };
 

@@ -12,8 +12,10 @@ struct Module;
 struct Instruction;
 struct Function;
 struct InstTransformer;
-struct BasicBlock : Executable {
-  explicit BasicBlock(std::string name) : m_name(std::move(name)) {}
+struct BasicBlock final : Value {
+  explicit BasicBlock(const std::string &name, CRef<Type> type) : Value(name, type) {
+    assert(type->type == Type::TypeEnum::Label);
+  }
 
 //  template<typename Func> requires std::invocable<Func, Ref<Instruction>>
 //  void forEachInstruction(Func &&func) const {
@@ -45,10 +47,6 @@ struct BasicBlock : Executable {
 
   [[nodiscard]] const Module &module() const;
 
-  [[nodiscard]] const std::string &name() const {
-    return m_name;
-  }
-
   [[nodiscard]] Value &identifier(const std::string &name) const {
     if (!m_identifierMap.contains(name))
       throw std::runtime_error("identifier not found");
@@ -57,10 +55,9 @@ struct BasicBlock : Executable {
 
   BasicBlock &addInstruction(std::unique_ptr<Instruction> &&instruction);
 
-  mystl::poly_list<Instruction> instructions;
+  mystl::poly_list<Instruction> instructions{};
   void accept(Executor &executor) override;
 private:
-  std::string m_name;
   std::unordered_map<std::string, Ref<Value>> m_identifierMap{};
   Ref<Function> m_function{};
 };

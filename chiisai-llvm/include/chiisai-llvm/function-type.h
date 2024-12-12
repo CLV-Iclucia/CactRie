@@ -8,7 +8,7 @@
 #include <chiisai-llvm/type.h>
 namespace llvm {
 
-struct FunctionType : Type {
+struct FunctionType final : Type {
   FunctionType(CRef<Type> returnType, std::span<const CRef<Type>> argTypes)
       : Type(TypeEnum::Function) {
     containedTypes.emplace_back(returnType);

@@ -5,11 +5,11 @@
 #ifndef CACTRIE_CACT_RIE_INCLUDE_CACT_RIE_LLVM_INSTRUCTIONS_H
 #define CACTRIE_CACT_RIE_INCLUDE_CACT_RIE_LLVM_INSTRUCTIONS_H
 #include <variant>
+#include <mystl/hash.h>
 #include <chiisai-llvm/user.h>
 #include <chiisai-llvm/basic-block.h>
 #include <chiisai-llvm/predicate.h>
 #include <chiisai-llvm/pointer-type.h>
-#include <chiisai-llvm/mystl/hash.h>
 #include <chiisai-llvm/integer-type.h>
 
 namespace llvm {
@@ -47,7 +47,7 @@ struct Instruction : User {
   };
 
   enum MemoryOps : uint8_t {
-    Alloca = static_cast<uint8_t>(LogicalOps::LogicalIDEnd),
+    Alloca = static_cast<uint8_t>(LogicalIDEnd),
     Load,
     Store,
     Gep,
@@ -110,7 +110,10 @@ struct Instruction : User {
   [[nodiscard]] Function &function() {
     return basicBlock.function();
   }
-  virtual uint64_t hash() const = 0;
+  [[nodiscard]] uint64_t handle() const {
+    return reinterpret_cast<uint64_t>(this);
+  }
+  [[nodiscard]] virtual std::string toString() const = 0;
   BasicBlock &basicBlock;
 };
 
@@ -128,13 +131,8 @@ struct BinaryInst final : Instruction {
 
   Ref<Value> lhs, rhs;
   void accept(Executor &executor) override;
-  [[nodiscard]] uint64_t hash() const override {
-    uint64_t hashCode = 0;
-    mystl::hash_combine(hashCode, name());
-    mystl::hash_combine(hashCode, opCode);
-    mystl::hash_combine(hashCode, lhs->name());
-    mystl::hash_combine(hashCode, rhs->name());
-    return hashCode;
+  [[nodiscard]] std::string toString() const override {
+    return std::format("{} {} {}, {}", opCode, type()->toString(), lhs->name(), rhs->name());
   }
 };
 
@@ -145,20 +143,13 @@ struct AllocaInstDetails {
   size_t alignment = 0;
 };
 
-struct AllocaInst : Instruction {
+struct AllocaInst final: Instruction {
   explicit AllocaInst(BasicBlock &basicBlock, const AllocaInstDetails &details) : Instruction(
-      MemoryOps::Alloca, details.name, details.type, basicBlock), alignment(details.alignment) {}
+      Alloca, details.name, details.type, basicBlock), alignment(details.alignment) {}
 
   size_t alignment{0};
   size_t size{1};
   void accept(Executor &executor) override;
-  [[nodiscard]] uint64_t hash() const override {
-    uint64_t hashCode{};
-    mystl::hash_combine(hashCode, name());
-    mystl::hash_combine(hashCode, opCode);
-    mystl::hash_combine(hashCode, alignment);
-    return hashCode;
-  }
 };
 
 struct StoreInstDetails {
@@ -168,8 +159,8 @@ struct StoreInstDetails {
   Ref<Value> value;
 };
 
-struct StoreInst : Instruction {
-  explicit StoreInst(BasicBlock &basicBlock, const StoreInstDetails &details) : Instruction(MemoryOps::Store,
+struct StoreInst final: Instruction {
+  explicit StoreInst(BasicBlock &basicBlock, const StoreInstDetails &details) : Instruction(Store,
                                                                                             details.name,
                                                                                             details.type,
                                                                                             basicBlock),
@@ -180,12 +171,9 @@ struct StoreInst : Instruction {
   Ref<Value> pointer;
   Ref<Value> value;
   void accept(Executor &executor) override;
-  [[nodiscard]] uint64_t hash() const override {
-    uint64_t hashCode{};
-    mystl::hash_combine(hashCode, name());
-    mystl::hash_combine(hashCode, opCode);
-    mystl::hash_combine(hashCode, pointer->name());
-    return hashCode;
+  [[nodiscard]] std::string toString() const override {
+    return std::format("store {} {}, {}* {}", value->type()->toString(), value->name(), pointer->type()->toString(),
+                       pointer->name());
   }
 };
 
@@ -195,8 +183,8 @@ struct LoadInstDetails {
   Ref<Value> pointer;
 };
 
-struct LoadInst : Instruction {
-  explicit LoadInst(BasicBlock &basicBlock, const LoadInstDetails &details) : Instruction(MemoryOps::Load,
+struct LoadInst final: Instruction {
+  explicit LoadInst(BasicBlock &basicBlock, const LoadInstDetails &details) : Instruction(Load,
                                                                                           details.name,
                                                                                           details.type,
                                                                                           basicBlock),
@@ -205,17 +193,14 @@ struct LoadInst : Instruction {
   }
   Ref<Value> pointer;
   void accept(Executor &executor) override;
-  [[nodiscard]] uint64_t hash() const override {
-    uint64_t hashCode{};
-    mystl::hash_combine(hashCode, name());
-    mystl::hash_combine(hashCode, opCode);
-    mystl::hash_combine(hashCode, pointer->name());
-    return hashCode;
+  [[nodiscard]] std::string toString() const override {
+    return std::format("{} = load {}* {}", name(), type()->toString(), pointer->name());
   }
+
 };
 
 struct PhiValue {
-  CRef<BasicBlock> basicBlock;
+  Ref<BasicBlock> basicBlock;
   Ref<Value> value;
 };
 
@@ -226,25 +211,21 @@ struct PhiInstDetails {
 };
 
 struct PhiInst final : Instruction {
-  explicit PhiInst(BasicBlock &basicBlock, const PhiInstDetails &details) : Instruction(Instruction::OtherOps::Phi,
+  explicit PhiInst(BasicBlock &basicBlock, const PhiInstDetails &details) : Instruction(Phi,
                                                                                         details.name,
                                                                                         details.type,
                                                                                         basicBlock),
                                                                             incomingValues(details.incomingValues) {}
   std::vector<PhiValue> incomingValues;
   void accept(Executor &executor) override;
-  [[nodiscard]] uint64_t hash() const override {
-    uint64_t hashCode{};
-    mystl::hash_combine(hashCode, name());
-    mystl::hash_combine(hashCode, opCode);
-    return hashCode;
-  }
+
   void removeBranch(const std::string &blockName) {
-    auto
-        erase_begin = std::remove_if(incomingValues.begin(), incomingValues.end(), [&blockName](const PhiValue &value) {
+    std::erase_if(incomingValues, [&blockName](const PhiValue &value) {
       return value.basicBlock->name() == blockName;
     });
-    incomingValues.erase(erase_begin, incomingValues.end());
+  }
+  [[nodiscard]] std::string toString() const override {
+
   }
 };
 
@@ -255,9 +236,9 @@ struct CallInstDetails {
   std::vector<Ref<Value>> &&realArgs;
 };
 
-struct CallInst : Instruction {
+struct CallInst final: Instruction {
   explicit CallInst(BasicBlock &basicBlock, const CallInstDetails &details)
-      : Instruction(Instruction::OtherOps::Call,
+      : Instruction(Call,
                     details.name,
                     details.type,
                     basicBlock),
@@ -265,7 +246,7 @@ struct CallInst : Instruction {
   Function &function;
   std::vector<Ref<Value>> realArgs{};
   void accept(Executor &executor) override;
-  [[nodiscard]] uint64_t hash() const override;
+  [[nodiscard]] std::string toString() const override;
 };
 
 struct CmpInstDetails {
@@ -289,31 +270,25 @@ struct CmpInst final : Instruction {
   Predicate predicate;
   Ref<Value> lhs, rhs;
   void accept(Executor &executor) override;
-  [[nodiscard]] uint64_t hash() const override {
-    uint64_t hashCode{};
-    mystl::hash_combine(hashCode, name());
-    mystl::hash_combine(hashCode, opCode);
-    mystl::hash_combine(hashCode, lhs->name());
-    mystl::hash_combine(hashCode, rhs->name());
-    mystl::hash_combine(hashCode, predicate);
-    return hashCode;
+  [[nodiscard]] std::string toString() const override {
+    return std::format("{} {} {}, {}", opCode, lhs->name(), rhs->name());
   }
 };
 
 struct BrInstDetails {
   Ref<Value> cond;
-  CRef<BasicBlock> thenBranch;
-  CRef<BasicBlock> elseBranch;
+  Ref<BasicBlock> thenBranch;
+  Ref<BasicBlock> elseBranch;
 };
 
-struct BrInst : Instruction {
+struct BrInst final: Instruction {
   struct Conditional {
     Ref<Value> cond;
-    CRef<BasicBlock> thenBranch;
-    CRef<BasicBlock> elseBranch;
+    Ref<BasicBlock> thenBranch;
+    Ref<BasicBlock> elseBranch;
   };
-  explicit BrInst(BasicBlock& current, CRef<BasicBlock> dest) : Instruction(TerminatorOps::Br, {}, {}, current), dest(dest) {}
-  explicit BrInst(BasicBlock &current, const BrInstDetails &details) : Instruction(TerminatorOps::Br, {}, {}, current),
+  explicit BrInst(BasicBlock& current, Ref<BasicBlock> dest) : Instruction(Br, {}, {}, current), dest(dest) {}
+  explicit BrInst(BasicBlock &current, const BrInstDetails &details) : Instruction(Br, {}, {}, current),
                                                                        dest(Conditional{details.cond, details.thenBranch, details.elseBranch}) {}
 
   [[nodiscard]] bool isConditional() const {
@@ -322,7 +297,7 @@ struct BrInst : Instruction {
   [[nodiscard]] const BasicBlock &thenBranch() const {
     if (isConditional())
       return *std::get<Conditional>(dest).thenBranch;
-    return *std::get<CRef<BasicBlock>>(dest);
+    return *std::get<Ref<BasicBlock>>(dest);
   }
   [[nodiscard]] const BasicBlock &elseBranch() const {
     if (isConditional())
@@ -335,61 +310,51 @@ struct BrInst : Instruction {
     throw std::runtime_error("unconditional branch");
   }
   void accept(Executor &executor) override;
-  [[nodiscard]] uint64_t hash() const {
-    uint64_t hashCode{};
-    mystl::hash_combine(hashCode, isConditional());
-    if (isConditional()) {
-      mystl::hash_combine(hashCode, cond().name());
-      mystl::hash_combine(hashCode, thenBranch().name());
-      mystl::hash_combine(hashCode, elseBranch().name());
-    } else
-      mystl::hash_combine(hashCode, std::get<CRef<BasicBlock>>(dest)->name());
-    return hashCode;
+  [[nodiscard]] std::string toString() const override {
+    if (isConditional())
+      return std::format("br i1 {}, label %{}, label %{}", cond().name(), thenBranch().name(), elseBranch().name());
+    return std::format("br label %{}", thenBranch().name());
   }
 private:
-  std::variant<Conditional, CRef<BasicBlock>> dest;
+  std::variant<Conditional, Ref<BasicBlock>> dest;
 };
 
 // we only support at most one index for now
 struct GepInstDetails {
   const std::string &name;
   CRef<Type> type;
-  Value &pointer;
+  Ref<Value> pointer;
   Ref<Value> index{};
 };
 
-struct GepInst : Instruction {
-  explicit GepInst(BasicBlock &basicBlock, const GepInstDetails &details) : Instruction(MemoryOps::Gep,
-                                                                                        details.name,
-                                                                                        details.type,
-                                                                                        basicBlock),
-                                                                            pointer(details.pointer),
-                                                                            index(details.index) {}
-  [[nodiscard]] uint64_t hash() const override {
-    uint64_t hashCode{};
-    mystl::hash_combine(hashCode, name());
-    mystl::hash_combine(hashCode, opCode);
-    mystl::hash_combine(hashCode, pointer.name());
-    if (index)
-      mystl::hash_combine(hashCode, index->name());
-    return hashCode;
-  }
+struct GepInst final: Instruction {
+  explicit GepInst(BasicBlock &basicBlock, const GepInstDetails &details) : Instruction(Gep,
+                                                                              details.name,
+                                                                              details.type,
+                                                                              basicBlock),
+                                                                            index(details.index),
+                                                                            pointer(details.pointer) {}
+
   void accept(Executor &executor) override;
+  [[nodiscard]] std::string toString() const override {
+    if (!index)
+      return std::format("getelementptr {}* {}", pointer->type()->toString(), pointer->name());
+    return std::format("getelementptr {}* {}, i64 {}", pointer->type()->toString(), pointer->name(), index->name());
+  }
   Ref<Value> index{};
-  Value &pointer;
+  Ref<Value> pointer;
 };
 
-struct RetInst : Instruction {
-  explicit RetInst(BasicBlock &basicBlock, CRef<Value> ret) : Instruction(TerminatorOps::Ret, {}, {}, basicBlock),
+struct RetInst final: Instruction {
+  explicit RetInst(BasicBlock &basicBlock, Ref<Value> ret) : Instruction(Ret, {}, {}, basicBlock),
                                                               ret(ret) {}
   void accept(Executor &executor) override;
-  [[nodiscard]] uint64_t hash() const override {
-    uint64_t hashCode{};
-    mystl::hash_combine(hashCode, opCode);
-    mystl::hash_combine(hashCode, ret->name());
-    return hashCode;
+  [[nodiscard]] std::string toString() const override {
+    if (!ret)
+      return "ret void";
+    return std::format("ret {} {}", ret->type()->toString(), ret->name());
   }
-  CRef<Value> ret{};
+  Ref<Value> ret{};
 };
 
 }

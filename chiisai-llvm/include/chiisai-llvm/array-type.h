@@ -7,7 +7,7 @@
 #include <chiisai-llvm/type.h>
 #include <chiisai-llvm/ref.h>
 namespace llvm {
-struct ArrayType : Type {
+struct ArrayType final : Type {
   explicit ArrayType(CRef<Type> elementType, size_t size) : Type(TypeEnum::Array, {elementType}), size(size) {}
   size_t size{};
   [[nodiscard]] CRef<Type> elementType() const {

@@ -20,6 +20,7 @@ struct Type : RAII {
     Double,
     Pointer,
     Array,
+    Label,
     Function
   };
 
@@ -34,6 +35,7 @@ struct Type : RAII {
   static CRef<IntegerType> longType(const LLVMContext& ctx);
   static CRef<Type> floatType(const LLVMContext& ctx);
   static CRef<Type> doubleType(const LLVMContext& ctx);
+  static CRef<Type> labelType(const LLVMContext& ctx);
 
   [[nodiscard]] bool isComputable() const {
     return type == TypeEnum::Integer || type == TypeEnum::Float || type == TypeEnum::Double;
@@ -74,6 +76,7 @@ struct Type : RAII {
   [[nodiscard]] bool isFunction() const {
     return type == TypeEnum::Function;
   }
+  [[nodiscard]] std::string toString() const;
 
   virtual ~Type() = default;
 

@@ -106,55 +106,54 @@ void CallInst::accept(Executor &executor) {
   executor.returnFlag = false;
   executor.reg(name()) = executor.returnReg.value();
 }
-
-uint64_t CallInst::hash() const {
-  uint64_t hashCode;
-  mystl::hash_combine(hashCode, name());
-  mystl::hash_combine(hashCode, opCode);
-  mystl::hash_combine(hashCode, function.name());
-  for (const auto &arg : realArgs)
-    mystl::hash_combine(hashCode, arg);
-  return hashCode;
+std::string CallInst::toString() const {
+  std::string args;
+  for (const auto &arg : realArgs) {
+    args += arg->type()->toString() + " " + arg->name() + ", ";
+  }
+  if (!args.empty())
+    args.pop_back();
+  return std::format("call {} {}({})", type()->toString(), function.name(), args);
 }
 
 void CmpInst::accept(Executor &executor) {
   static std::unordered_map<Predicate, std::function<bool(Result::Integer, Result::Integer)>> intPredicates = {
-      {Predicate::EQ, [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::equal_to<>(), lhs, rhs); }},
+      {Predicate::EQ, [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::equal_to(), lhs, rhs); }},
       {Predicate::NE,
-       [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::not_equal_to<>(), lhs, rhs); }},
-      {Predicate::UGT, [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::greater<>(), lhs, rhs); }},
+       [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::not_equal_to(), lhs, rhs); }},
+      {Predicate::UGT, [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::greater(), lhs, rhs); }},
       {Predicate::UGE,
-       [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::greater_equal<>(), lhs, rhs); }},
-      {Predicate::ULT, [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::less<>(), lhs, rhs); }},
+       [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::greater_equal(), lhs, rhs); }},
+      {Predicate::ULT, [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::less(), lhs, rhs); }},
       {Predicate::ULE,
-       [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::less_equal<>(), lhs, rhs); }},
-      {Predicate::SGT, [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::greater<>(), lhs, rhs); }},
+       [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::less_equal(), lhs, rhs); }},
+      {Predicate::SGT, [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::greater(), lhs, rhs); }},
       {Predicate::SGE,
-       [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::greater_equal<>(), lhs, rhs); }},
-      {Predicate::SLT, [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::less<>(), lhs, rhs); }},
+       [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::greater_equal(), lhs, rhs); }},
+      {Predicate::SLT, [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::less(), lhs, rhs); }},
       {Predicate::SLE,
-       [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::less_equal<>(), lhs, rhs); }},
+       [](Result::Integer lhs, Result::Integer rhs) { return std::visit(std::less_equal(), lhs, rhs); }},
   };
 
   static std::unordered_map<Predicate, std::function<bool(Result::Floating, Result::Floating)>> floatPredicates = {
       {Predicate::EQ,
-       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::equal_to<>(), lhs, rhs); }},
+       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::equal_to(), lhs, rhs); }},
       {Predicate::NE,
-       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::not_equal_to<>(), lhs, rhs); }},
+       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::not_equal_to(), lhs, rhs); }},
       {Predicate::UGT,
-       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::greater<>(), lhs, rhs); }},
+       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::greater(), lhs, rhs); }},
       {Predicate::UGE,
-       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::greater_equal<>(), lhs, rhs); }},
-      {Predicate::ULT, [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::less<>(), lhs, rhs); }},
+       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::greater_equal(), lhs, rhs); }},
+      {Predicate::ULT, [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::less(), lhs, rhs); }},
       {Predicate::ULE,
-       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::less_equal<>(), lhs, rhs); }},
+       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::less_equal(), lhs, rhs); }},
       {Predicate::SGT,
-       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::greater<>(), lhs, rhs); }},
+       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::greater(), lhs, rhs); }},
       {Predicate::SGE,
-       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::greater_equal<>(), lhs, rhs); }},
-      {Predicate::SLT, [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::less<>(), lhs, rhs); }},
+       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::greater_equal(), lhs, rhs); }},
+      {Predicate::SLT, [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::less(), lhs, rhs); }},
       {Predicate::SLE,
-       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::less_equal<>(), lhs, rhs); }},
+       [](Result::Floating lhs, Result::Floating rhs) { return std::visit(std::less_equal(), lhs, rhs); }},
   };
 
   const auto &lhsReg = executor.reg(lhs);
@@ -199,9 +198,9 @@ void GepInst::accept(llvm::Executor &executor) {
     throw std::runtime_error("GEP instruction must have a pointer as its source");
 
   if (!index)
-    executor.reg(name()) = Result(SpanAddress{makeRef(pointer), 0});
+    executor.reg(name()) = Result(SpanAddress{.begin = RuntimeVar(makeCRef(pointer)), 0});
   else
-    executor.reg(name()) = Result(SpanAddress{makeCRef(pointer), executor.reg(index).as<size_t>()});
+    executor.reg(name()) = Result(SpanAddress{.begin = RuntimeVar(makeCRef(pointer)), executor.reg(index).as<size_t>()});
 }
 
 void RetInst::accept(Executor &executor) {

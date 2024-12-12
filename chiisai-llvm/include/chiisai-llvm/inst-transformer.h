@@ -4,7 +4,7 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_INST_EDITOR_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_INST_EDITOR_H
-#include <chiisai-llvm/mystl/poly_list.h>
+#include <mystl/poly_list.h>
 #include <chiisai-llvm/basic-block.h>
 #include <chiisai-llvm/instruction.h>
 namespace llvm {
@@ -15,7 +15,7 @@ using InstPosition = mystl::poly_list<Instruction>::iterator;
 struct InstTransformer {
   explicit InstTransformer(BasicBlock &basicBlock) : basicBlock(basicBlock), instructions(basicBlock.instructions) {}
   InstPosition instPos(Instruction& inst) const {
-    return instPosMap.at(inst.hash());
+    return instPosMap.at(inst.handle());
   }
 
 private:

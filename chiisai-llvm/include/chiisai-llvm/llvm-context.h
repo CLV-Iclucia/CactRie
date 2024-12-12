@@ -28,20 +28,21 @@ public:
   LLVMContext();
   ~LLVMContext();
   // String to Basic Type
-  [[nodiscard]] CRef<Type> stobt(const std::string& str) const;
+  [[nodiscard]] CRef<Type> stobt(const std::string &str) const;
   [[nodiscard]] CRef<ArrayType> arrayType(CRef<Type> elementType, size_t size) const;
   [[nodiscard]] CRef<PointerType> pointerType(CRef<Type> elementType) const;
-  [[nodiscard]] CRef<FunctionType> functionType(const std::vector<CRef<Type>>& containedTypes) const;
+  [[nodiscard]] CRef<FunctionType> functionType(const std::vector<CRef<Type>> &containedTypes) const;
   [[nodiscard]] CRef<Type> voidType() const;
   [[nodiscard]] CRef<Type> floatType() const;
   [[nodiscard]] CRef<Type> doubleType() const;
   [[nodiscard]] CRef<IntegerType> boolType() const;
   [[nodiscard]] CRef<IntegerType> intType() const;
   [[nodiscard]] CRef<IntegerType> longType() const;
+  [[nodiscard]] CRef<Type> labelType() const;
   // for constant scalar, str should be the corresponding string of the number
   // for constant array, str should be the name of the array
   // all global array that are marked const should be stored in the constant pool
-  [[nodiscard]] Ref<Constant> constant(CRef<Type> type, const std::string& str);
+  [[nodiscard]] Ref<Constant> constant(CRef<Type> type, const std::string &str);
   [[nodiscard]] CRef<PointerType> castFromArrayType(CRef<ArrayType> arrayType) const;
   [[nodiscard]] CRef<ConstantScalar> constantZero(CRef<Type> type) const;
   [[nodiscard]] Scalar evalConstScalar(CRef<ConstantScalar> constScalar) const;

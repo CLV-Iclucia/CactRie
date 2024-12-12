@@ -9,7 +9,7 @@
 namespace llvm {
 
 Module &Module::addFunction(std::unique_ptr<Function> &&function) {
-  if (m_functionMap.find(function->name()) != m_functionMap.end())
+  if (m_functionMap.contains(function->name()))
     throw std::runtime_error("function already exists");
   functions.push_back(std::move(function));
   m_functionMap[functions.back()->name()] = mystl::make_observer(functions.back().get());

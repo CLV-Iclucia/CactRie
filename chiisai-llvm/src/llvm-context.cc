@@ -112,5 +112,8 @@ CRef<ConstantScalar> LLVMContext::constantZero(CRef<Type> type) const {
 CRef<Constant> LLVMContext::builtinVoidValue() const {
   return constantPool->constant(voidType(), "__builtin_void_typed_value");
 }
+CRef<Type> LLVMContext::labelType() const {
+  return makeCRef(typeSystem->labelInstance);
+}
 
 }  // namespace llvm

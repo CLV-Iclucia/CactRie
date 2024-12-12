@@ -11,8 +11,11 @@
 namespace llvm {
 
 struct RuntimeVar {
-  CRef<Value> value;
+  CRef<Value> value{};
   std::optional<size_t> frameIndex{};
+
+  RuntimeVar() = default;
+  explicit RuntimeVar(CRef<Value> value) : value(value) {}
 
   [[nodiscard]] bool isGlobal() const {
     return !frameIndex.has_value();
@@ -115,7 +118,7 @@ struct Executor {
       throw std::runtime_error("Variable already exists");
     callFrames.back().memory.insert({name, std::vector<Result>(size)});
   }
-  Result load(SpanAddress span) const {
+  Result load(const SpanAddress& span) const {
     CRef<std::unordered_map<std::string, std::vector<Result>>> mem{};
     if (span.begin.isGlobal())
       mem = makeCRef(globalMemory);
@@ -123,7 +126,7 @@ struct Executor {
       mem = makeCRef(callFrames.at(span.begin.frameIndex.value()).memory);
     return mem->at(span.begin.value->name()).at(span.index);
   }
-  void store(SpanAddress span, Result result) {
+  void store(const SpanAddress& span, const Result& result) {
     Ref<std::unordered_map<std::string, std::vector<Result>>> mem{};
     if (span.begin.isGlobal())
       mem = makeRef(globalMemory);

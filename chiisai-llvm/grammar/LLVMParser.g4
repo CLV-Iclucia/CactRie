@@ -75,7 +75,7 @@ functionDefinition
     std::unique_ptr<Function> function,
     std::vector<CRef<Type>> argTypes,
     std::vector<std::string> argNames,
-]: Define type globalIdentifier functionArguments LeftBrace basicBlock* RightBrace;
+]: Define type globalIdentifier functionArguments (LeftBrace basicBlock* RightBrace)?;
 
 functionArguments
  locals [
@@ -114,7 +114,7 @@ instruction
     | gepInstruction
     ;
 
-returnInstruction: Ret (type immediatelyUsableValue)?;
+returnInstruction: Ret (Void | (type immediatelyUsableValue));
 
 branchInstruction: Br I1 localIdentifier Comma Label localIdentifier Comma Label localIdentifier
                 | Br Label localIdentifier;

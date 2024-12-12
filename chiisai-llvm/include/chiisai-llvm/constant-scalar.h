@@ -9,7 +9,7 @@ namespace llvm {
 
 using Scalar = std::variant<bool, int32_t, int64_t, float, double>;
 
-struct ConstantScalar : Constant {
+struct ConstantScalar final : Constant {
   ConstantScalar(const std::string &name, CRef<Type> type) : Constant(name, type) {}
 };
 
