@@ -5,8 +5,9 @@
 #ifndef CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H
 #define CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H
 #include <cassert>
-#include <functional>
+#include <type_traits>
 #include "hash.h"
+
 namespace mystl {
 template<typename T>
 requires (!std::is_pointer_v<T>)
@@ -18,7 +19,7 @@ public:
   requires std::is_convertible_v<U*, T*>
   observer_ptr(U *ptr) : m_ptr(ptr) {}
   template<typename U>
-  requires std::is_convertible_v<U *, T *>
+  requires std::is_convertible_v<U*, T*>
   observer_ptr(observer_ptr<U> other) : m_ptr(other.get()) {}
   observer_ptr(std::nullptr_t) : m_ptr(nullptr) {}
   T *operator->() const {
@@ -71,12 +72,10 @@ observer_ptr<const T> make_observer(const T *ptr) {
 }
 }
 
-namespace std {
 template<typename T>
-struct hash<mystl::observer_ptr<T>> {
+struct std::hash<mystl::observer_ptr<T>> {
   size_t operator()(const mystl::observer_ptr<T> &ptr) const {
     return mystl::hash<mystl::observer_ptr<T>>{}(ptr);
   }
 };
-}
 #endif //CACTRIE_CACT_PARSER_INCLUDE_CACT_PARSER_MYSTL_OBSERVER_PTR_H

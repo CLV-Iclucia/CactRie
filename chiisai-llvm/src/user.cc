@@ -13,7 +13,7 @@ void addUse(Ref<User> user, Ref<Value> value) {
   if (value == nullptr)
     throw std::runtime_error("value is nullptr");
   user->m_usedValues.push_back(value);
-  value->m_users.push_back(user);
+  value->users.push_back(user);
   useDefLogger->debug("add use: {} -> {}", user->name(), value->name());
 }
 }

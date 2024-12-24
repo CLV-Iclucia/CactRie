@@ -287,6 +287,11 @@ void CmpInst::accept(Executor &executor) {
     throw std::runtime_error(
         "What the fucking comparison instruction is this?");
 }
+std::string CmpInst::toString() const {
+  return std::format("{} = {}cmp {} {}, {}", name(),
+                     lhs->type()->isInteger() ? "i" : "f", llvm::toString(predicate),
+                     lhs->name(), rhs->name());
+}
 
 void PhiInst::accept(Executor &executor) {
   const auto &incoming = executor.prvBasicBlock;
@@ -295,6 +300,11 @@ void PhiInst::accept(Executor &executor) {
       executor.reg(name()) = executor.reg(value);
       return;
     }
+}
+void PhiInst::removeBranch(const std::string &blockName) {
+  std::erase_if(incomingValues, [&blockName](const PhiValue &value) {
+    return value.basicBlock->name() == blockName;
+  });
 }
 
 std::string PhiInst::toString() const {
@@ -317,8 +327,14 @@ void BrInst::accept(Executor &executor) {
     } else
       throw std::runtime_error("Branch condition must be a boolean");
   } else
-    executor.nxtBasicBlock = std::get<CRef<BasicBlock>>(dest)->name();
+    executor.nxtBasicBlock = std::get<Ref<BasicBlock>>(dest)->name();
   executor.prvBasicBlock = basicBlock.name();
+}
+std::string BrInst::toString() const {
+  if (isConditional())
+    return std::format("br i1 {}, label %{}, label %{}", cond().name(),
+                       thenBranch().name(), elseBranch().name());
+  return std::format("br label %{}", thenBranch().name());
 }
 
 void GepInst::accept(Executor &executor) {

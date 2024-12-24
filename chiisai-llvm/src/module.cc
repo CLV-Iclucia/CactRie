@@ -5,6 +5,7 @@
 #include <chiisai-llvm/function.h>
 #include <chiisai-llvm/module.h>
 #include <chiisai-llvm/value.h>
+
 namespace llvm {
 
 Module &Module::addFunction(std::unique_ptr<Function> &&function) {
@@ -15,6 +16,7 @@ Module &Module::addFunction(std::unique_ptr<Function> &&function) {
       mystl::make_observer(functions.back().get());
   return *this;
 }
+
 Module &Module::addGlobalVariable(std::unique_ptr<GlobalVariable> &&globalVariable) {
   if (m_globalVariableMap.contains(globalVariable->name()))
     throw std::runtime_error("global variable already exists");

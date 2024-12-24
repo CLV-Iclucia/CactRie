@@ -18,10 +18,7 @@ struct BuildResult {
 
 struct ModuleBuilder final : LLVMParserVisitor {
 
-  explicit ModuleBuilder() {
-    logStream = std::make_unique<std::ofstream>("module-builder.log");
-    logger = minilog::Logger(*logStream);
-  }
+  explicit ModuleBuilder() : LLVMParserVisitor(), logStream(std::make_unique<std::ofstream>("module-builder.log")), logger(*logStream) {}
 
   std::any visitInitializer(LLVMParser::InitializerContext *ctx) override;
 

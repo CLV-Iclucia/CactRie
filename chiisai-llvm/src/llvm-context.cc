@@ -8,9 +8,7 @@
 #include <chiisai-llvm/constant-pool.h>
 #include <chiisai-llvm/constant-scalar.h>
 namespace llvm {
-
-uint8_t stoinst(const std::string &str) {
-  static std::unordered_map<std::string, uint8_t> map{
+static std::unordered_map<std::string, uint8_t> instMap{
       {"add", Instruction::Add},
       {"fadd", Instruction::FAdd},
       {"sub", Instruction::Sub},
@@ -33,7 +31,35 @@ uint8_t stoinst(const std::string &str) {
       {"br", Instruction::Br},
       {"call", Instruction::Call},
   };
-  return map[str];
+
+static std::unordered_map<uint8_t, std::string> opCodeMap{
+      {Instruction::Add, "add"},
+      {Instruction::FAdd, "fadd"},
+      {Instruction::Sub, "sub"},
+      {Instruction::FSub, "fsub"},
+      {Instruction::Mul, "mul"},
+      {Instruction::FMul, "fmul"},
+      {Instruction::SDiv, "sdiv"},
+      {Instruction::FDiv, "fdiv"},
+      {Instruction::SRem, "srem"},
+      {Instruction::Xor, "xor"},
+      {Instruction::Shl, "shl"},
+      {Instruction::LShr, "lshr"},
+      {Instruction::AShr, "ashr"},
+      {Instruction::And, "and"},
+      {Instruction::Or, "or"},
+      {Instruction::Alloca, "alloca"},
+      {Instruction::Load, "load"},
+      {Instruction::Store, "store"},
+      {Instruction::Ret, "ret"},
+      {Instruction::Br, "br"},
+      {Instruction::Call, "call"},
+  };
+uint8_t stoinst(const std::string &str) {
+  return instMap.at(str);
+}
+std::string inst2String(uint8_t opCode) {
+  return opCodeMap.at(opCode);
 }
 
 LLVMContext::LLVMContext() : typeSystem(std::make_unique<TypeSystem>()) {}

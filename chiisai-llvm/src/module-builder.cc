@@ -1,6 +1,10 @@
 //
 // Created by creeper on 9/29/24.
 //
+#include <antlr-runtime/ANTLRInputStream.h>
+#include <antlr-runtime/CommonTokenStream.h>
+#include <chiisai-llvm/autogen/LLVMLexer.h>
+#include <chiisai-llvm/autogen/LLVMParser.h>
 #include <chiisai-llvm/array-type.h>
 #include <chiisai-llvm/integer-type.h>
 #include <chiisai-llvm/llvm-context.h>
@@ -541,10 +545,7 @@ Ref<Value> ModuleBuilder::resolveValueUsage(CRef<Type> type,
   return llvmContext->constant(type, name);
 }
 
-#include <antlr-runtime/ANTLRInputStream.h>
-#include <antlr-runtime/CommonTokenStream.h>
-#include <chiisai-llvm/autogen/LLVMLexer.h>
-#include <chiisai-llvm/autogen/LLVMParser.h>
+
 BuildResult buildModule(const std::filesystem::path &path) {
   std::ifstream stream(path);
   if (!stream) {

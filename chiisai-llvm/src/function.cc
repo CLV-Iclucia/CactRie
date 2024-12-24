@@ -11,9 +11,25 @@ void Function::accept(Executor &executor) {
   auto &entry = *impl->m_basicBlocks.front();
   executor.execute(entry);
   while (!executor.returnFlag) {
-    const auto& nxt = executor.nxtBasicBlock;
+    const auto &nxt = executor.nxtBasicBlock;
     executor.execute(basicBlock(nxt));
   }
+}
+void Function::addBasicBlock(std::unique_ptr<BasicBlock> &&bb) {
+  if (!impl)
+    impl.emplace();
+  impl->basicBlockMap.insert({bb->name(), makeRef(*bb)});
+  impl->m_basicBlocks.emplace_back(std::move(bb));
+}
+bool Function::hasIdentifier(const std::string &name) const {
+  assert(impl.has_value());
+  for (const auto &arg : m_args)
+    if (arg->name() == name)
+      return true;
+  for (const auto &bb : basicBlocks())
+    if (bb.hasIdentifier(name))
+      return true;
+  return false;
 }
 void Function::removeBasicBlock(Ref<BasicBlock> bb) {
   assert(impl);

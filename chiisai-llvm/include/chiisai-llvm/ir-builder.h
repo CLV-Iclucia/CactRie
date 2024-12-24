@@ -28,16 +28,8 @@ struct IRBuilder {
     return instRef;
   }
 
-  [[nodiscard]] CRef<PhiInst> createPhiInst(const PhiInstDetails &details) const {
-    auto phiInst = std::make_unique<PhiInst>(basicBlock, details);
-    auto instRef = makeRef(*phiInst);
-    basicBlock.addInstruction(std::move(phiInst));
-    for (auto &[bb, value] : details.incomingValues) {
-      addUse(instRef, value);
-      addUse(instRef, bb);
-    }
-    return instRef;
-  }
+  [[nodiscard]] CRef<PhiInst>
+  createPhiInst(const PhiInstDetails &details) const;
 
   [[nodiscard]] CRef<CmpInst> createCmpInst(uint8_t op, const CmpInstDetails &details) const {
     auto cmpInst = std::make_unique<CmpInst>(op, basicBlock, details);
@@ -82,23 +74,9 @@ struct IRBuilder {
     return instRef;
   }
 
-  CRef<BrInst> createBrInst(BasicBlock& dest) const {
-    auto brInst = std::make_unique<BrInst>(basicBlock, makeRef(dest));
-    auto instRef = makeRef(*brInst);
-    basicBlock.addInstruction(std::move(brInst));
-    addUse(instRef, makeRef(dest));
-    return instRef;
-  }
+  CRef<BrInst> createBrInst(BasicBlock &dest) const;
 
-  [[nodiscard]] CRef<BrInst> createBrInst(const BrInstDetails& cond) const {
-    auto brInst = std::make_unique<BrInst>(basicBlock, cond);
-    auto instRef = makeRef(*brInst);
-    basicBlock.addInstruction(std::move(brInst));
-    addUse(instRef, cond.cond);
-    addUse(instRef, cond.thenBranch);
-    addUse(instRef, cond.elseBranch);
-    return instRef;
-  }
+  [[nodiscard]] CRef<BrInst> createBrInst(const BrInstDetails &cond) const;
 
   [[nodiscard]] CRef<StoreInst> createStoreInst(const StoreInstDetails &details) const {
     auto storeInst = std::make_unique<StoreInst>(basicBlock, details);

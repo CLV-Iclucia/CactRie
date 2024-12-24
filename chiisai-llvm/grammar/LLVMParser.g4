@@ -5,7 +5,7 @@ parser grammar LLVMParser;
     #include <variant>
     #include <chiisai-llvm/ref.h>
     #include <chiisai-llvm/type.h>
-    #include <chiisai-llvm/basic-block.h>
+    #include <chiisai-llvm/function.h>
     #include <chiisai-llvm/constant.h>
     #include <chiisai-llvm/constant-array.h>
     #include <chiisai-llvm/array-type.h>

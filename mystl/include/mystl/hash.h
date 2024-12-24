@@ -18,9 +18,8 @@ inline void hash_combine(std::size_t& seed, const T& value) {
 }
 }
 
-namespace std {
 template<typename T, typename U>
-struct hash<std::pair<T, U>> {
+struct std::hash<std::pair<T, U>> {
   size_t operator()(const std::pair<T, U> &pair) const {
     size_t seed = 0;
     mystl::hash_combine(seed, pair.first);
@@ -30,7 +29,7 @@ struct hash<std::pair<T, U>> {
 };
 
 template<typename T>
-struct hash<std::vector<T>> {
+struct std::hash<std::vector<T>> {
   size_t operator()(const std::vector<T> &vec) const {
     size_t seed = 0;
     for (const auto &elem : vec) {
@@ -39,5 +38,4 @@ struct hash<std::vector<T>> {
     return seed;
   }
 };
-}
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MYSTL_HASH_H

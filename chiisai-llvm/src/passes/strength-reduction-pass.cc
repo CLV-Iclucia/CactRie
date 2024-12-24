@@ -10,5 +10,6 @@ bool StrengthReductionPass::runOnBasicBlock(BasicBlock &block) {
   for (auto inst : block.instructions) {
 
   }
+  return {};
 }
 } // namespace llvm

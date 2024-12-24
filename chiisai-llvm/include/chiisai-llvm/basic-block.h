@@ -6,12 +6,12 @@
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_BASIC_BLOCK_H
 #include <chiisai-llvm/value.h>
 #include <chiisai-llvm/properties.h>
+#include <chiisai-llvm/inst-transformer.h>
 namespace llvm {
 
 struct Module;
 struct Instruction;
 struct Function;
-struct InstTransformer;
 struct BasicBlock final : Value {
   explicit BasicBlock(const std::string &name, CRef<Type> type) : Value(name, type) {
     assert(type->type == Type::TypeEnum::Label);

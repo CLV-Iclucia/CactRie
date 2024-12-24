@@ -7,6 +7,7 @@
 #include "observer_ptr.h"
 #include <memory>
 #include <vector>
+
 namespace mystl {
 /**
  * @brief A vector that holds polymorphic objects
@@ -79,40 +80,40 @@ public:
     container_iterator it;
   };
 
-  iterator begin() { return iterator(data.begin()); }
-  iterator end() { return iterator(data.end()); }
-  const_iterator begin() const { return const_iterator(data.cbegin()); }
-  const_iterator end() const { return const_iterator(data.cend()); }
-  const_iterator cbegin() const { return const_iterator(data.cbegin()); }
-  const_iterator cend() const { return const_iterator(data.cend()); }
+  iterator begin() { return iterator(m_container.begin()); }
+  iterator end() { return iterator(m_container.end()); }
+  const_iterator begin() const { return const_iterator(m_container.cbegin()); }
+  const_iterator end() const { return const_iterator(m_container.cend()); }
+  const_iterator cbegin() const { return const_iterator(m_container.cbegin()); }
+  const_iterator cend() const { return const_iterator(m_container.cend()); }
 
-  [[nodiscard]] observer_ptr<Base> front() { return make_observer(data.front().get()); }
-  [[nodiscard]] observer_ptr<const Base> front() const { return make_observer(data.front().get()); }
-  [[nodiscard]] observer_ptr<Base> back() { return make_observer(data.back().get()); }
-  [[nodiscard]] observer_ptr<const Base> back() const { return make_observer(data.back().get()); }
+  [[nodiscard]] observer_ptr<Base> front() { return make_observer(m_container.front().get()); }
+  [[nodiscard]] observer_ptr<const Base> front() const { return make_observer(m_container.front().get()); }
+  [[nodiscard]] observer_ptr<Base> back() { return make_observer(m_container.back().get()); }
+  [[nodiscard]] observer_ptr<const Base> back() const { return make_observer(m_container.back().get()); }
 
-  void pop_back() { data.pop_back(); }
-  void pop_front() { data.erase(data.begin()); }
+  void pop_back() { m_container.pop_back(); }
+  void pop_front() { m_container.erase(m_container.begin()); }
 
   template<typename Derived, typename... Args>
   requires std::is_base_of_v<Base, Derived>
   void emplace_back(Args &&... args) {
-    data.emplace_back(std::make_unique<Derived>(std::forward<Args>(args)...));
+    m_container.emplace_back(std::make_unique<Derived>(std::forward<Args>(args)...));
   }
 
   template<typename Derived>
   requires std::is_base_of_v<Base, Derived>
   void push_back(std::unique_ptr<Derived> &&ptr) {
-    data.push_back(std::move(ptr));
+    m_container.push_back(std::move(ptr));
   }
 
-  void clear() { data.clear(); }
+  void clear() { m_container.clear(); }
 
-  [[nodiscard]] bool empty() const { return data.empty(); }
-  [[nodiscard]] size_t size() const { return data.size(); }
+  [[nodiscard]] bool empty() const { return m_container.empty(); }
+  [[nodiscard]] size_t size() const { return m_container.size(); }
 
 private:
-  std::vector<std::unique_ptr<Base>> data{};
+  std::vector<std::unique_ptr<Base>> m_container{};
 };
 
 }

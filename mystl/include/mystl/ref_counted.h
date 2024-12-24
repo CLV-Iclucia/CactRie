@@ -4,9 +4,9 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MYSTL_REF_COUNTED_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MYSTL_REF_COUNTED_H
-namespace mystl {
 #include <cstddef>
 #include <utility>
+namespace mystl {
 
 template<typename T>
 class ref_counted {

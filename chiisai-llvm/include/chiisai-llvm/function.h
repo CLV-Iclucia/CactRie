@@ -4,11 +4,10 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_FUNCTION_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_FUNCTION_H
+#include <mystl/manager_vector.h>
 #include <chiisai-llvm/argument.h>
 #include <chiisai-llvm/function-type.h>
-#include <chiisai-llvm/instruction.h>
-#include <mystl/manager_vector.h>
-#include <mystl/poly_vector.h>
+#include <chiisai-llvm/basic-block.h>
 #include <ranges>
 
 namespace llvm {
@@ -58,16 +57,35 @@ struct Function final : Value {
     return impl->basicBlockMap.contains(name);
   }
 
-  [[nodiscard]] bool hasIdentifier(const std::string &name) const {
-    assert(impl.has_value());
-    for (const auto &arg : m_args)
-      if (arg->name() == name)
-        return true;
-    for (const auto &bb : basicBlocks())
-      if (bb.hasIdentifier(name))
-        return true;
-    return false;
+  auto basicBlocks() const {
+    assert(impl);
+    return impl->m_basicBlocks |
+           std::views::transform([](const std::unique_ptr<BasicBlock> &bb) -> const BasicBlock& {
+             return *bb;
+           });
   }
+
+  auto basicBlocks() {
+    assert(impl);
+    return impl->m_basicBlocks |
+           std::views::transform([](std::unique_ptr<BasicBlock> &bb) -> BasicBlock& {
+             return *bb;
+           });
+  }
+
+  [[nodiscard]]
+  auto basicBlockRefs() {
+    assert(impl);
+    return impl->m_basicBlocks |
+           std::views::transform([](auto &bb) { return makeRef(*bb); });
+  }
+  auto basicBlockRefs() const {
+    assert(impl);
+    return impl->m_basicBlocks |
+           std::views::transform([](const auto &bb) { return makeRef(*bb); });
+  }
+
+  [[nodiscard]] bool hasIdentifier(const std::string &name) const;
 
   BasicBlock &basicBlock(const std::string &name) {
     assert(impl);
@@ -93,22 +111,8 @@ struct Function final : Value {
   Module &module() { return const_cast<Module &>(m_module); }
   [[nodiscard]] const Module &module() const { return m_module; }
   void accept(Executor &executor) override;
-  auto basicBlocks() const {
-    assert(impl);
-    return impl->m_basicBlocks |
-           std::views::transform([](auto &&bb) { return *bb; });
-  }
-  auto basicBlockRefs() {
-    assert(impl);
-    return impl->m_basicBlocks |
-           std::views::transform([](auto &bb) { return makeRef(*bb); });
-  }
 
-  void addBasicBlock(std::unique_ptr<BasicBlock> &&bb) {
-    if (!impl)
-      impl.emplace();
-    impl->basicBlockMap.insert({bb->name(), makeRef(*bb)});
-  }
+  void addBasicBlock(std::unique_ptr<BasicBlock> &&bb);
 
 private:
   mystl::manager_vector<Argument> m_args{};

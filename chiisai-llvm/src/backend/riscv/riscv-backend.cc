@@ -3,7 +3,7 @@
 //
 #include <chiisai-llvm/function.h>
 #include <chiisai-llvm/backend/riscv/riscv-backend.h>
-
+#include <chiisai-llvm/basic-block.h>
 namespace llvm {
 
 static RiscvPseudoBinary toPseudoBinary(CRef<BinaryInst> inst) {
@@ -27,8 +27,6 @@ static RiscvPseudoCmp toPseudoCmp(CRef<CmpInst> inst) {
 static PseudoInstruction toPseudoInstruction(CRef<Instruction> inst) {
   if (inst->isBinary())
     return toPseudoBinary(cast<BinaryInst>(inst));
-  if (inst->isLogical())
-    return
 }
 
 void RiscvBackend::eliminatePhi(CRef<BasicBlock> block, CRef<PhiInst> phi) {

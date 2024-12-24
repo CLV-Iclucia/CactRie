@@ -7,7 +7,7 @@
 namespace llvm {
 void Value::replaceAllUsesWith(Ref<Value> other) {
   assert(other.get() != this);
-  for (auto user : users()) {
+  for (auto user : users) {
     // let's do it in a brute force way!
     std::transform(
         user->usedValues().begin(), user->usedValues().end(), user->usedValues().begin(),
@@ -17,6 +17,6 @@ void Value::replaceAllUsesWith(Ref<Value> other) {
           return value;
         });
   }
-  users().clear();
+  users.clear();
 }
 }
