@@ -17,20 +17,6 @@ struct BasicBlock final : Value {
     assert(type->type == Type::TypeEnum::Label);
   }
 
-//  template<typename Func> requires std::invocable<Func, Ref<Instruction>>
-//  void forEachInstruction(Func &&func) const {
-//    for (auto inst : instructions)
-//      func(inst);
-//  }
-//
-//  template<typename Derived, typename Func>
-//  requires std::invocable<Func, Ref<Derived>> && std::is_base_of_v<Instruction, Derived>
-//  void forEachInstruction(Func &&func) const {
-//    for (auto inst : instructions)
-//      if (auto derived = dynCast<Derived>(inst))
-//        func(derived);
-//  }
-
   [[nodiscard]] const Function &function() const {
     if (m_function == nullptr)
       throw std::runtime_error("accessing null function in basic block");
@@ -52,13 +38,26 @@ struct BasicBlock final : Value {
       throw std::runtime_error("identifier not found");
     return *m_identifierMap.at(name);
   }
+  bool hasIdentifier(const std::string &name) const {
+    return m_identifierMap.contains(name);
+  }
+  const auto& identifiers() const {
+    return m_identifierMap;
+  }
 
   BasicBlock &addInstruction(std::unique_ptr<Instruction> &&instruction);
 
   mystl::poly_list<Instruction> instructions{};
+  std::list<Ref<BasicBlock>> predecessors{};
+  std::list<Ref<BasicBlock>> successors{};
   void accept(Executor &executor) override;
-private:
+  void removeInstruction(CRef<Instruction> inst);
+  const InstTransformer& instTransformer();
+
+  private:
+  friend struct Function;
   std::unordered_map<std::string, Ref<Value>> m_identifierMap{};
+  std::unique_ptr<InstTransformer> m_instTransformer{};
   Ref<Function> m_function{};
 };
 

@@ -4,9 +4,9 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_BUILDER_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_BUILDER_H
+#include <chiisai-llvm/autogen/LLVMParserVisitor.h>
 #include <chiisai-llvm/function.h>
 #include <chiisai-llvm/ir-builder.h>
-#include <chiisai-llvm/autogen/LLVMParserVisitor.h>
 namespace llvm {
 struct Module;
 struct LLVMContext;
@@ -16,7 +16,12 @@ struct BuildResult {
   std::unique_ptr<LLVMContext> llvmContext{};
 };
 
-struct ModuleBuilder final : public LLVMParserVisitor {
+struct ModuleBuilder final : LLVMParserVisitor {
+
+  explicit ModuleBuilder() {
+    logStream = std::make_unique<std::ofstream>("module-builder.log");
+    logger = minilog::Logger(*logStream);
+  }
 
   std::any visitInitializer(LLVMParser::InitializerContext *ctx) override;
 
@@ -30,14 +35,19 @@ struct ModuleBuilder final : public LLVMParserVisitor {
 
   std::any visitModule(LLVMParser::ModuleContext *ctx) override;
 
-  std::any visitGlobalDeclaration(LLVMParser::GlobalDeclarationContext *ctx) override {
-  }
+  std::any
+  visitGlobalDeclaration(LLVMParser::GlobalDeclarationContext *ctx) override;
+
+  std::any
+  visitFunctionDefinition(LLVMParser::FunctionDefinitionContext *context) override;
 
   std::any visitScalarType(LLVMParser::ScalarTypeContext *ctx) override;
 
-  std::any visitFunctionDefinition(LLVMParser::FunctionDefinitionContext *ctx) override;
+  std::any visitFunctionDeclaration(
+      LLVMParser::FunctionDeclarationContext *ctx) override;
 
-  std::any visitFunctionArguments(LLVMParser::FunctionArgumentsContext *ctx) override {
+  std::any
+  visitFunctionArguments(LLVMParser::FunctionArgumentsContext *ctx) override {
     auto params = ctx->parameterList();
     visitParameterList(params);
     ctx->argNames = std::move(params->argNames);
@@ -65,7 +75,8 @@ struct ModuleBuilder final : public LLVMParserVisitor {
 
   std::any visitBasicBlock(LLVMParser::BasicBlockContext *ctx) override;
 
-  std::any visitComparisonInstruction(LLVMParser::ComparisonInstructionContext *ctx) override;
+  std::any visitComparisonInstruction(
+      LLVMParser::ComparisonInstructionContext *ctx) override;
 
   std::any visitInstruction(LLVMParser::InstructionContext *ctx) override {
     if (ctx->arithmeticInstruction())
@@ -92,7 +103,8 @@ struct ModuleBuilder final : public LLVMParserVisitor {
     return {};
   }
 
-  std::any visitTerminatorInstruction(LLVMParser::TerminatorInstructionContext *ctx) override {
+  std::any visitTerminatorInstruction(
+      LLVMParser::TerminatorInstructionContext *ctx) override {
     if (ctx->returnInstruction())
       visitReturnInstruction(ctx->returnInstruction());
 
@@ -102,44 +114,63 @@ struct ModuleBuilder final : public LLVMParserVisitor {
     return {};
   }
 
-  std::any visitLoadInstruction(LLVMParser::LoadInstructionContext *ctx) override;
+  std::any
+  visitGlobalIdentifier(LLVMParser::GlobalIdentifierContext *context) override {
+    assert(false);
+  }
+  std::any
+  visitLocalIdentifier(LLVMParser::LocalIdentifierContext *context) override {
+    assert(false);
+  }
+  std::any
+  visitLoadInstruction(LLVMParser::LoadInstructionContext *ctx) override;
 
-  std::any visitStoreInstruction(LLVMParser::StoreInstructionContext *ctx) override;
+  std::any
+  visitStoreInstruction(LLVMParser::StoreInstructionContext *ctx) override;
 
-  std::any visitAllocaInstruction(LLVMParser::AllocaInstructionContext *ctx) override;
+  std::any
+  visitAllocaInstruction(LLVMParser::AllocaInstructionContext *ctx) override;
 
-  std::any visitArithmeticInstruction(LLVMParser::ArithmeticInstructionContext *ctx) override;
+  std::any visitArithmeticInstruction(
+      LLVMParser::ArithmeticInstructionContext *ctx) override;
 
   std::any visitVariable(LLVMParser::VariableContext *ctx) override {
     ctx->isGlobal = ctx->globalIdentifier() != nullptr;
     return {};
   }
 
-  std::any visitImmediatelyUsableValue(LLVMParser::ImmediatelyUsableValueContext *ctx) override;
+  std::any visitImmediatelyUsableValue(
+      LLVMParser::ImmediatelyUsableValueContext *ctx) override;
 
   std::any visitGepInstruction(LLVMParser::GepInstructionContext *ctx) override;
 
   std::any visitConstantArray(LLVMParser::ConstantArrayContext *ctx) override;
 
-  std::any visitReturnInstruction(LLVMParser::ReturnInstructionContext *ctx) override;
+  std::any
+  visitReturnInstruction(LLVMParser::ReturnInstructionContext *ctx) override;
 
-  std::any visitBranchInstruction(LLVMParser::BranchInstructionContext *ctx) override;
+  std::any
+  visitBranchInstruction(LLVMParser::BranchInstructionContext *ctx) override;
 
-  std::any visitCallInstruction(LLVMParser::CallInstructionContext *ctx) override;
+  std::any
+  visitCallInstruction(LLVMParser::CallInstructionContext *ctx) override;
 
   std::any visitPhiInstruction(LLVMParser::PhiInstructionContext *ctx) override;
 
   std::any visitPhiValue(LLVMParser::PhiValueContext *ctx) override;
 
-  std::any visitComparisonOperation(LLVMParser::ComparisonOperationContext *ctx) override {
+  std::any visitComparisonOperation(
+      LLVMParser::ComparisonOperationContext *ctx) override {
     throw std::runtime_error("Comparison operation should not be visited");
   }
 
-  std::any visitBinaryOperation(LLVMParser::BinaryOperationContext *ctx) override {
+  std::any
+  visitBinaryOperation(LLVMParser::BinaryOperationContext *ctx) override {
     throw std::runtime_error("Binary operation should not be visited");
   }
 
-  std::any visitComparisonPredicate(LLVMParser::ComparisonPredicateContext *ctx) override {
+  std::any visitComparisonPredicate(
+      LLVMParser::ComparisonPredicateContext *ctx) override {
     throw std::runtime_error("Comparison predicate should not be visited");
   }
 
@@ -155,21 +186,22 @@ struct ModuleBuilder final : public LLVMParserVisitor {
 
   Ref<Function> currentFunction{};
   Ref<BasicBlock> currentBasicBlock{};
+
 private:
   std::unique_ptr<Module> module{};
   std::unique_ptr<LLVMContext> llvmContext{};
-  Ref<Value> resolveImmediateValueUsage(LLVMParser::ImmediatelyUsableValueContext *ctx);
-  Ref<Value> resolveValueUsage(CRef<Type> type, const std::string& name);
+  Ref<Value>
+  resolveImmediateValueUsage(LLVMParser::ImmediatelyUsableValueContext *ctx);
+  [[nodiscard]] Ref<Value> resolveValueUsage(CRef<Type> type, const std::string &name) const;
   Ref<Value> resolveVariableUsage(LLVMParser::VariableContext *ctx);
-  Ref<Value> resolveVariableUsageAfterVisit(LLVMParser::VariableContext *ctx) const;
-  template<typename T>
-  static std::string variableName(T *ctx) {
+
+  template <typename T> static std::string variableName(T *ctx) {
     return ctx->getText();
   }
-
-public:
-  std::any visitGlobalIdentifier(LLVMParser::GlobalIdentifierContext* context) override;
-  std::any visitLocalIdentifier(LLVMParser::LocalIdentifierContext* context) override;
+  std::unique_ptr<std::ostream> logStream{};
+  minilog::Logger logger{};
 };
-}
-#endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_BUILDER_H
+
+BuildResult buildModule(const std::filesystem::path& path);
+} // namespace llvm
+#endif // CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_MODULE_BUILDER_H

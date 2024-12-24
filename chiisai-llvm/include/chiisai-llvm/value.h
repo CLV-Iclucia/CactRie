@@ -36,6 +36,9 @@ struct Value : RAII, Executable {
   [[nodiscard]] const std::string& name() const {
     return m_name;
   }
+  [[nodiscard]] uint64_t handle() const {
+    return reinterpret_cast<uint64_t>(this);
+  }
   ~Value() override = default;
 private:
   friend struct Module;

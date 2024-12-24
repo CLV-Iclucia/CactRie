@@ -20,5 +20,6 @@ enum class Predicate : uint8_t {
 };
 
 Predicate stopdct(const std::string &str);
+std::string toString(Predicate predicate);
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_PREDICATE_H

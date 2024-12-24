@@ -5,6 +5,7 @@
 #include <chiisai-llvm/basic-block.h>
 #include <chiisai-llvm/function.h>
 #include <chiisai-llvm/executor.h>
+#include <chiisai-llvm/inst-transformer.h>
 namespace llvm {
 
 BasicBlock &BasicBlock::addInstruction(std::unique_ptr<Instruction> &&instruction) {
@@ -16,6 +17,16 @@ BasicBlock &BasicBlock::addInstruction(std::unique_ptr<Instruction> &&instructio
 void BasicBlock::accept(Executor &executor) {
   for (auto inst : instructions)
     executor.execute(inst);
+}
+void BasicBlock::removeInstruction(CRef<Instruction> inst) {
+  if (inst->name() != "")
+    m_identifierMap.erase(inst->name());
+  instTransformer().removeInstruction(inst);
+}
+const InstTransformer& BasicBlock::instTransformer() {
+  if (!m_instTransformer)
+    m_instTransformer = std::make_unique<InstTransformer>(*this);
+  return *m_instTransformer;
 }
 
 Module &BasicBlock::module() {

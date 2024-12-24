@@ -12,14 +12,14 @@ namespace llvm {
 struct IRBuilder {
   explicit IRBuilder(BasicBlock &basicBlock) : basicBlock(basicBlock) {}
 
-  CRef<AllocaInst> createAllocaInst(const AllocaInstDetails& details) {
+  [[nodiscard]] CRef<AllocaInst> createAllocaInst(const AllocaInstDetails& details) const {
     auto allocaInst = std::make_unique<AllocaInst>(basicBlock, details);
     auto instRef = makeRef(*allocaInst);
     basicBlock.addInstruction(std::move(allocaInst));
     return instRef;
   }
 
-  CRef<BinaryInst> createBinaryInst(uint8_t op, const BinaryInstDetails &details) {
+  [[nodiscard]] CRef<BinaryInst> createBinaryInst(uint8_t op, const BinaryInstDetails &details) const {
     auto binaryInst = std::make_unique<BinaryInst>(op, basicBlock, details);
     auto instRef = makeRef(*binaryInst);
     basicBlock.addInstruction(std::move(binaryInst));
@@ -28,18 +28,18 @@ struct IRBuilder {
     return instRef;
   }
 
-  CRef<PhiInst> createPhiInst(const PhiInstDetails &details) {
+  [[nodiscard]] CRef<PhiInst> createPhiInst(const PhiInstDetails &details) const {
     auto phiInst = std::make_unique<PhiInst>(basicBlock, details);
     auto instRef = makeRef(*phiInst);
     basicBlock.addInstruction(std::move(phiInst));
     for (auto &[bb, value] : details.incomingValues) {
       addUse(instRef, value);
-      addUse(instRef, makeCRef(bb));
+      addUse(instRef, bb);
     }
     return instRef;
   }
 
-  CRef<CmpInst> createCmpInst(uint8_t op, const CmpInstDetails &details) {
+  [[nodiscard]] CRef<CmpInst> createCmpInst(uint8_t op, const CmpInstDetails &details) const {
     auto cmpInst = std::make_unique<CmpInst>(op, basicBlock, details);
     auto instRef = makeRef(*cmpInst);
     basicBlock.addInstruction(std::move(cmpInst));
@@ -48,7 +48,7 @@ struct IRBuilder {
     return instRef;
   }
 
-  CRef<CallInst> createCallInst(const CallInstDetails &details) {
+  [[nodiscard]] CRef<CallInst> createCallInst(const CallInstDetails &details) const {
     auto callInst = std::make_unique<CallInst>(basicBlock, details);
     auto instRef = makeRef(*callInst);
     basicBlock.addInstruction(std::move(callInst));
@@ -58,16 +58,16 @@ struct IRBuilder {
     return instRef;
   }
 
-  CRef<GepInst> createGepInst(const GepInstDetails &details) {
+  [[nodiscard]] CRef<GepInst> createGepInst(const GepInstDetails &details) const {
     auto gepInst = std::make_unique<GepInst>(basicBlock, details);
     auto instRef = makeRef(*gepInst);
     basicBlock.addInstruction(std::move(gepInst));
-    addUse(instRef, makeRef(instRef->pointer));
+    addUse(instRef, instRef->pointer);
     addUse(instRef, instRef->index);
     return instRef;
   }
 
-  CRef<LoadInst> createLoadInst(const LoadInstDetails &details) {
+  [[nodiscard]] CRef<LoadInst> createLoadInst(const LoadInstDetails &details) const {
     auto loadInst = std::make_unique<LoadInst>(basicBlock, details);
     auto instRef = makeRef(*loadInst);
     basicBlock.addInstruction(std::move(loadInst));
@@ -75,28 +75,37 @@ struct IRBuilder {
     return instRef;
   }
 
-  CRef<RetInst> createRetInst(CRef<Value> value) {
+  [[nodiscard]] CRef<RetInst> createRetInst(Ref<Value> value) const {
     auto retInst = std::make_unique<RetInst>(basicBlock, value);
     auto instRef = makeRef(*retInst);
     basicBlock.addInstruction(std::move(retInst));
     return instRef;
   }
 
-  CRef<BrInst> createBrInst(const BasicBlock& dest) {
-    auto brInst = std::make_unique<BrInst>(basicBlock, makeCRef(dest));
+  CRef<BrInst> createBrInst(BasicBlock& dest) const {
+    auto brInst = std::make_unique<BrInst>(basicBlock, makeRef(dest));
     auto instRef = makeRef(*brInst);
     basicBlock.addInstruction(std::move(brInst));
-    addUse(instRef, makeCRef(dest));
+    addUse(instRef, makeRef(dest));
     return instRef;
   }
 
-  CRef<BrInst> createBrInst(const BrInstDetails& cond) {
+  [[nodiscard]] CRef<BrInst> createBrInst(const BrInstDetails& cond) const {
     auto brInst = std::make_unique<BrInst>(basicBlock, cond);
     auto instRef = makeRef(*brInst);
     basicBlock.addInstruction(std::move(brInst));
     addUse(instRef, cond.cond);
     addUse(instRef, cond.thenBranch);
     addUse(instRef, cond.elseBranch);
+    return instRef;
+  }
+
+  [[nodiscard]] CRef<StoreInst> createStoreInst(const StoreInstDetails &details) const {
+    auto storeInst = std::make_unique<StoreInst>(basicBlock, details);
+    auto instRef = makeRef(*storeInst);
+    basicBlock.addInstruction(std::move(storeInst));
+    addUse(instRef, instRef->pointer);
+    addUse(instRef, instRef->value);
     return instRef;
   }
 private:

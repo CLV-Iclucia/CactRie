@@ -79,7 +79,7 @@ CRef<IntegerType> LLVMContext::longType() const {
   return makeCRef(typeSystem->longInstance);
 }
 
-Ref<Constant> LLVMContext::constant(CRef<Type> type, const std::string &str) {
+Ref<Constant> LLVMContext::constant(CRef<Type> type, const std::string &str) const {
   return constantPool->constant(type, str);
 }
 
@@ -100,7 +100,7 @@ Scalar LLVMContext::evalConstScalar(CRef<ConstantScalar> constScalar) const {
     auto intVal = std::stoi(constScalar->name());
     if (intVal == 0)
       return {false};
-    else if (intVal == 1)
+    if (intVal == 1)
       return {true};
     throw std::runtime_error("Invalid boolean value");
   }

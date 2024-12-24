@@ -14,8 +14,11 @@ struct GlobalVariableDetails {
 };
 
 // GlobalVariable is actually a pointer to a global object
-struct GlobalVariable : Constant {
+struct GlobalVariable final : Constant {
 
+  explicit GlobalVariable(const GlobalVariableDetails &details) : Constant(details.name, details.initializer->type()) {
+
+  }
   [[nodiscard]] bool isConstant() const {
     return constVal.has_value();
   }

@@ -5,7 +5,6 @@
 #ifndef CACTRIE_CACT_RIE_INCLUDE_CACT_RIE_LLVM_INSTRUCTIONS_H
 #define CACTRIE_CACT_RIE_INCLUDE_CACT_RIE_LLVM_INSTRUCTIONS_H
 #include <variant>
-#include <mystl/hash.h>
 #include <chiisai-llvm/user.h>
 #include <chiisai-llvm/basic-block.h>
 #include <chiisai-llvm/predicate.h>
@@ -96,6 +95,14 @@ struct Instruction : User {
     return opCode == Add || opCode == Mul || opCode == And || opCode == Or;
   }
 
+  [[nodiscard]] bool isComparison() const {
+    return opCode == ICmp || opCode == FCmp;
+  }
+
+  [[nodiscard]] bool isOther() const {
+    return opCode >= OtherIDEnd;
+  }
+
   static bool checkBinaryInstType(CRef<Value> lhs, CRef<Value> rhs) {
     if (lhs->type() != rhs->type())
       return false;
@@ -109,9 +116,6 @@ struct Instruction : User {
   }
   [[nodiscard]] Function &function() {
     return basicBlock.function();
-  }
-  [[nodiscard]] uint64_t handle() const {
-    return reinterpret_cast<uint64_t>(this);
   }
   [[nodiscard]] virtual std::string toString() const = 0;
   BasicBlock &basicBlock;
@@ -150,6 +154,11 @@ struct AllocaInst final: Instruction {
   size_t alignment{0};
   size_t size{1};
   void accept(Executor &executor) override;
+  [[nodiscard]] std::string toString() const override {
+    bool hasAlign = alignment != 0;
+    auto allocaPart = size > 1 ? std::format("alloca {} {}", type()->toString(), size) : std::format("alloca {}", type()->toString());
+    return std::format("{} = ") + allocaPart + (hasAlign ? std::format(", align {}", alignment) : "");
+  }
 };
 
 struct StoreInstDetails {
@@ -172,7 +181,7 @@ struct StoreInst final: Instruction {
   Ref<Value> value;
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override {
-    return std::format("store {} {}, {}* {}", value->type()->toString(), value->name(), pointer->type()->toString(),
+    return std::format("store {} {}, {} {}", value->type()->toString(), value->name(), pointer->type()->toString(),
                        pointer->name());
   }
 };
@@ -194,14 +203,14 @@ struct LoadInst final: Instruction {
   Ref<Value> pointer;
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override {
-    return std::format("{} = load {}* {}", name(), type()->toString(), pointer->name());
+    return std::format("{} = load {} {}", name(), pointer->type()->toString(), pointer->name());
   }
 
 };
 
 struct PhiValue {
-  Ref<BasicBlock> basicBlock;
-  Ref<Value> value;
+  Ref<BasicBlock> basicBlock{};
+  Ref<Value> value{};
 };
 
 struct PhiInstDetails {
@@ -224,9 +233,7 @@ struct PhiInst final : Instruction {
       return value.basicBlock->name() == blockName;
     });
   }
-  [[nodiscard]] std::string toString() const override {
-
-  }
+  [[nodiscard]] std::string toString() const override;
 };
 
 struct CallInstDetails {
@@ -299,15 +306,20 @@ struct BrInst final: Instruction {
       return *std::get<Conditional>(dest).thenBranch;
     return *std::get<Ref<BasicBlock>>(dest);
   }
+  BasicBlock& thenBranch() {
+    if (isConditional())
+      return *std::get<Conditional>(dest).thenBranch;
+    return *std::get<Ref<BasicBlock>>(dest);
+  }
   [[nodiscard]] const BasicBlock &elseBranch() const {
     if (isConditional())
       return *std::get<Conditional>(dest).elseBranch;
-    throw std::runtime_error("unconditional branch");
+    throw std::runtime_error("unconditional branch doesn't support elseBranch()");
   }
   [[nodiscard]] const Value &cond() const {
     if (isConditional())
       return *std::get<Conditional>(dest).cond;
-    throw std::runtime_error("unconditional branch");
+    throw std::runtime_error("unconditional branch doesn't support cond()");
   }
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override {
@@ -338,12 +350,14 @@ struct GepInst final: Instruction {
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override {
     if (!index)
-      return std::format("getelementptr {}* {}", pointer->type()->toString(), pointer->name());
-    return std::format("getelementptr {}* {}, i64 {}", pointer->type()->toString(), pointer->name(), index->name());
+      return std::format("getelementptr {} {}", pointer->type()->toString(), pointer->name());
+    return std::format("getelementptr {} {}, i64 {}", pointer->type()->toString(), pointer->name(), index->name());
   }
   Ref<Value> index{};
   Ref<Value> pointer;
 };
+
+std::string genReturnInstName();
 
 struct RetInst final: Instruction {
   explicit RetInst(BasicBlock &basicBlock, Ref<Value> ret) : Instruction(Ret, {}, {}, basicBlock),

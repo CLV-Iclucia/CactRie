@@ -37,6 +37,14 @@ public:
     container.push_front(std::move(ptr));
   }
 
+  void emplace_back(std::unique_ptr<Base>&& ptr) {
+    container.push_back(std::move(ptr));
+  }
+
+  void emplace_front(std::unique_ptr<Base> &&ptr) {
+    container.push_front(std::move(ptr));
+  }
+
   struct iterator {
     using iterator_category = std::bidirectional_iterator_tag;
     using value_type = observer_ptr<Base>;
@@ -108,6 +116,22 @@ public:
 
   [[nodiscard]] size_t size() const {
     return container.size();
+  }
+
+  Base& front() {
+    return *container.front();
+  }
+
+  const Base& front() const {
+    return *container.front();
+  }
+
+  Base& back() {
+    return *container.back();
+  }
+
+  const Base& back() const {
+    return *container.back();
   }
 
   void clear() {

@@ -42,7 +42,7 @@ public:
   // for constant scalar, str should be the corresponding string of the number
   // for constant array, str should be the name of the array
   // all global array that are marked const should be stored in the constant pool
-  [[nodiscard]] Ref<Constant> constant(CRef<Type> type, const std::string &str);
+  [[nodiscard]] Ref<Constant> constant(CRef<Type> type, const std::string &str) const;
   [[nodiscard]] CRef<PointerType> castFromArrayType(CRef<ArrayType> arrayType) const;
   [[nodiscard]] CRef<ConstantScalar> constantZero(CRef<Type> type) const;
   [[nodiscard]] Scalar evalConstScalar(CRef<ConstantScalar> constScalar) const;

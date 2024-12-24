@@ -12,10 +12,8 @@ void Value::replaceAllUsesWith(Ref<Value> other) {
     std::transform(
         user->usedValues().begin(), user->usedValues().end(), user->usedValues().begin(),
         [=, this](Ref<Value> value) {
-          if (value.get() == this) {
-            minilog::info("replacing use of {} with {}, user: {}", value->name(), other->name(), user->name());
+          if (value.get() == this)
             return other;
-          }
           return value;
         });
   }

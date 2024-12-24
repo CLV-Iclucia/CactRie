@@ -7,6 +7,7 @@ parser grammar LLVMParser;
     #include <chiisai-llvm/type.h>
     #include <chiisai-llvm/basic-block.h>
     #include <chiisai-llvm/constant.h>
+    #include <chiisai-llvm/constant-array.h>
     #include <chiisai-llvm/array-type.h>
 }
 options {
@@ -47,7 +48,7 @@ variable
     bool isGlobal,
 ]: globalIdentifier | localIdentifier;
 
-literal : IntegerLiteral | FloatLiteral;
+literal : IntegerLiteral | HexLiteral;
 
 number: scalarType literal;
 
@@ -56,19 +57,26 @@ immediatelyUsableValue
     bool isConstant,
 ]: localIdentifier | number;
 
-module: (globalDeclaration | functionDefinition)*;
+module: (globalDeclaration | functionDeclaration | functionDefinition)*;
 
 initializer
 locals[
     CRef<Constant> constant,
-]: scalarType IntegerLiteral | scalarType FloatLiteral | constantArray;
+]: scalarType IntegerLiteral | scalarType HexLiteral | constantArray;
 
 constantArray
 locals[
     CRef<ConstantArray> constArray,
 ]: arrayType LeftBracket initializer (Comma initializer)* RightBracket;
 
-globalDeclaration : globalIdentifier Equals (Global | Constant) initializer (Comma Align IntegerLiteral)?;
+globalDeclaration : globalIdentifier Equals (Global | ConstantStr) initializer (Comma Align IntegerLiteral)?;
+
+functionDeclaration
+    locals [
+        std::unique_ptr<Function> function,
+        std::vector<CRef<Type>> argTypes,
+        std::vector<std::string> argNames,
+    ]: Declare type globalIdentifier functionArguments;
 
 functionDefinition
  locals [
@@ -116,7 +124,7 @@ instruction
 
 returnInstruction: Ret (Void | (type immediatelyUsableValue));
 
-branchInstruction: Br I1 localIdentifier Comma Label localIdentifier Comma Label localIdentifier
+branchInstruction: Br I1 immediatelyUsableValue Comma Label localIdentifier Comma Label localIdentifier
                 | Br Label localIdentifier;
 
 callInstruction: (localIdentifier Equals)? Call type globalIdentifier functionArguments;
@@ -139,7 +147,7 @@ phiInstruction
 
 phiValue
     locals [
-        CRef<BasicBlock> block,
+        Ref<BasicBlock> block,
         Ref<Value> value,
     ]: LeftBrace localIdentifier Comma immediatelyUsableValue RightBrace;
 

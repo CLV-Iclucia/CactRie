@@ -7,9 +7,10 @@ options {
 }
 
 Global: 'global';
-Constant: 'constant';
+ConstantStr: 'constant';
 External: 'external';
 Define: 'define';
+Declare: 'declare';
 Align: 'align';
 Unreachable: 'unreachable';
 Br: 'br';
@@ -68,15 +69,16 @@ Percent: '%';
 Asterisk: '*';
 Colon: ':';
 Cross: 'x';
+SourceFilename: 'source_filename';
 
 NumericIdentifier: [0-9]+;
-NamedIdentifier: [a-zA-Z_][a-zA-Z0-9_]*;
+NamedIdentifier: [a-zA-Z_.][a-zA-Z0-9_.]*;
 
 // Integer literals
 IntegerLiteral: [1-9][0-9]*;
 
-// Floating-point literals
-FloatLiteral: [0-9]+'.'[0-9]+;
+// Hex literals
+HexLiteral: '0x'[0-9a-fA-F]+;
 
 // Whitespace and Comments
 Whitespace: [ \t\r\n]+ -> skip;

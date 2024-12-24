@@ -15,7 +15,7 @@ struct IntegerType final : Type {
     return m_bitWidth;
   }
 private:
-  size_t m_bitWidth;
+  size_t m_bitWidth{};
 };
 
 }

@@ -20,4 +20,19 @@ Predicate stopdct(const std::string &str) {
   };
   return mapping.at(str);
 }
+std::string toString(Predicate predicate) {
+  std::map<Predicate, std::string> mapping{
+        {Predicate::EQ, "eq"},
+        {Predicate::NE, "ne"},
+        {Predicate::UGT, "ugt"},
+        {Predicate::UGE, "uge"},
+        {Predicate::ULT, "ult"},
+        {Predicate::ULE, "ule"},
+        {Predicate::SGT, "sgt"},
+        {Predicate::SGE, "sge"},
+        {Predicate::SLT, "slt"},
+        {Predicate::SLE, "sle"},
+    };
+  return mapping.at(predicate);
+}
 }

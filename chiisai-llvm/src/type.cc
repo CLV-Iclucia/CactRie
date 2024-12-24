@@ -36,7 +36,7 @@ std::string Type::toString() const {
   case TypeEnum::Double:return "double";
   case TypeEnum::Pointer:return containedTypes[0]->toString() + "*";
   case TypeEnum::Array: {
-    auto arrayType = cast<ArrayType>(this);
+    auto arrayType = cast<ArrayType>(makeCRef(*this));
     return containedTypes[0]->toString() + "[" + std::to_string(arrayType->dim()) + "]";
   }
   case TypeEnum::Label:return "label";

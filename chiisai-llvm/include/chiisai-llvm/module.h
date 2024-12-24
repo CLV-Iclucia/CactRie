@@ -32,7 +32,9 @@ struct Module final : Executable {
     return m_globalVariableMap.contains(name);
   }
   Module& addFunction(std::unique_ptr<Function>&& function);
+  Module& addGlobalVariable(std::unique_ptr<GlobalVariable>&& globalVariable);
   void accept(Executor &executor) override;
+
 private:
   std::unordered_map<std::string, Ref<GlobalVariable>> m_globalVariableMap;
   std::unordered_map<std::string, Ref<Function>> m_functionMap;
