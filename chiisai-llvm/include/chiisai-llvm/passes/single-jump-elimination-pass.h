@@ -4,15 +4,13 @@
 #ifndef SINGLE_JUMP_ELIMINATION_PASS_H
 #define SINGLE_JUMP_ELIMINATION_PASS_H
 #include <queue>
-#include <ostream>
 #include <minilog/logger.h>
 #include <chiisai-llvm/function.h>
 namespace llvm {
 
 // for those basic blocks with only one unconditional jump, we remove them
 struct SingleJumpEliminationPass {
-  explicit SingleJumpEliminationPass() : logStream(std::make_unique<std::ofstream>("single-jump-elimination.log")),
-                                         logger(*logStream) {}
+  explicit SingleJumpEliminationPass() : logger(minilog::createFileLogger("single-jump-elimination.log")) {}
   void runOnFunction(Function& func) {
     bool isChanged = false;
     std::vector<Ref<BasicBlock>> toBeRemoved{};
@@ -33,7 +31,7 @@ struct SingleJumpEliminationPass {
         if (!canBeEliminated) continue;
         bb->replaceAllUsesWith(jumpDest);
         toBeRemoved.emplace_back(bb);
-        logger.info("SingleJumpEliminationPass: "
+        logger->info("SingleJumpEliminationPass: "
                     "basic block {} has been replaced by basic block {}", bb->name(), jumpDest->name());
         isChanged = true;
       }
@@ -41,8 +39,7 @@ struct SingleJumpEliminationPass {
         func.removeBasicBlock(bb);
     } while (isChanged);
   }
-  std::unique_ptr<std::ostream> logStream{};
-  minilog::Logger logger{};
+  std::unique_ptr<minilog::Logger> logger{};
 };
 }
 #endif //SINGLE_JUMP_ELIMINATION_PASS_H

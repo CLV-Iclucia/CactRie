@@ -1,13 +1,13 @@
 //
 // Created by creeper on 12/17/24.
 //
-#include <unordered_set>
-#include <queue>
-#include <mystl/bit_vector.h>
 #include <chiisai-llvm/dominator-tree.h>
-#include <chiisai-llvm/inst-transformer.h>
-#include <chiisai-llvm/passes/mem2reg-pass.h>
 #include <chiisai-llvm/function.h>
+#include <chiisai-llvm/basic-block.h>
+#include <chiisai-llvm/passes/mem2reg-pass.h>
+#include <mystl/bit_vector.h>
+#include <queue>
+#include <unordered_set>
 
 namespace llvm {
 bool PromoteMemToRegPass::isPromotable(CRef<AllocaInst> ai) {
@@ -28,6 +28,8 @@ void PromoteMemToRegPass::renameAllocaInBlock(
     Ref<BasicBlock> block,
     std::unordered_map<CRef<AllocaInst>, Ref<Value>> &mostRecentValue) {
   std::vector<Ref<Instruction>> instToRemove{};
+  logger.info("############### processing block {} ###############",
+              block->name());
   for (auto inst : block->instructions) {
     if (isa<StoreInst>(inst)) {
       auto si = cast<StoreInst>(inst);
@@ -82,6 +84,7 @@ void PromoteMemToRegPass::fillPhiInst(
     }
   }
 }
+
 void PromoteMemToRegPass::runOnFunction(Function &function) {
   DominatorTree domTree{};
   domTree.buildFromCFG(function);
@@ -138,7 +141,6 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
       logger.info("processing dominance frontier of live-in block {}",
                   block->name());
       for (auto dfBlock : domTree.dominanceFrontier(block)) {
-        const auto &instTransformer = dfBlock->instTransformer();
         std::vector<PhiValue> phiValues(dfBlock->predecessors.size());
         auto idx = 0;
         for (auto pred : dfBlock->predecessors) {
@@ -152,7 +154,7 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
                                      holderType, std::move(phiValues)});
         logger.info("insert phi inst {} to block {} with {} phi values",
                     phi->name(), dfBlock->name(), phi->incomingValues.size());
-        instTransformer.insertInstructionFront(std::move(phi));
+        dfBlock->addInstructionFront(std::move(phi));
       }
     }
     mostRecentValue.insert({ai, {}});
@@ -167,8 +169,6 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
   while (!workList.empty()) {
     auto currentBlock = workList.front();
     workList.pop();
-    logger.info("###############processing block {}###############",
-                currentBlock->name());
     renameAllocaInBlock(currentBlock, mostRecentValue);
     for (auto succ : currentBlock->successors) {
       fillPhiInst(currentBlock, succ, toBePromote, mostRecentValue);

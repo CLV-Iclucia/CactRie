@@ -45,7 +45,8 @@ struct BasicBlock final : Value {
     return m_identifierMap;
   }
 
-  BasicBlock &addInstruction(std::unique_ptr<Instruction> &&instruction);
+  BasicBlock &addInstructionBack(std::unique_ptr<Instruction> &&instruction);
+  BasicBlock &addInstructionFront(std::unique_ptr<Instruction> &&instruction);
 
   mystl::poly_list<Instruction> instructions{};
   std::list<Ref<BasicBlock>> predecessors{};

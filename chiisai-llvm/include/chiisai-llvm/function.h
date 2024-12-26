@@ -46,6 +46,13 @@ struct Function final : Value {
     throw std::runtime_error("argument not found");
   }
 
+  const Argument &arg(const std::string &name) const {
+    if (m_argMap.contains(name))
+      return *m_argMap.at(name);
+    throw std::runtime_error("argument not found");
+  }
+
+  [[nodiscard]]
   bool isImplemented() const { return impl.has_value(); }
 
   [[nodiscard]] bool hasArg(const std::string &name) const {

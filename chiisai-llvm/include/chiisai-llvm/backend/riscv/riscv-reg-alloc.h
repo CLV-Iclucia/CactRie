@@ -5,6 +5,7 @@
 #ifndef RISCV_REG_ALLOC_H
 #define RISCV_REG_ALLOC_H
 namespace llvm {
+
 struct RiscvRegAllocator {
 
 };

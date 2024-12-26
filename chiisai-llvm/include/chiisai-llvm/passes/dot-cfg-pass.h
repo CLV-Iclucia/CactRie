@@ -44,9 +44,7 @@ struct DotCFGPass {
     file << "}\n" << std::flush;
   }
 
-  ~DotCFGPass() {
-    file.close();
-  }
+  ~DotCFGPass() = default;
   std::fstream file;
 };
 };

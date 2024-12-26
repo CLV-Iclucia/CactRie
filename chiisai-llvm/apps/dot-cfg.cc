@@ -26,5 +26,10 @@ int main(int argc, char **argv) {
   pass.runOnFunction(*function);
   std::cout << "CFG dot file for function " << argv[2] << " saved to "
             << argv[3] << std::endl;
+  auto savePNGPath =
+      std::format("{}.png", std::filesystem::path(argv[3]).stem());
+  std::system(std::format("dot -Tpng -o {} {}", savePNGPath, argv[3]).c_str());
+  std::cout << "CFG png file for function " << argv[2] << " saved to "
+            << savePNGPath << std::endl;
   return 0;
 }

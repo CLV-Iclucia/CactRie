@@ -12,6 +12,7 @@ struct BasicBlock;
 struct Instruction;
 
 using InstPosition = mystl::poly_list<Instruction>::iterator;
+
 struct InstTransformer {
   explicit InstTransformer(BasicBlock &basicBlock);
   InstPosition instPos(const Instruction& inst) const {

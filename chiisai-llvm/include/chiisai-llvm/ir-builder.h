@@ -15,14 +15,14 @@ struct IRBuilder {
   [[nodiscard]] CRef<AllocaInst> createAllocaInst(const AllocaInstDetails& details) const {
     auto allocaInst = std::make_unique<AllocaInst>(basicBlock, details);
     auto instRef = makeRef(*allocaInst);
-    basicBlock.addInstruction(std::move(allocaInst));
+    basicBlock.addInstructionBack(std::move(allocaInst));
     return instRef;
   }
 
   [[nodiscard]] CRef<BinaryInst> createBinaryInst(uint8_t op, const BinaryInstDetails &details) const {
     auto binaryInst = std::make_unique<BinaryInst>(op, basicBlock, details);
     auto instRef = makeRef(*binaryInst);
-    basicBlock.addInstruction(std::move(binaryInst));
+    basicBlock.addInstructionBack(std::move(binaryInst));
     addUse(instRef, instRef->lhs);
     addUse(instRef, instRef->rhs);
     return instRef;
@@ -34,7 +34,7 @@ struct IRBuilder {
   [[nodiscard]] CRef<CmpInst> createCmpInst(uint8_t op, const CmpInstDetails &details) const {
     auto cmpInst = std::make_unique<CmpInst>(op, basicBlock, details);
     auto instRef = makeRef(*cmpInst);
-    basicBlock.addInstruction(std::move(cmpInst));
+    basicBlock.addInstructionBack(std::move(cmpInst));
     addUse(instRef, instRef->lhs);
     addUse(instRef, instRef->rhs);
     return instRef;
@@ -43,7 +43,7 @@ struct IRBuilder {
   [[nodiscard]] CRef<CallInst> createCallInst(const CallInstDetails &details) const {
     auto callInst = std::make_unique<CallInst>(basicBlock, details);
     auto instRef = makeRef(*callInst);
-    basicBlock.addInstruction(std::move(callInst));
+    basicBlock.addInstructionBack(std::move(callInst));
     for (const auto &arg : instRef->realArgs)
       addUse(instRef, arg);
     addUse(instRef, makeRef(instRef->function));
@@ -53,7 +53,7 @@ struct IRBuilder {
   [[nodiscard]] CRef<GepInst> createGepInst(const GepInstDetails &details) const {
     auto gepInst = std::make_unique<GepInst>(basicBlock, details);
     auto instRef = makeRef(*gepInst);
-    basicBlock.addInstruction(std::move(gepInst));
+    basicBlock.addInstructionBack(std::move(gepInst));
     addUse(instRef, instRef->pointer);
     addUse(instRef, instRef->index);
     return instRef;
@@ -62,7 +62,7 @@ struct IRBuilder {
   [[nodiscard]] CRef<LoadInst> createLoadInst(const LoadInstDetails &details) const {
     auto loadInst = std::make_unique<LoadInst>(basicBlock, details);
     auto instRef = makeRef(*loadInst);
-    basicBlock.addInstruction(std::move(loadInst));
+    basicBlock.addInstructionBack(std::move(loadInst));
     addUse(instRef, instRef->pointer);
     return instRef;
   }
@@ -70,7 +70,7 @@ struct IRBuilder {
   [[nodiscard]] CRef<RetInst> createRetInst(Ref<Value> value) const {
     auto retInst = std::make_unique<RetInst>(basicBlock, value);
     auto instRef = makeRef(*retInst);
-    basicBlock.addInstruction(std::move(retInst));
+    basicBlock.addInstructionBack(std::move(retInst));
     return instRef;
   }
 
@@ -81,7 +81,7 @@ struct IRBuilder {
   [[nodiscard]] CRef<StoreInst> createStoreInst(const StoreInstDetails &details) const {
     auto storeInst = std::make_unique<StoreInst>(basicBlock, details);
     auto instRef = makeRef(*storeInst);
-    basicBlock.addInstruction(std::move(storeInst));
+    basicBlock.addInstructionBack(std::move(storeInst));
     addUse(instRef, instRef->pointer);
     addUse(instRef, instRef->value);
     return instRef;

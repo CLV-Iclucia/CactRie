@@ -7,7 +7,6 @@
 #include <chiisai-llvm/data-flow-analysis.h>
 namespace llvm {
 
-
 struct ConstantPropagationAnalysis {
 
 };

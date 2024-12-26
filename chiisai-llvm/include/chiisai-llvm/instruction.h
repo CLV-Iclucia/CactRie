@@ -5,8 +5,8 @@
 #ifndef CACTRIE_CACT_RIE_INCLUDE_CACT_RIE_LLVM_INSTRUCTIONS_H
 #define CACTRIE_CACT_RIE_INCLUDE_CACT_RIE_LLVM_INSTRUCTIONS_H
 
-#include <chiisai-llvm/llvm-context.h>
 #include <chiisai-llvm/integer-type.h>
+#include <chiisai-llvm/llvm-context.h>
 #include <chiisai-llvm/pointer-type.h>
 #include <chiisai-llvm/predicate.h>
 #include <chiisai-llvm/user.h>
@@ -163,18 +163,24 @@ struct StoreInstDetails {
   CRef<Type> type;
   Ref<Value> pointer;
   Ref<Value> value;
+  Ref<Value> index{};
 };
 
 struct StoreInst final : Instruction {
   explicit StoreInst(BasicBlock &basicBlock, const StoreInstDetails &details)
       : Instruction(Store, details.name, details.type, basicBlock),
-        pointer(details.pointer), value(details.value) {
-    assert(pointer->type()->isPointer());
+        pointer(details.pointer), value(details.value), index(details.index) {
+    assert(pointer->type()->isConvertibleToPointer());
   }
   Ref<Value> pointer;
   Ref<Value> value;
+  Ref<Value> index{};
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override {
+    if (index)
+      return std::format("store {} {}, {} {}, i32 {}", value->type()->toString(),
+                         value->name(), pointer->type()->toString(),
+                         pointer->name(), index->name());
     return std::format("store {} {}, {} {}", value->type()->toString(),
                        value->name(), pointer->type()->toString(),
                        pointer->name());
@@ -185,17 +191,23 @@ struct LoadInstDetails {
   const std::string &name;
   CRef<Type> type;
   Ref<Value> pointer;
+  Ref<Value> index{};
 };
 
 struct LoadInst final : Instruction {
   explicit LoadInst(BasicBlock &basicBlock, const LoadInstDetails &details)
       : Instruction(Load, details.name, details.type, basicBlock),
-        pointer(details.pointer) {
-    assert(pointer->type()->isPointer());
+        pointer(details.pointer), index(details.index) {
+    assert(pointer->type()->isConvertibleToPointer());
   }
   Ref<Value> pointer;
+  Ref<Value> index{};
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override {
+    if (index)
+      return std::format("{} = load {} {}, i32 {}", name(),
+                         pointer->type()->toString(), pointer->name(),
+                         index->name());
     return std::format("{} = load {} {}", name(), pointer->type()->toString(),
                        pointer->name());
   }
@@ -269,6 +281,8 @@ struct BrInstDetails {
   Ref<BasicBlock> elseBranch;
 };
 
+std::string genBrInstName();
+
 struct BrInst final : Instruction {
   struct Conditional {
     Ref<Value> cond;
@@ -276,9 +290,9 @@ struct BrInst final : Instruction {
     Ref<BasicBlock> elseBranch;
   };
   explicit BrInst(BasicBlock &current, Ref<BasicBlock> dest)
-      : Instruction(Br, {}, {}, current), dest(dest) {}
+      : Instruction(Br, genBrInstName(), {}, current), dest(dest) {}
   explicit BrInst(BasicBlock &current, const BrInstDetails &details)
-      : Instruction(Br, {}, {}, current),
+      : Instruction(Br, genBrInstName(), {}, current),
         dest(Conditional{details.cond, details.thenBranch,
                          details.elseBranch}) {}
 
@@ -329,9 +343,9 @@ struct GepInst final : Instruction {
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override {
     if (!index)
-      return std::format("getelementptr {} {}", pointer->type()->toString(),
-                         pointer->name());
-    return std::format("getelementptr {} {}, i64 {}",
+      return std::format("{} = getelementptr {} {}", name(),
+                         pointer->type()->toString(), pointer->name());
+    return std::format("{} = getelementptr {} {}, i32 {}", name(),
                        pointer->type()->toString(), pointer->name(),
                        index->name());
   }

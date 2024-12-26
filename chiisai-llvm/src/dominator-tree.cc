@@ -7,6 +7,15 @@
 #include <mystl/bit_vector.h>
 
 namespace llvm {
+
+static void computeDepth(const std::vector<std::vector<uint32_t>> &succ,
+                         uint32_t father, std::vector<uint32_t> &depth) {
+  for (auto son : succ.at(father)) {
+    depth[son] = depth[father] + 1;
+    computeDepth(succ, son, depth);
+  }
+}
+
 void DominatorTreeImpl::buildFromGraph(const SparseGraph &graph, size_t entry) {
   std::queue<uint32_t> workList{};
   mystl::bit_vector inQueue(graph.numNodes(), false);
@@ -67,6 +76,16 @@ void DominatorTreeImpl::buildFromGraph(const SparseGraph &graph, size_t entry) {
       }
     }
   }
+
+  std::vector<std::vector<uint32_t>> succ(graph.numNodes());
+
+  for (auto u : std::views::iota(0u, graph.numNodes())) {
+    if (u == entry)
+      continue;
+    succ[father[u]].emplace_back(u);
+  }
+  depth.resize(graph.numNodes(), 0);
+  computeDepth(succ, entry, depth);
 }
 
 bool DominatorTreeImpl::dominates(size_t a, size_t b) const {

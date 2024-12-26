@@ -289,8 +289,12 @@ void CmpInst::accept(Executor &executor) {
 }
 std::string CmpInst::toString() const {
   return std::format("{} = {}cmp {} {}, {}", name(),
-                     lhs->type()->isInteger() ? "i" : "f", llvm::toString(predicate),
-                     lhs->name(), rhs->name());
+                     lhs->type()->isInteger() ? "i" : "f",
+                     llvm::toString(predicate), lhs->name(), rhs->name());
+}
+std::string genBrInstName() {
+  static int id{};
+  return std::format("__br_{}", id++);
 }
 
 void PhiInst::accept(Executor &executor) {
