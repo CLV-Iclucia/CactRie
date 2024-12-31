@@ -4,10 +4,10 @@
 
 #ifndef DOT_CFG_PASS_H
 #define DOT_CFG_PASS_H
-#include <filesystem>
-#include <fstream>
 #include <chiisai-llvm/function.h>
 #include <chiisai-llvm/instruction.h>
+#include <filesystem>
+#include <fstream>
 
 namespace llvm {
 struct DotCFGPass {

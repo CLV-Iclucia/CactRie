@@ -4,8 +4,7 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_IR_BUILDER_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_IR_BUILDER_H
-#include <chiisai-llvm/instruction.h>
-#include <chiisai-llvm/basic-block.h>
+#include <chiisai-llvm/instructions.h>
 #include <chiisai-llvm/function.h>
 namespace llvm {
 

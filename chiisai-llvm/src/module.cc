@@ -5,7 +5,7 @@
 #include <chiisai-llvm/function.h>
 #include <chiisai-llvm/module.h>
 #include <chiisai-llvm/value.h>
-
+#include <minilog/logger.h>
 namespace llvm {
 
 Module &Module::addFunction(std::unique_ptr<Function> &&function) {

@@ -6,9 +6,8 @@
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_VALUE_H
 #include <string>
 #include <format>
-#include <mystl/poly_list.h>
+#include <mystl/poly_view_list.h>
 #include <chiisai-llvm/type.h>
-#include <minilog/logger.h>
 namespace llvm {
 
 struct User;
@@ -26,7 +25,6 @@ struct Value : RAII, Executable {
     return !users.empty();
   }
   void accept(Executor& executor) override {
-    minilog::warn("value shouldn't be executed for class that inherits from Value");
   }
   [[nodiscard]] const std::string& name() const {
     return m_name;

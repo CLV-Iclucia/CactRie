@@ -12,6 +12,7 @@
 #include <chiisai-llvm/module.h>
 #include <chiisai-llvm/pointer-type.h>
 #include <mystl/castings.h>
+#include <minilog/logger.h>
 #include <ranges>
 
 namespace llvm {

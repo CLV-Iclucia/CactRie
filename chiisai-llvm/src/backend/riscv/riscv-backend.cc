@@ -7,12 +7,12 @@
 namespace llvm {
 
 RiscvPseudoBinary RiscvBackend::toPseudoBinary(CRef<BinaryInst> inst) const {
-  return RiscvPseudoBinary{
-      .result = inst->name(),
-      .lhs = inst->lhs->name(),
-      .rhs = inst->rhs->name(),
-      .modifier = typeToModifier.at(inst->type()),
-      .op = static_cast<Instruction::BinaryOps>(inst->opCode)};
+  // return RiscvPseudoBinary{
+  //     .result = inst->name(),
+  //     .lhs = inst->lhs->name(),
+  //     .rhs = inst->rhs->name(),
+  //     .modifier = typeToModifier.at(inst->type()),
+  //     .op = static_cast<Instruction::BinaryOps>(inst->opCode)};
 }
 
 static RiscvPredicate toRiscvPredicate(Predicate pred) {

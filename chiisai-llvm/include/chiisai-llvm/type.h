@@ -76,7 +76,7 @@ struct Type : RAII {
   [[nodiscard]] bool isFunction() const {
     return type == TypeEnum::Function;
   }
-  [[nodiscard]] std::string toString() const;
+  [[nodiscard]] virtual std::string toString() const;
 
   virtual ~Type() = default;
 

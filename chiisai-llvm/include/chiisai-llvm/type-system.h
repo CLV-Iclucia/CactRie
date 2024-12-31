@@ -20,14 +20,14 @@ struct TypeSystem : RAII {
   TypeSystem() : basicTypeMap({{"void", makeCRef(voidInstance)},
                                {"float", makeCRef(floatInstance)},
                                {"double", makeCRef(doubleInstance)},
-                               {"bool", makeCRef(boolInstance)},
-                               {"int", makeCRef(intInstance)},
-                               {"long", makeCRef(longInstance)}}) {}
+                               {"i1", makeCRef(boolInstance)},
+                               {"i32", makeCRef(intInstance)},
+                               {"i64", makeCRef(longInstance)}}) {}
 private:
   friend struct LLVMContext;
   // String to Basic Type
   CRef<Type> stobt(const std::string &str) {
-    return basicTypeMap[str];
+    return basicTypeMap.at(str);
   }
 
   CRef<ArrayType> arrayType(CRef<Type> elementType, size_t size) {

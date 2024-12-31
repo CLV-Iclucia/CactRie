@@ -20,9 +20,6 @@ struct ConstantPool : RAII {
     m_constants.insert({std::pair{type, str}, std::make_unique<Constant>(str, type)});
     return mystl::make_observer(m_constants.at({type, str}).get());
   }
-  CRef<ConstantScalar> constantZero(CRef<Type> type) {
-    return dyn_cast_ref<ConstantScalar>(constant(type, "0"));
-  }
 private:
   using ConstantKey = std::pair<CRef<Type>, std::string>;
   std::unordered_map<ConstantKey, std::unique_ptr<Constant>> m_constants{};

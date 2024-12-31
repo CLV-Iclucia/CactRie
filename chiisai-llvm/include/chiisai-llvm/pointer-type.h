@@ -11,6 +11,9 @@ struct PointerType final : Type {
   [[nodiscard]] CRef<Type> elementType() const {
     return containedTypes[0];
   }
+  [[nodiscard]] std::string toString() const override {
+    return containedTypes[0]->toString() + "*";
+  }
 };
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_POINTER_TYPE_H

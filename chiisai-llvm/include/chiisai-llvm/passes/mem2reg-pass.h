@@ -4,7 +4,7 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_PASSES_MEM2REG_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_PASSES_MEM2REG_H
-#include <chiisai-llvm/instruction.h>
+#include <chiisai-llvm/instructions.h>
 #include <memory>
 #include <minilog/logger.h>
 #include <ostream>

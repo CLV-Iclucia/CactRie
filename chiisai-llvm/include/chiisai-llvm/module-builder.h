@@ -7,6 +7,7 @@
 #include <chiisai-llvm/autogen/LLVMParserVisitor.h>
 #include <chiisai-llvm/function.h>
 #include <chiisai-llvm/ir-builder.h>
+#include <minilog/logger.h>
 namespace llvm {
 struct Module;
 struct LLVMContext;

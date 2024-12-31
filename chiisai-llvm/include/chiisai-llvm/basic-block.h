@@ -6,12 +6,14 @@
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_BASIC_BLOCK_H
 #include <chiisai-llvm/value.h>
 #include <chiisai-llvm/properties.h>
-#include <chiisai-llvm/inst-transformer.h>
+#include <chiisai-llvm/instruction.h>
+#include <mystl/poly_list.h>
 namespace llvm {
 
 struct Module;
 struct Instruction;
 struct Function;
+struct InstTransformer;
 struct BasicBlock final : Value {
   explicit BasicBlock(const std::string &name, CRef<Type> type) : Value(name, type) {
     assert(type->type == Type::TypeEnum::Label);
@@ -53,12 +55,21 @@ struct BasicBlock final : Value {
   std::list<Ref<BasicBlock>> successors{};
   void accept(Executor &executor) override;
   void removeInstruction(CRef<Instruction> inst);
-  const InstTransformer& instTransformer();
 
+  ~BasicBlock() override = default;
   private:
+
+  using InstPosition = mystl::poly_list<Instruction>::iterator;
+  InstPosition instPos(const Instruction& inst) const {
+    return instPosMap.at(makeCRef(inst));
+  }
+  CRef<Instruction> firstInstruction() const {
+    return *instructions.begin();
+  }
   friend struct Function;
   std::unordered_map<std::string, Ref<Value>> m_identifierMap{};
-  std::unique_ptr<InstTransformer> m_instTransformer{};
+
+  std::unordered_map<CRef<Instruction>, InstPosition> instPosMap{};
   Ref<Function> m_function{};
 };
 

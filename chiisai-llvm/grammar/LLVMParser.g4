@@ -9,6 +9,7 @@ parser grammar LLVMParser;
     #include <chiisai-llvm/constant.h>
     #include <chiisai-llvm/constant-array.h>
     #include <chiisai-llvm/array-type.h>
+    #include <chiisai-llvm/instruction.h>
 }
 options {
     tokenVocab=LLVMLexer;

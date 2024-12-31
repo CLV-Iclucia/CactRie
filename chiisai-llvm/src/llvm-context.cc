@@ -1,12 +1,12 @@
 //
 // Created by creeper on 10/2/24.
 //
-#include <format>
-#include <chiisai-llvm/llvm-context.h>
-#include <chiisai-llvm/instruction.h>
-#include <chiisai-llvm/type-system.h>
 #include <chiisai-llvm/constant-pool.h>
 #include <chiisai-llvm/constant-scalar.h>
+#include <chiisai-llvm/instruction.h>
+#include <chiisai-llvm/llvm-context.h>
+#include <chiisai-llvm/type-system.h>
+#include <format>
 namespace llvm {
 static std::unordered_map<std::string, uint8_t> instMap{
       {"add", Instruction::Add},
@@ -131,9 +131,6 @@ Scalar LLVMContext::evalConstScalar(CRef<ConstantScalar> constScalar) const {
     throw std::runtime_error("Invalid boolean value");
   }
   throw std::runtime_error("Invalid constant scalar type");
-}
-CRef<ConstantScalar> LLVMContext::constantZero(CRef<Type> type) const {
-  return constantPool->constantZero(type);
 }
 CRef<Constant> LLVMContext::builtinVoidValue() const {
   return constantPool->constant(voidType(), "__builtin_void_typed_value");

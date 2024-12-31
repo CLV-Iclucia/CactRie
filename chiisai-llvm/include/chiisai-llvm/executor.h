@@ -34,7 +34,7 @@ struct Result {
   Result() = default;
   template<typename T>
   explicit Result(T value) : value(value) {}
-  static Result fromInteger(Result::Integer value) {
+  static Result fromInteger(Integer value) {
     if (std::holds_alternative<int32_t>(value))
       return Result{std::get<int32_t>(value)};
     if (std::holds_alternative<int64_t>(value))

@@ -4,7 +4,7 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_BACKEND_RISCV_BACKEND_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_BACKEND_RISCV_BACKEND_H
-#include "chiisai-llvm/instruction.h"
+#include <chiisai-llvm/instructions.h>
 #include "pseudo-inst.h"
 #include <chiisai-llvm/module.h>
 #include <string>

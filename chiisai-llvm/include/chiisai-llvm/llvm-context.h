@@ -24,8 +24,7 @@ struct ConstantPool;
 struct IntegerType;
 uint8_t stoinst(std::string_view str);
 std::string inst2String(uint8_t opCode);
-class LLVMContext {
-public:
+struct LLVMContext {
   LLVMContext();
   ~LLVMContext();
   // String to Basic Type

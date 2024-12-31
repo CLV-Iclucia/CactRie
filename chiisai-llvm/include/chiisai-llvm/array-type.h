@@ -17,6 +17,10 @@ struct ArrayType final : Type {
     return elementType()->isArray() ? 1 + dyn_cast_ref<ArrayType>(elementType())->dim() : 1;
   }
 
+  [[nodiscard]] std::string toString() const override {
+    auto arrayType = cast<ArrayType>(makeCRef(*this));
+    return "[" + std::to_string(size) + " x " + containedTypes[0]->toString() + "]";
+  }
 };
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_ARRAY_TYPE_H

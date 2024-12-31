@@ -14,6 +14,9 @@ struct IntegerType final : Type {
   size_t bitWidth() const {
     return m_bitWidth;
   }
+  [[nodiscard]] std::string toString() const override {
+    return "i" + std::to_string(m_bitWidth);
+  }
 private:
   size_t m_bitWidth{};
 };
