@@ -7,21 +7,12 @@
 #include <chiisai-llvm/instruction.h>
 namespace llvm {
 
-
-struct InstTransformer {
-  explicit InstTransformer(BasicBlock &basicBlock);
-
-
-private:
-  mystl::poly_list<Instruction>& instructions;
-
-};
-
 BasicBlock &
 BasicBlock::addInstructionBack(std::unique_ptr<Instruction> &&instruction) {
-  m_identifierMap[instruction->name()] =
-      mystl::make_observer(instruction.get());
+  auto instRef = makeRef(*instruction);
+  m_identifierMap[instruction->name()] = instRef;
   instructions.emplace_back(std::move(instruction));
+  instPosMap.insert({instRef, std::prev(instructions.end())});
   return *this;
 }
 
@@ -37,6 +28,12 @@ BasicBlock::addInstructionFront(std::unique_ptr<Instruction> &&instruction) {
 void BasicBlock::accept(Executor &executor) {
   for (auto inst : instructions)
     executor.execute(inst);
+}
+
+void BasicBlock::moveInstAfter(CRef<Instruction> inst, CRef<Instruction> pre) {
+  auto pos = instPosMap.at(pre);
+  auto instPos = instPosMap.at(inst);
+  instructions.splice(std::next(pos), instructions, instPos);
 }
 
 void BasicBlock::removeInstruction(CRef<Instruction> inst) {

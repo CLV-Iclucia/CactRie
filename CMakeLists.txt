@@ -16,6 +16,7 @@ foreach (DEP ${DEPS})
         continue()
     endif ()
     add_subdirectory(${DEP})
+    message(STATUS "Adding dependency: ${DEP}")
 endforeach ()
 
 add_subdirectory(cact-front-end)

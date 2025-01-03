@@ -142,15 +142,15 @@ void BinaryInst::accept(Executor &executor) {
 }
 
 void StoreInst::accept(Executor &executor) {
-  auto dest = executor.reg(pointer);
+  auto dest = executor.reg(pointer());
   if (dest.isPointer())
     throw std::runtime_error("Store instruction cannot store a pointer");
   auto span = std::get<SpanAddress>(dest.value);
-  executor.store(span, executor.reg(value));
+  executor.store(span, executor.reg(value()));
 }
 
 void LoadInst::accept(Executor &executor) {
-  auto src = executor.reg(pointer);
+  auto src = executor.reg(pointer());
   if (!src.isPointer())
     throw std::runtime_error(
         "Load instruction must have a pointer as its source");
@@ -159,7 +159,7 @@ void LoadInst::accept(Executor &executor) {
 }
 
 void CallInst::accept(Executor &executor) {
-  auto func = executor.module.function(function.name());
+  auto func = executor.module.function(function()->name());
   executor.pushFrame();
   for (auto arg : func->args())
     executor.reg(arg) = executor.reg(arg);
@@ -170,11 +170,11 @@ void CallInst::accept(Executor &executor) {
 
 std::string CallInst::toString() const {
   std::string args{};
-  for (const auto &arg : realArgs)
+  for (const auto &arg : realArgs())
     args += arg->type()->toString() + " " + arg->name() + ", ";
   if (!args.empty())
     args.pop_back();
-  return std::format("call {} {}({})", type()->toString(), function.name(),
+  return std::format("call {} {}({})", type()->toString(), function()->name(),
                      args);
 }
 
@@ -269,8 +269,8 @@ void CmpInst::accept(Executor &executor) {
            }},
       };
 
-  const auto &lhsReg = executor.reg(lhs);
-  const auto &rhsReg = executor.reg(rhs);
+  const auto &lhsReg = executor.reg(lhs());
+  const auto &rhsReg = executor.reg(rhs());
 
   if (!lhsReg.canOperateWith(rhsReg))
     throw std::runtime_error("Binary instruction operands must have the same "
@@ -288,8 +288,8 @@ void CmpInst::accept(Executor &executor) {
 }
 std::string CmpInst::toString() const {
   return std::format("{} = {}cmp {} {}, {}", name(),
-                     lhs->type()->isInteger() ? "i" : "f",
-                     llvm::toString(predicate), lhs->name(), rhs->name());
+                     lhs()->type()->isInteger() ? "i" : "f",
+                     llvm::toString(predicate), lhs()->name(), rhs()->name());
 }
 std::string genBrInstName() {
   static int id{};
@@ -298,25 +298,23 @@ std::string genBrInstName() {
 
 void PhiInst::accept(Executor &executor) {
   const auto &incoming = executor.prvBasicBlock;
-  for (const auto &[bb, value] : incomingValues)
-    if (bb->name() == incoming) {
-      executor.reg(name()) = executor.reg(value);
+  for (auto i = 0; i < incomingValues.size(); ++i) {
+    if (incomingBlocks[i]->name() == incoming) {
+      executor.reg(name()) = executor.reg(incomingValues[i]->name());
       return;
     }
+  }
 }
 void PhiInst::removeBranch(const std::string &blockName) {
-  std::erase_if(incomingValues, [&blockName](const PhiValue &value) {
-    return value.basicBlock->name() == blockName;
-  });
+
 }
 
 std::string PhiInst::toString() const {
-  auto phiVals = std::accumulate(
-      incomingValues.begin(), incomingValues.end(), std::string{},
-      [](const std::string &acc, const PhiValue &value) {
-        return acc + std::format("[{}, %{}], ", value.basicBlock->name(),
-                                 value.value->name());
-      });
+  std::string phiVals{};
+  for (auto i = 0; i < incomingValues.size(); ++i) {
+    phiVals += std::format("[{}, %{}], ", incomingBlocks[i]->name(),
+                           incomingValues[i]->name());
+  }
   return std::format("{} = phi {} {}", name(), type()->toString(), phiVals);
 }
 
@@ -330,7 +328,7 @@ void BrInst::accept(Executor &executor) {
     } else
       throw std::runtime_error("Branch condition must be a boolean");
   } else
-    executor.nxtBasicBlock = std::get<Ref<BasicBlock>>(dest)->name();
+    executor.nxtBasicBlock = thenBranch().name();
   executor.prvBasicBlock = basicBlock.name();
 }
 std::string BrInst::toString() const {
@@ -341,7 +339,7 @@ std::string BrInst::toString() const {
 }
 
 void GepInst::accept(Executor &executor) {
-  if (!pointer->type()->isPointer())
+  if (!pointer()->type()->isPointer())
     throw std::runtime_error(
         "GEP instruction must have a pointer as its source");
 
@@ -358,9 +356,9 @@ std::string genReturnInstName() {
   return std::format("__ret_{}", id++);
 }
 void RetInst::accept(Executor &executor) {
-  executor.returnReg = ret == nullptr
+  executor.returnReg = m_ret == nullptr
                            ? std::nullopt
-                           : std::make_optional(executor.reg(ret->name()));
+                           : std::make_optional(executor.reg(ret()->name()));
   executor.returnFlag = true;
   executor.popFrame();
 }

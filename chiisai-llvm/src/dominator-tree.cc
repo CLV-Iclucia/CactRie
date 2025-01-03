@@ -112,8 +112,9 @@ void DominatorTree::buildFromCFG(const Function &func) {
   auto entry = blockToIndex[makeCRef(func.basicBlock("entry"))];
   std::unordered_set<std::pair<uint32_t, uint32_t>> cfgAdjMat{};
   for (const auto &bb : func.basicBlocks())
-    for (const auto &succ : bb.successors)
+    for (auto succ : bb.successors) {
       cfgAdjMat.emplace(blockToIndex[makeCRef(bb)], blockToIndex[succ]);
+    }
   domTree.buildFromGraph(SparseGraph(cfgAdjMat), entry);
 }
 } // namespace llvm

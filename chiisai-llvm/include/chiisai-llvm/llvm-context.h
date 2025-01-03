@@ -22,7 +22,7 @@ struct PointerType;
 struct TypeSystem;
 struct ConstantPool;
 struct IntegerType;
-uint8_t stoinst(std::string_view str);
+uint8_t stoinst(const std::string& str);
 std::string inst2String(uint8_t opCode);
 struct LLVMContext {
   LLVMContext();

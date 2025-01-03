@@ -125,6 +125,18 @@ template <typename Base> struct poly_list {
 
   void clear() { container.clear(); }
 
+  void splice(iterator pos, poly_list &other) {
+    container.splice(pos.it_, other.container);
+  }
+
+  void splice(iterator pos, poly_list &other, iterator it) {
+    container.splice(pos.it_, other.container, it.it_);
+  }
+
+  void splice(iterator pos, poly_list &other, iterator first, iterator last) {
+    container.splice(pos.it_, other.container, first.it_, last.it_);
+  }
+
 private:
   std::list<std::unique_ptr<Base>> container;
 };

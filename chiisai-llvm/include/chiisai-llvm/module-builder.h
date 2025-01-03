@@ -19,7 +19,7 @@ struct BuildResult {
 
 struct ModuleBuilder final : LLVMParserVisitor {
 
-  explicit ModuleBuilder() : LLVMParserVisitor(), logStream(std::make_unique<std::ofstream>("module-builder.log")), logger(*logStream) {}
+  explicit ModuleBuilder() : LLVMParserVisitor(), logger(minilog::createFileLogger("module-builder.log")) {}
 
   std::any visitInitializer(LLVMParser::InitializerContext *ctx) override;
 
@@ -47,6 +47,11 @@ struct ModuleBuilder final : LLVMParserVisitor {
   std::any
   visitFunctionArguments(LLVMParser::FunctionArgumentsContext *ctx) override {
     auto params = ctx->parameterList();
+    if (!params) {
+      ctx->argNames = {};
+      ctx->argTypes = {};
+      return {};
+    }
     visitParameterList(params);
     ctx->argNames = std::move(params->argNames);
     ctx->argTypes = std::move(params->argTypes);
@@ -64,7 +69,7 @@ struct ModuleBuilder final : LLVMParserVisitor {
 
   std::any visitParameter(LLVMParser::ParameterContext *ctx) override {
     auto argType = ctx->type();
-    auto argName = variableName(ctx->localIdentifier());
+    auto argName = ctx->localIdentifier() ? variableName(ctx->localIdentifier()) : "";
     visitType(argType);
     ctx->argType = argType->typeRef;
     ctx->argName = argName;
@@ -176,10 +181,6 @@ struct ModuleBuilder final : LLVMParserVisitor {
     throw std::runtime_error("Literal context should not be visited");
   }
 
-  std::any visitNumber(LLVMParser::NumberContext *ctx) override {
-    throw std::runtime_error("Number context should not be visited");
-  }
-
   BuildResult build(LLVMParser::ModuleContext *ctx);
 
   Ref<Function> currentFunction{};
@@ -189,15 +190,14 @@ private:
   std::unique_ptr<Module> module{};
   std::unique_ptr<LLVMContext> llvmContext{};
   Ref<Value>
-  resolveImmediateValueUsage(LLVMParser::ImmediatelyUsableValueContext *ctx);
+  resolveImmediateValueUsage(CRef<Type> type, LLVMParser::ImmediatelyUsableValueContext *ctx);
   [[nodiscard]] Ref<Value> resolveValueUsage(CRef<Type> type, const std::string &name) const;
   Ref<Value> resolveVariableUsage(LLVMParser::VariableContext *ctx);
 
   template <typename T> static std::string variableName(T *ctx) {
     return ctx->getText();
   }
-  std::unique_ptr<std::ostream> logStream{};
-  minilog::Logger logger{};
+  std::unique_ptr<minilog::Logger> logger{};
 };
 
 BuildResult buildModule(const std::filesystem::path& path);

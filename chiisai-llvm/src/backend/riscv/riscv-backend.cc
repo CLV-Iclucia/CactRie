@@ -33,8 +33,8 @@ static RiscvPredicate toRiscvPredicate(Predicate pred) {
 
 RiscvPseudoCmp RiscvBackend::toPseudoCmp(CRef<CmpInst> inst) {
   return RiscvPseudoCmp{
-      .lhs = inst->lhs->name(),
-      .rhs = inst->rhs->name(),
+      .lhs = inst->lhs()->name(),
+      .rhs = inst->rhs()->name(),
       .dest = inst->name(),
       .predicate = toRiscvPredicate(inst->predicate),
   };
@@ -59,7 +59,9 @@ RiscvBackend::RiscvBackend(const LLVMContext &ctx) {
 
 void RiscvBackend::eliminatePhi(CRef<PhiInst> phi) {
   const auto &phiName = phi->name();
-  for (const auto &[pred, reg] : phi->incomingValues) {
+  for (auto i = 0; i < phi->incomingValues.size(); i++) {
+    auto reg = phi->incomingValues[i];
+    auto pred = cast<BasicBlock>(phi->incomingBlocks[i]);
     pseudoInstructions.at(pred).emplace_back(PseudoMove{
         .dest = phiName,
         .src = reg->name(),

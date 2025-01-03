@@ -1,9 +1,11 @@
 //
-// Created by creeper on 12/24/24.
+// Created by creeper on 1/1/25.
 //
+#include "chiisai-llvm/passes/dot-cfg-pass.h"
+
 #include <chiisai-llvm/module-builder.h>
 #include <chiisai-llvm/module.h>
-#include <chiisai-llvm/passes/dot-cfg-pass.h>
+#include <chiisai-llvm/passes/single-jump-elimination-pass.h>
 #include <iostream>
 using namespace llvm;
 
@@ -21,9 +23,10 @@ int main(int argc, char **argv) {
     return 1;
   }
   auto function = module->function(argv[2]);
+  SingleJumpEliminationPass().runOnFunction(*function);
   DotCFGPass pass(argv[3]);
   pass.runOnFunction(*function);
-  std::cout << "CFG dot file for function " << argv[2] << " saved to "
+  std::cout << "CFG dot file for optimized function " << argv[2] << " saved to "
             << argv[3] << std::endl;
   auto savePNGPath =
       std::format("{}.png", std::filesystem::path(argv[3]).stem().string());

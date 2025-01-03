@@ -18,12 +18,14 @@ void Function::accept(Executor &executor) {
 void Function::addBasicBlock(std::unique_ptr<BasicBlock> &&bb) {
   if (!impl)
     impl.emplace();
-  impl->basicBlockMap.insert({bb->name(), makeRef(*bb)});
+  auto bbRef = makeRef(*bb);
+  impl->basicBlockMap.insert({bb->name(), bbRef});
   impl->m_basicBlocks.emplace_back(std::move(bb));
+  impl->basicBlockIterMap.insert({bbRef, --impl->m_basicBlocks.end()});
 }
 bool Function::hasIdentifier(const std::string &name) const {
   assert(impl.has_value());
-  for (const auto &arg : m_args)
+  for (auto arg : m_args)
     if (arg->name() == name)
       return true;
   for (const auto &bb : basicBlocks())
@@ -33,6 +35,7 @@ bool Function::hasIdentifier(const std::string &name) const {
 }
 void Function::removeBasicBlock(Ref<BasicBlock> bb) {
   assert(impl);
+  assert(!bb->isUsed());
   impl->basicBlockMap.erase(bb->name());
   auto it = impl->basicBlockIterMap[bb];
   impl->basicBlockIterMap.erase(bb);

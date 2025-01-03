@@ -18,7 +18,6 @@ struct ArrayType final : Type {
   }
 
   [[nodiscard]] std::string toString() const override {
-    auto arrayType = cast<ArrayType>(makeCRef(*this));
     return "[" + std::to_string(size) + " x " + containedTypes[0]->toString() + "]";
   }
 };

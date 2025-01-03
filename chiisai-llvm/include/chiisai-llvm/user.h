@@ -9,14 +9,11 @@ namespace llvm {
 
 struct User : Value {
   explicit User(const std::string &name, CRef<Type> type) : Value(name, type) {}
-  mystl::poly_view_list<Value> &usedValues() {
-    return m_usedValues;
-  }
+  std::list<Ref<Value>> usedValues{};
 private:
   friend struct Module;
-
+  void replaceUseOfWith(Ref<Value> oldValue, Ref<Value> newValue);
   friend void addUse(Ref<User> user, Ref<Value> value);
-  mystl::poly_view_list<Value> m_usedValues{};
 };
 
 void addUse(Ref<User> user, Ref<Value> value);

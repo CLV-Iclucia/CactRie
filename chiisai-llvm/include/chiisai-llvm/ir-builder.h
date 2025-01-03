@@ -34,8 +34,6 @@ struct IRBuilder {
     auto cmpInst = std::make_unique<CmpInst>(op, basicBlock, details);
     auto instRef = makeRef(*cmpInst);
     basicBlock.addInstructionBack(std::move(cmpInst));
-    addUse(instRef, instRef->lhs);
-    addUse(instRef, instRef->rhs);
     return instRef;
   }
 
@@ -43,9 +41,6 @@ struct IRBuilder {
     auto callInst = std::make_unique<CallInst>(basicBlock, details);
     auto instRef = makeRef(*callInst);
     basicBlock.addInstructionBack(std::move(callInst));
-    for (const auto &arg : instRef->realArgs)
-      addUse(instRef, arg);
-    addUse(instRef, makeRef(instRef->function));
     return instRef;
   }
 
@@ -53,8 +48,6 @@ struct IRBuilder {
     auto gepInst = std::make_unique<GepInst>(basicBlock, details);
     auto instRef = makeRef(*gepInst);
     basicBlock.addInstructionBack(std::move(gepInst));
-    addUse(instRef, instRef->pointer);
-    addUse(instRef, instRef->index);
     return instRef;
   }
 
@@ -62,7 +55,6 @@ struct IRBuilder {
     auto loadInst = std::make_unique<LoadInst>(basicBlock, details);
     auto instRef = makeRef(*loadInst);
     basicBlock.addInstructionBack(std::move(loadInst));
-    addUse(instRef, instRef->pointer);
     return instRef;
   }
 
@@ -81,8 +73,6 @@ struct IRBuilder {
     auto storeInst = std::make_unique<StoreInst>(basicBlock, details);
     auto instRef = makeRef(*storeInst);
     basicBlock.addInstructionBack(std::move(storeInst));
-    addUse(instRef, instRef->pointer);
-    addUse(instRef, instRef->value);
     return instRef;
   }
 private:

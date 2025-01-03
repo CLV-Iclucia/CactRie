@@ -18,6 +18,7 @@ struct FunctionInfo {
   CRef<FunctionType> functionType;
   std::vector<std::string> &&argNames;
   const Module &module;
+  bool isImplemented = false;
 };
 
 struct BasicBlock;
@@ -26,6 +27,8 @@ struct Function final : Value {
       : Value(info.name, info.functionType), m_module(info.module) {
     for (size_t i = 0; i < info.argNames.size(); ++i)
       addArgument(info.argNames[i], info.functionType->argType(i));
+    if (info.isImplemented)
+      impl.emplace();
   }
 
   Function &addArgument(const std::string &name, CRef<Type> type) {

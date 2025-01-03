@@ -4,8 +4,11 @@
 
 #ifndef CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_INSTRUCTIONS_H
 #define CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_INSTRUCTIONS_H
-#include <chiisai-llvm/instruction.h>
+#include <chiisai-llvm/global-variable.h>
+
 #include <chiisai-llvm/basic-block.h>
+#include <chiisai-llvm/instruction.h>
+#include <chiisai-llvm/function.h>
 #include <variant>
 namespace llvm {
 
@@ -41,17 +44,22 @@ struct AllocaInstDetails {
 struct AllocaInst final : Instruction {
   explicit AllocaInst(BasicBlock &basicBlock, const AllocaInstDetails &details)
       : Instruction(Alloca, details.name, details.type, basicBlock),
-        alignment(details.alignment) {}
+        alignment(details.alignment), size(details.size) {}
 
   size_t alignment{0};
   size_t size{1};
   void accept(Executor &executor) override;
+  [[nodiscard]] CRef<Type> holdType() const {
+    assert(isa<PointerType>(type()));
+    return cast<PointerType>(type())->elementType();
+  }
   [[nodiscard]] std::string toString() const override {
     bool hasAlign = alignment != 0;
     auto allocaPart =
-        size > 1 ? std::format("alloca {} {}", type()->toString(), size)
-                 : std::format("alloca {}", type()->toString());
-    return "{} = " + allocaPart +
+        size > 1
+            ? std::format("alloca {}, i32 {}", holdType()->toString(), size)
+            : std::format("alloca {}", holdType()->toString());
+    return name() + " = " + allocaPart +
            (hasAlign ? std::format(", align {}", alignment) : "");
   }
 };
@@ -66,23 +74,41 @@ struct StoreInstDetails {
 
 struct StoreInst final : Instruction {
   explicit StoreInst(BasicBlock &basicBlock, const StoreInstDetails &details)
-      : Instruction(Store, details.name, details.type, basicBlock),
-        pointer(details.pointer), value(details.value), index(details.index) {
-    assert(pointer->type()->isConvertibleToPointer());
+      : Instruction(Store, details.name, details.type, basicBlock) {
+    addUse(makeRef(*this), details.pointer);
+    m_pointer = makeRef(usedValues.back());
+    addUse(makeRef(*this), details.value);
+    m_value = makeRef(usedValues.back());
+    if (details.index) {
+      addUse(makeRef(*this), details.index);
+      m_index = makeRef(usedValues.back());
+    }
+    assert(pointer()->type()->isConvertibleToPointer() ||
+           isa<GlobalVariable>(pointer()));
   }
-  Ref<Value> pointer;
-  Ref<Value> value;
-  Ref<Value> index{};
-  void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override {
-    if (index)
-      return std::format("store {} {}, {} {}, i32 {}", value->type()->toString(),
-                         value->name(), pointer->type()->toString(),
-                         pointer->name(), index->name());
-    return std::format("store {} {}, {} {}", value->type()->toString(),
-                       value->name(), pointer->type()->toString(),
-                       pointer->name());
+    if (index())
+      return std::format("store {} {}, {} {}, i32 {}",
+                         value()->type()->toString(), value()->name(),
+                         pointer()->type()->toString(), pointer()->name(),
+                         index()->name());
+    return std::format("store {} {}, {} {}", value()->type()->toString(),
+                       value()->name(), pointer()->type()->toString(),
+                       pointer()->name());
   }
+  void accept(Executor &executor) override;
+  [[nodiscard]] Ref<Value> pointer() const { return *m_pointer; }
+  [[nodiscard]] Ref<Value> value() const { return *m_value; }
+  [[nodiscard]] Ref<Value> index() const {
+    if (!m_index)
+      return {};
+    return *m_index;
+  }
+
+private:
+  Ref<Ref<Value>> m_pointer;
+  Ref<Ref<Value>> m_value;
+  Ref<Ref<Value>> m_index{};
 };
 
 struct LoadInstDetails {
@@ -94,39 +120,63 @@ struct LoadInstDetails {
 
 struct LoadInst final : Instruction {
   explicit LoadInst(BasicBlock &basicBlock, const LoadInstDetails &details)
-      : Instruction(Load, details.name, details.type, basicBlock),
-        pointer(details.pointer), index(details.index) {
-    assert(pointer->type()->isConvertibleToPointer());
+      : Instruction(Load, details.name, details.type, basicBlock) {
+    addUse(makeRef(*this), details.pointer);
+    m_pointer = makeRef(usedValues.back());
+    if (details.index) {
+      addUse(makeRef(*this), details.index);
+      m_index = makeRef(usedValues.back());
+    }
+
+    assert(pointer()->type()->isConvertibleToPointer() ||
+           isa<GlobalVariable>(pointer()));
   }
-  Ref<Value> pointer;
-  Ref<Value> index{};
+
+  [[nodiscard]] Ref<Value> pointer() const { return *m_pointer; }
+  [[nodiscard]] Ref<Value> index() const {
+    if (!m_index)
+      return {};
+    return *m_index;
+  }
+
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override {
-    if (index)
+    if (index())
       return std::format("{} = load {} {}, i32 {}", name(),
-                         pointer->type()->toString(), pointer->name(),
-                         index->name());
-    return std::format("{} = load {} {}", name(), pointer->type()->toString(),
-                       pointer->name());
+                         pointer()->type()->toString(), pointer()->name(),
+                         index()->name());
+    return std::format("{} = load {} {}", name(), pointer()->type()->toString(),
+                       pointer()->name());
   }
+
+private:
+  Ref<Ref<Value>> m_pointer;
+  Ref<Ref<Value>> m_index{};
 };
 
 struct PhiValue {
-  Ref<BasicBlock> basicBlock{};
+  Ref<Value> basicBlock{};
   Ref<Value> value{};
 };
 
 struct PhiInstDetails {
   const std::string &name;
   CRef<Type> type;
-  std::vector<PhiValue> &&incomingValues;
+  std::vector<PhiValue> &&incomingPhiValues;
 };
 
 struct PhiInst final : Instruction {
   explicit PhiInst(BasicBlock &basicBlock, const PhiInstDetails &details)
-      : Instruction(Phi, details.name, details.type, basicBlock),
-        incomingValues(details.incomingValues) {}
-  std::vector<PhiValue> incomingValues;
+      : Instruction(Phi, details.name, details.type, basicBlock) {
+    for (auto &[bb, value] : details.incomingPhiValues) {
+      addUse(makeRef(*this), value);
+      incomingValues.emplace_back(usedValues.back());
+      addUse(makeRef(*this), bb);
+      incomingBlocks.emplace_back(usedValues.back());
+    }
+  }
+  std::vector<Ref<Value>> incomingValues{};
+  std::vector<Ref<Value>> incomingBlocks{};
   void accept(Executor &executor) override;
 
   void removeBranch(const std::string &blockName);
@@ -134,20 +184,39 @@ struct PhiInst final : Instruction {
 };
 
 struct CallInstDetails {
-  std::string name;
+  const std::string &name;
   CRef<Type> type;
-  Function &function;
+  Ref<Function> function;
   std::vector<Ref<Value>> &&realArgs;
 };
 
 struct CallInst final : Instruction {
   explicit CallInst(BasicBlock &basicBlock, const CallInstDetails &details)
-      : Instruction(Call, details.name, details.type, basicBlock),
-        function(details.function), realArgs(details.realArgs) {}
-  Function &function;
-  std::vector<Ref<Value>> realArgs{};
+      : Instruction(Call, details.name, details.type, basicBlock) {
+    addUse(makeRef(*this), details.function);
+    m_function = makeRef(usedValues.back());
+    for (auto &arg : details.realArgs) {
+      addUse(makeRef(*this), arg);
+      m_realArgs.emplace_back(makeRef(usedValues.back()));
+    }
+  }
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override;
+  [[nodiscard]] Ref<Function> function() const {
+    assert(isa<Function>(*m_function));
+    return cast<Function>(*m_function);
+  }
+  [[nodiscard]] auto realArgs() const {
+    return m_realArgs | std::views::transform([](Ref<Ref<Value>> arg) {
+             assert(arg);
+             assert(*arg);
+             return *arg;
+           });
+  }
+
+private:
+  Ref<Ref<Value>> m_function;
+  std::vector<Ref<Ref<Value>>> m_realArgs{};
 };
 
 struct CmpInstDetails {
@@ -161,16 +230,27 @@ struct CmpInst final : Instruction {
   explicit CmpInst(uint8_t op, BasicBlock &basicBlock,
                    const CmpInstDetails &details)
       : Instruction(op, details.name, Type::boolType(details.ctx), basicBlock),
-        predicate(details.predicate), lhs(details.lhs), rhs(details.rhs) {
-    assert(lhs->type() == rhs->type());
-    assert((op == OtherOps::ICmp && lhs->type()->isInteger()) ||
-           (op == OtherOps::FCmp && lhs->type()->isFloatingPoint()));
+        predicate(details.predicate) {
+    addUse(makeRef(*this), details.lhs);
+    m_lhs = makeRef(usedValues.back());
+    addUse(makeRef(*this), details.rhs);
+    m_rhs = makeRef(usedValues.back());
+
+    assert(lhs()->type() == rhs()->type());
+    assert((op == OtherOps::ICmp && lhs()->type()->isInteger()) ||
+           (op == OtherOps::FCmp && lhs()->type()->isFloatingPoint()));
   }
 
+  [[nodiscard]] Ref<Value> lhs() const { return *m_lhs; }
+
+  [[nodiscard]] Ref<Value> rhs() const { return *m_rhs; }
+
   Predicate predicate;
-  Ref<Value> lhs, rhs;
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override;
+
+private:
+  Ref<Ref<Value>> m_lhs, m_rhs;
 };
 
 struct BrInstDetails {
@@ -183,46 +263,51 @@ std::string genBrInstName();
 
 struct BrInst final : Instruction {
   struct Conditional {
-    Ref<Value> cond;
-    Ref<BasicBlock> thenBranch;
-    Ref<BasicBlock> elseBranch;
+    Ref<Ref<Value>> cond;
+    Ref<Ref<Value>> thenBranch;
+    Ref<Ref<Value>> elseBranch;
   };
-  explicit BrInst(BasicBlock &current, Ref<BasicBlock> dest)
-      : Instruction(Br, genBrInstName(), {}, current), dest(dest) {}
+  explicit BrInst(BasicBlock &current, Ref<BasicBlock> destBlock)
+      : Instruction(Br, genBrInstName(), {}, current) {
+    addUse(makeRef(*this), destBlock);
+    dest = makeRef(usedValues.back());
+  }
   explicit BrInst(BasicBlock &current, const BrInstDetails &details)
-      : Instruction(Br, genBrInstName(), {}, current),
-        dest(Conditional{details.cond, details.thenBranch,
-                         details.elseBranch}) {}
+      : Instruction(Br, genBrInstName(), {}, current) {
+    Conditional cond;
+    addUse(makeRef(*this), details.cond);
+    cond.cond = makeRef(usedValues.back());
+    addUse(makeRef(*this), details.thenBranch);
+    cond.thenBranch = makeRef(usedValues.back());
+    addUse(makeRef(*this), details.elseBranch);
+    cond.elseBranch = makeRef(usedValues.back());
+    dest = cond;
+  }
 
   [[nodiscard]] bool isConditional() const {
     return std::holds_alternative<Conditional>(dest);
   }
-  [[nodiscard]] const BasicBlock &thenBranch() const {
+  [[nodiscard]] BasicBlock &thenBranch() const {
     if (isConditional())
-      return *std::get<Conditional>(dest).thenBranch;
-    return *std::get<Ref<BasicBlock>>(dest);
+      return *cast<BasicBlock>(*std::get<Conditional>(dest).thenBranch);
+    return *cast<BasicBlock>(*std::get<Ref<Ref<Value>>>(dest));
   }
-  BasicBlock &thenBranch() {
+  [[nodiscard]] BasicBlock &elseBranch() const {
     if (isConditional())
-      return *std::get<Conditional>(dest).thenBranch;
-    return *std::get<Ref<BasicBlock>>(dest);
-  }
-  [[nodiscard]] const BasicBlock &elseBranch() const {
-    if (isConditional())
-      return *std::get<Conditional>(dest).elseBranch;
+      return *cast<BasicBlock>(*std::get<Conditional>(dest).elseBranch);
     throw std::runtime_error(
         "unconditional branch doesn't support elseBranch()");
   }
   [[nodiscard]] const Value &cond() const {
     if (isConditional())
-      return *std::get<Conditional>(dest).cond;
+      return **std::get<Conditional>(dest).cond;
     throw std::runtime_error("unconditional branch doesn't support cond()");
   }
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override;
 
 private:
-  std::variant<Conditional, Ref<BasicBlock>> dest;
+  std::variant<Conditional, Ref<Ref<Value>>> dest;
 };
 
 // we only support at most one index for now
@@ -235,35 +320,67 @@ struct GepInstDetails {
 
 struct GepInst final : Instruction {
   explicit GepInst(BasicBlock &basicBlock, const GepInstDetails &details)
-      : Instruction(Gep, details.name, details.type, basicBlock),
-        index(details.index), pointer(details.pointer) {}
+      : Instruction(Gep, details.name, details.type, basicBlock) {
+    addUse(makeRef(*this), details.pointer);
+    m_pointer = makeRef(usedValues.back());
+    if (details.index) {
+      addUse(makeRef(*this), details.index);
+      m_index = makeRef(usedValues.back());
+    }
+  }
 
   void accept(Executor &executor) override;
-  [[nodiscard]] std::string toString() const override {
-    if (!index)
-      return std::format("{} = getelementptr {} {}", name(),
-                         pointer->type()->toString(), pointer->name());
-    return std::format("{} = getelementptr {} {}, i32 {}", name(),
-                       pointer->type()->toString(), pointer->name(),
-                       index->name());
+  [[nodiscard]] CRef<Type> holdType() const {
+    assert(isa<PointerType>(type()));
+    return cast<PointerType>(type())->elementType();
   }
-  Ref<Value> index{};
-  Ref<Value> pointer;
+  [[nodiscard]] std::string toString() const override {
+    if (!index())
+      return std::format("{} = getelementptr {}, {} {}", name(),
+                         holdType()->toString(), pointer()->type()->toString(),
+                         pointer()->name());
+    return std::format("{} = getelementptr {}, {} {}, i32 {}", name(),
+                       holdType()->toString(), pointer()->type()->toString(),
+                       pointer()->name(), index()->name());
+  }
+
+  [[nodiscard]] Ref<Value> pointer() const { return *m_pointer; }
+  [[nodiscard]] Ref<Value> index() const {
+    if (!m_index)
+      return {};
+    return *m_index;
+  }
+
+private:
+  Ref<Ref<Value>> m_index{};
+  Ref<Ref<Value>> m_pointer;
 };
 
 std::string genReturnInstName();
 
 struct RetInst final : Instruction {
   explicit RetInst(BasicBlock &basicBlock, Ref<Value> ret)
-      : Instruction(Ret, {}, {}, basicBlock), ret(ret) {}
+      : Instruction(Ret, {}, {}, basicBlock) {
+    if (ret) {
+      addUse(makeRef(*this), ret);
+      this->m_ret = makeRef(usedValues.back());
+    }
+  }
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override {
-    if (!ret)
+    if (!ret())
       return "ret void";
-    return std::format("ret {} {}", ret->type()->toString(), ret->name());
+    return std::format("ret {} {}", ret()->type()->toString(), ret()->name());
   }
-  Ref<Value> ret{};
+
+  [[nodiscard]] Ref<Value> ret() const {
+    if (!m_ret)
+      return {};
+    return *m_ret;
+  }
+private:
+  Ref<Ref<Value>> m_ret{};
 };
 
-}
-#endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_INSTRUCTIONS_H
+} // namespace llvm
+#endif // CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_INSTRUCTIONS_H

@@ -1,9 +1,9 @@
 //
 // Created by creeper on 12/17/24.
 //
+#include <chiisai-llvm/basic-block.h>
 #include <chiisai-llvm/dominator-tree.h>
 #include <chiisai-llvm/function.h>
-#include <chiisai-llvm/basic-block.h>
 #include <chiisai-llvm/passes/mem2reg-pass.h>
 #include <mystl/bit_vector.h>
 #include <queue>
@@ -33,21 +33,21 @@ void PromoteMemToRegPass::renameAllocaInBlock(
   for (auto inst : block->instructions) {
     if (isa<StoreInst>(inst)) {
       auto si = cast<StoreInst>(inst);
-      if (!isa<AllocaInst>(si->pointer))
+      if (!isa<AllocaInst>(si->pointer()))
         continue;
-      auto ai = cast<AllocaInst>(si->pointer);
+      auto ai = cast<AllocaInst>(si->pointer());
       if (!mostRecentValue.contains(ai))
         continue;
-      mostRecentValue[ai] = si->value;
+      mostRecentValue[ai] = si->value();
       logger.info("update most recent value for alloca inst {} to {}",
-                  ai->name(), si->value->name());
+                  ai->name(), si->value()->name());
       instToRemove.emplace_back(si);
     }
     if (isa<LoadInst>(inst)) {
       auto li = cast<LoadInst>(inst);
-      if (!isa<AllocaInst>(li->pointer))
+      if (!isa<AllocaInst>(li->pointer()))
         continue;
-      auto ai = cast<AllocaInst>(li->pointer);
+      auto ai = cast<AllocaInst>(li->pointer());
       if (!mostRecentValue.contains(ai))
         continue;
       logger.info(
@@ -74,12 +74,12 @@ void PromoteMemToRegPass::fillPhiInst(
     if (!isInsertedPhiInstForBlock(phi, succ))
       continue;
     auto ai = toBePromote.at(extractAllocaNameFromPhiInst(phi));
-    for (auto &[basicBlock, value] : phi->incomingValues) {
-      if (basicBlock->name() != current->name())
+    for (auto i = 0; i < phi->incomingValues.size(); i++) {
+      if (phi->incomingBlocks[i]->name() != current->name())
         continue;
       logger.info("fill phi inst {} with most recent value for alloca inst {}",
                   phi->name(), ai->name());
-      value = mostRecentValue.at(ai);
+      phi->incomingValues[i] = mostRecentValue.at(ai);
       break;
     }
   }
@@ -141,7 +141,8 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
       logger.info("processing dominance frontier of live-in block {}",
                   block->name());
       for (auto dfBlock : domTree.dominanceFrontier(block)) {
-        std::vector<PhiValue> phiValues(dfBlock->predecessors.size());
+        std::vector<PhiValue> phiValues(
+            dfBlock->predecessors.size());
         auto idx = 0;
         for (auto pred : dfBlock->predecessors) {
           auto &[basicBlock, value] = phiValues[idx];

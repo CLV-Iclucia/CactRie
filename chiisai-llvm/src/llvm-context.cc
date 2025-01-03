@@ -62,7 +62,7 @@ std::string inst2String(uint8_t opCode) {
   return opCodeMap.at(opCode);
 }
 
-LLVMContext::LLVMContext() : typeSystem(std::make_unique<TypeSystem>()) {}
+LLVMContext::LLVMContext() : typeSystem(std::make_unique<TypeSystem>()), constantPool(std::make_unique<ConstantPool>()) {}
 LLVMContext::~LLVMContext() = default;
 
 CRef<Type> LLVMContext::stobt(const std::string &str) const {

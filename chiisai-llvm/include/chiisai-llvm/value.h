@@ -17,7 +17,7 @@ struct Value : RAII, Executable {
   [[nodiscard]] auto type() const {
     return m_type;
   }
-  mystl::poly_view_list<User> users{};
+  std::list<Ref<User>> users{};
   // after replacement no user will be using this value and this value should be deleted
   // we leave this work to the manager of the value
   void replaceAllUsesWith(Ref<Value> other);

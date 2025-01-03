@@ -18,7 +18,7 @@ options {
 scalarType
     locals [
     CRef<Type> typeRef,
-]: I1 | I32 | I64 | F32 | F64;
+]: I1 | I32 | I64 | Float | Double | Int;
 
 basicType
     locals[
@@ -42,7 +42,7 @@ arrayType
 
 globalIdentifier: At NamedIdentifier;
 
-localIdentifier: Percent (NamedIdentifier | NumericIdentifier);
+localIdentifier: Percent (NamedIdentifier | IntegerLiteral);
 
 variable
     locals[
@@ -51,12 +51,10 @@ variable
 
 literal : IntegerLiteral | HexLiteral;
 
-number: scalarType literal;
-
 immediatelyUsableValue
     locals[
     bool isConstant,
-]: localIdentifier | number;
+]: localIdentifier | literal;
 
 module: (globalDeclaration | functionDeclaration | functionDefinition)*;
 
@@ -102,12 +100,9 @@ parameter
   locals [
      CRef<Type> argType,
      std::string argName,
-]: type localIdentifier;
+]: type (localIdentifier)?;
 
-basicBlock
-  locals [
-      std::unique_ptr<BasicBlock> basicBlockInstance,
-]: Label Colon instruction*;
+basicBlock: NamedIdentifier Colon instruction*;
 
 instruction
   locals [
@@ -150,7 +145,8 @@ phiValue
     locals [
         Ref<BasicBlock> block,
         Ref<Value> value,
-    ]: LeftBrace localIdentifier Comma immediatelyUsableValue RightBrace;
+        CRef<Type> typeRef,
+    ]: LeftBrace immediatelyUsableValue Comma localIdentifier RightBrace;
 
 comparisonOperation : Icmp | Fcmp;
 
@@ -159,15 +155,15 @@ comparisonInstruction
     ;
 
 allocaInstruction
-    : localIdentifier Equals Alloca type (Comma IntegerLiteral)? (Comma Align IntegerLiteral)?
+    : localIdentifier Equals Alloca type (Comma I32 IntegerLiteral)? (Comma Align IntegerLiteral)?
     ;
 
 binaryOperation
-    : Add | Sub | Mul | Div
+    : Add | Sub | Mul | Div | Srem
     ;
 
 comparisonPredicate
-    : Eq | Ne | Ugt | Uge | Ult | Ule | Sgt | Sge | Slt | Sle
+    : Eq | Ne | Ugt | Uge | Ult | Ule | Sgt | Sge | Slt | Sle | Oeq | One | Ogt | Oge | Olt | Ole
     ;
 
 terminatorInstruction
@@ -179,5 +175,5 @@ terminatorInstruction
 // currently, we don't support multiple indices
 // multidimensional arrays should be flattened
 gepInstruction
-    : localIdentifier Equals GetElementPtr type Comma type Asterisk variable (Comma immediatelyUsableValue)?
+    : localIdentifier Equals GetElementPtr type Comma type Asterisk variable (Comma scalarType immediatelyUsableValue)?
     ;

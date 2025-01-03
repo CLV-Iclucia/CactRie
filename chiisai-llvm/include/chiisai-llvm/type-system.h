@@ -22,11 +22,12 @@ struct TypeSystem : RAII {
                                {"double", makeCRef(doubleInstance)},
                                {"i1", makeCRef(boolInstance)},
                                {"i32", makeCRef(intInstance)},
+                               {"int", makeCRef(intInstance)},
                                {"i64", makeCRef(longInstance)}}) {}
 private:
   friend struct LLVMContext;
   // String to Basic Type
-  CRef<Type> stobt(const std::string &str) {
+  CRef<Type> stobt(const std::string &str) const {
     return basicTypeMap.at(str);
   }
 
