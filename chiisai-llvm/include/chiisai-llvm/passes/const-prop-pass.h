@@ -7,8 +7,10 @@
 #include <chiisai-llvm/data-flow-analysis.h>
 namespace llvm {
 
-struct ConstantPropagationAnalysis {
+struct ConstantPropagationPass {
+  void runOnFunction(Function&) {
 
+  }
 };
 
 }

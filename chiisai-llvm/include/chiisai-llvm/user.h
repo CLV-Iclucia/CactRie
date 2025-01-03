@@ -12,7 +12,7 @@ struct User : Value {
   std::list<Ref<Value>> usedValues{};
 private:
   friend struct Module;
-  void replaceUseOfWith(Ref<Value> oldValue, Ref<Value> newValue);
+
   friend void addUse(Ref<User> user, Ref<Value> value);
 };
 
