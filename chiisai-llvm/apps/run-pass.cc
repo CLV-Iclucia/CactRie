@@ -1,7 +1,8 @@
 //
 // Created by creeper on 1/1/25.
 //
-#include "chiisai-llvm/passes/dot-cfg-pass.h"
+#include <chiisai-llvm/passes/dot-cfg-pass.h>
+#include <chiisai-llvm/passes/mem2reg-pass.h>
 
 #include <chiisai-llvm/module-builder.h>
 #include <chiisai-llvm/module.h>
@@ -24,8 +25,8 @@ int main(int argc, char **argv) {
   }
   auto function = module->function(argv[2]);
   SingleJumpEliminationPass().runOnFunction(*function);
-  DotCFGPass pass(argv[3]);
-  pass.runOnFunction(*function);
+  PromoteMemToRegPass().runOnFunction(*function);
+  DotCFGPass(argv[3]).runOnFunction(*function);
   std::cout << "CFG dot file for optimized function " << argv[2] << " saved to "
             << argv[3] << std::endl;
   auto savePNGPath =

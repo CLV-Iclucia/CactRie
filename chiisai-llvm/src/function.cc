@@ -2,8 +2,9 @@
 // Created by creeper on 11/3/24.
 //
 #include <chiisai-llvm/basic-block.h>
-#include <chiisai-llvm/function.h>
 #include <chiisai-llvm/executor.h>
+#include <chiisai-llvm/function.h>
+#include <iostream>
 
 namespace llvm {
 
@@ -15,6 +16,7 @@ void Function::accept(Executor &executor) {
     executor.execute(basicBlock(nxt));
   }
 }
+
 void Function::addBasicBlock(std::unique_ptr<BasicBlock> &&bb) {
   if (!impl)
     impl.emplace();
@@ -23,6 +25,7 @@ void Function::addBasicBlock(std::unique_ptr<BasicBlock> &&bb) {
   impl->m_basicBlocks.emplace_back(std::move(bb));
   impl->basicBlockIterMap.insert({bbRef, --impl->m_basicBlocks.end()});
 }
+
 bool Function::hasIdentifier(const std::string &name) const {
   assert(impl.has_value());
   for (auto arg : m_args)
@@ -33,6 +36,7 @@ bool Function::hasIdentifier(const std::string &name) const {
       return true;
   return false;
 }
+
 void Function::removeBasicBlock(Ref<BasicBlock> bb) {
   assert(impl);
   assert(!bb->isUsed());

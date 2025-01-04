@@ -4,6 +4,8 @@
 #include <chiisai-llvm/backend/riscv/riscv-backend.h>
 #include <chiisai-llvm/basic-block.h>
 #include <chiisai-llvm/function.h>
+#include <queue>
+#include <unordered_set>
 namespace llvm {
 
 RiscvPseudoBinary RiscvBackend::toPseudoBinary(CRef<BinaryInst> inst) const {
@@ -57,31 +59,55 @@ RiscvBackend::RiscvBackend(const LLVMContext &ctx) {
   typeToModifier.insert({ctx.longType(), InstModifier::Double});
 }
 
-void RiscvBackend::eliminatePhi(CRef<PhiInst> phi) {
-  const auto &phiName = phi->name();
-  for (auto i = 0; i < phi->incomingValues.size(); i++) {
-    auto reg = phi->incomingValues[i];
-    auto pred = cast<BasicBlock>(phi->incomingBlocks[i]);
-    pseudoInstructions.at(pred).emplace_back(PseudoMove{
-        .dest = phiName,
-        .src = reg->name(),
-    });
+static std::vector<CRef<BasicBlock>> linearizeBlocks(const Function &func) {
+  std::queue<CRef<BasicBlock>> q;
+  std::unordered_set<CRef<BasicBlock>> visited;
+  std::vector<CRef<BasicBlock>> result{};
+  q.push(makeCRef(func.basicBlock("entry")));
+  visited.insert(makeCRef(func.basicBlock("entry")));
+  while (!q.empty()) {
+    auto bb = q.front();
+    result.push_back(bb);
+    q.pop();
+    for (auto succ : bb->successors) {
+      if (visited.contains(succ))
+        continue;
+      visited.insert(succ);
+      q.push(succ);
+    }
   }
+  return result;
 }
 
+std::string RiscvBackend::generateAssembly(const Function &function) const {
+  const auto& linearizedBlockSeq = linearizeBlocks(function);
+  std::unordered_map<CRef<BasicBlock>, std::vector<PseudoInstruction>> pseudoInsts{};
+  std::vector<PseudoInstruction> pseudoInstSeq{};
+  auto eliminatePhi = [&](CRef<PhiInst> phi) {
+    const auto &phiName = phi->name();
+    for (auto i = 0; i < phi->incomingValues.size(); i++) {
+      auto reg = phi->incomingValues[i];
+      auto pred = cast<BasicBlock>(phi->incomingBlocks[i]);
+      pseudoInsts.at(pred).emplace_back(PseudoMove{
+          .dest = phiName,
+          .src = reg->name(),
+      });
+    }
+  };
+
+  for (auto bb : linearizedBlockSeq) {
+    for (auto inst : bb->instructions) {
+
+    }
+  }
+
+  for (auto bb : linearizedBlockSeq)
+    pseudoInstSeq.insert(pseudoInstSeq.end(), pseudoInsts.at(bb).begin(), pseudoInsts.at(bb).end());
+
+  return "";
+}
 void RiscvBackend::buildPseudoInstructions(const Module &module) {
   for (auto func : module.functions) {
-    for (const auto &bb : func->basicBlocks()) {
-      for (auto block = makeCRef(bb); auto inst : block->instructions) {
-        if (isa<PhiInst>(inst))
-          eliminatePhi(cast<PhiInst>(inst));
-        else if (isa<GepInst>(inst)) {
-
-        }
-        else
-          pseudoInstructions.at(block).emplace_back(toSimplePseudoInstruction(inst));
-      }
-    }
   }
 }
 } // namespace llvm

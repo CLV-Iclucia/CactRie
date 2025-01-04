@@ -6,9 +6,9 @@
 #include <iostream>
 #include <minilog/logger.h>
 namespace llvm {
+static auto usageReplacementLogger =
+    minilog::createFileLogger("usage-replacement.log");
 void Value::replaceAllUsesWith(Ref<Value> other) {
-  static auto usageReplacementLogger =
-      minilog::createFileLogger("usage-replacement.log");
   assert(other.get() != this);
   for (auto user : users) {
     // let's do it in a brute force way!
@@ -26,5 +26,10 @@ void Value::replaceAllUsesWith(Ref<Value> other) {
                    });
   }
   users.clear();
+}
+void replaceUse(Ref<User> user, Ref<Value> value, Ref<Value> other) {
+  value->users.remove(user);
+  other->users.emplace_back(user);
+  std::replace(user->usedValues.begin(), user->usedValues.end(), value, other);
 }
 } // namespace llvm

@@ -7,31 +7,38 @@
 #include <chiisai-llvm/global-variable.h>
 
 #include <chiisai-llvm/basic-block.h>
-#include <chiisai-llvm/instruction.h>
 #include <chiisai-llvm/function.h>
+#include <chiisai-llvm/instruction.h>
 #include <variant>
 namespace llvm {
 
 struct BinaryInstDetails {
   const std::string &name;
-  CRef<Type> type;
-  Ref<Value> lhs, rhs;
+  CRef<Type> type{};
+  Ref<Value> lhs{}, rhs{};
 };
 
 struct BinaryInst final : Instruction {
   explicit BinaryInst(uint8_t op, BasicBlock &basicBlock,
                       const BinaryInstDetails &details)
-      : Instruction(op, details.name, details.type, basicBlock),
-        lhs(details.lhs), rhs(details.rhs) {
+      : Instruction(op, details.name, details.type, basicBlock) {
+    addUse(makeRef(*this), details.lhs);
+    m_lhs = makeRef(usedValues.back());
+    addUse(makeRef(*this), details.rhs);
+    m_rhs = makeRef(usedValues.back());
     assert(op >= Add && op < BinaryIDEnd);
   }
 
-  Ref<Value> lhs, rhs;
+  [[nodiscard]] Ref<Value> lhs() const { return *m_lhs; }
+  [[nodiscard]] Ref<Value> rhs() const { return *m_rhs; }
   void accept(Executor &executor) override;
   [[nodiscard]] std::string toString() const override {
     return std::format("{} = {} {} {}, {}", name(), inst2String(opCode),
-                       type()->toString(), lhs->name(), rhs->name());
+                       type()->toString(), lhs()->name(), rhs()->name());
   }
+
+private:
+  Ref<Ref<Value>> m_lhs{}, m_rhs{};
 };
 
 struct AllocaInstDetails {
@@ -86,6 +93,7 @@ struct StoreInst final : Instruction {
     assert(pointer()->type()->isConvertibleToPointer() ||
            isa<GlobalVariable>(pointer()));
   }
+
   [[nodiscard]] std::string toString() const override {
     if (index())
       return std::format("store {} {}, {} {}, i32 {}",
@@ -96,6 +104,7 @@ struct StoreInst final : Instruction {
                        value()->name(), pointer()->type()->toString(),
                        pointer()->name());
   }
+
   void accept(Executor &executor) override;
   [[nodiscard]] Ref<Value> pointer() const { return *m_pointer; }
   [[nodiscard]] Ref<Value> value() const { return *m_value; }
@@ -168,18 +177,18 @@ struct PhiInstDetails {
 struct PhiInst final : Instruction {
   explicit PhiInst(BasicBlock &basicBlock, const PhiInstDetails &details)
       : Instruction(Phi, details.name, details.type, basicBlock) {
-    for (auto &[bb, value] : details.incomingPhiValues) {
-      addUse(makeRef(*this), value);
-      incomingValues.emplace_back(usedValues.back());
-      addUse(makeRef(*this), bb);
-      incomingBlocks.emplace_back(usedValues.back());
-    }
+    for (auto [bb, value] : details.incomingPhiValues)
+      addPhiValue(bb, value);
   }
   std::vector<Ref<Value>> incomingValues{};
   std::vector<Ref<Value>> incomingBlocks{};
   void accept(Executor &executor) override;
-
-  void removeBranch(const std::string &blockName);
+  void addPhiValue(Ref<Value> bb, Ref<Value> value) {
+    addUse(makeRef(*this), bb);
+    incomingBlocks.emplace_back(bb);
+    addUse(makeRef(*this), value);
+    incomingValues.emplace_back(value);
+  }
   [[nodiscard]] std::string toString() const override;
 };
 
@@ -242,7 +251,6 @@ struct CmpInst final : Instruction {
   }
 
   [[nodiscard]] Ref<Value> lhs() const { return *m_lhs; }
-
   [[nodiscard]] Ref<Value> rhs() const { return *m_rhs; }
 
   Predicate predicate;
@@ -378,6 +386,7 @@ struct RetInst final : Instruction {
       return {};
     return *m_ret;
   }
+
 private:
   Ref<Ref<Value>> m_ret{};
 };

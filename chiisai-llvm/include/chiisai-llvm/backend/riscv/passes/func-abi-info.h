@@ -25,6 +25,7 @@ struct FunctionABIInfo {
       } else
         throw std::runtime_error("unsupported type of argument " + arg->name());
     }
+
   }
 
   uint32_t numIntArgRegUsed(const Function &func) const {
@@ -58,6 +59,10 @@ struct FunctionABIInfo {
   std::unordered_map<CRef<Function>,
                      std::array<std::string, kMaximumFloatArgumentRegisters>>
       floatArgReg;
+  std::unordered_map<CRef<Function>,
+                    uint32_t> frameSize;
+  std::unordered_map<CRef<Function>,
+                      uint32_t> offset;
 };
 
 } // namespace llvm

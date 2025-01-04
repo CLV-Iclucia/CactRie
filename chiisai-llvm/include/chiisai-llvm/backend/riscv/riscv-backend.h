@@ -29,9 +29,6 @@ private:
 
   PseudoInstruction toPseudoStore(CRef<StoreInst> inst) const;
 
-  void eliminatePhi(CRef<PhiInst> phi);
-
-  std::unordered_map<CRef<BasicBlock>, std::list<PseudoInstruction>> pseudoInstructions{};
   std::unordered_map<CRef<Type>, InstModifier> typeToModifier{};
 };
 }

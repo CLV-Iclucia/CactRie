@@ -65,23 +65,19 @@ void PromoteMemToRegPass::fillPhiInst(
     Ref<BasicBlock> current, Ref<BasicBlock> succ,
     const std::unordered_map<std::string, Ref<AllocaInst>> &toBePromote,
     const std::unordered_map<CRef<AllocaInst>, Ref<Value>> &mostRecentValue) {
-  logger.info("fill phi inst for block {} from block {}", succ->name(),
-              current->name());
+
   for (auto inst : succ->instructions) {
     if (!isa<PhiInst>(inst))
       break; // phi inst must be at the beginning of the block and continuous
     auto phi = cast<PhiInst>(inst);
     if (!isInsertedPhiInstForBlock(phi, succ))
       continue;
+    logger.info("fill phi inst {} for block {} from block {}", phi->toString(), succ->name(),
+              current->name());
     auto ai = toBePromote.at(extractAllocaNameFromPhiInst(phi));
-    for (auto i = 0; i < phi->incomingValues.size(); i++) {
-      if (phi->incomingBlocks[i]->name() != current->name())
-        continue;
-      logger.info("fill phi inst {} with most recent value for alloca inst {}",
-                  phi->name(), ai->name());
-      phi->incomingValues[i] = mostRecentValue.at(ai);
-      break;
-    }
+    phi->addPhiValue(current, mostRecentValue.at(ai));
+    logger.info("fill phi inst {} with most recent value {} for alloca inst {}",
+                phi->name(), mostRecentValue.at(ai)->name(), ai->name());
   }
 }
 
@@ -101,14 +97,14 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
     auto holderType = cast<PointerType>(ai->type())->elementType();
     logger.info("--------------mem2reg for alloca inst: {}--------------",
                 ai->name());
-    if (!isPromotable(ai))
-      continue;
-
     if (!ai->isUsed()) {
       logger.info("alloca inst {} has no users, remove it", ai->name());
       entryBlock.removeInstruction(ai);
       continue;
     }
+
+    if (!isPromotable(ai))
+      continue;
 
     std::unordered_set<Ref<BasicBlock>> useBlock{};
     std::unordered_set<Ref<BasicBlock>> defBlock{};
@@ -141,8 +137,7 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
       logger.info("processing dominance frontier of live-in block {}",
                   block->name());
       for (auto dfBlock : domTree.dominanceFrontier(block)) {
-        std::vector<PhiValue> phiValues(
-            dfBlock->predecessors.size());
+        std::vector<PhiValue> phiValues(dfBlock->predecessors.size());
         auto idx = 0;
         for (auto pred : dfBlock->predecessors) {
           auto &[basicBlock, value] = phiValues[idx];
@@ -153,8 +148,8 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
         auto phi = std::make_unique<PhiInst>(
             *dfBlock, PhiInstDetails{nameInsertedPhiInst(ai, dfBlock),
                                      holderType, std::move(phiValues)});
-        logger.info("insert phi inst {} to block {} with {} phi values",
-                    phi->name(), dfBlock->name(), phi->incomingValues.size());
+        logger.info("insert phi inst {} to block {}", phi->name(),
+                    dfBlock->name());
         dfBlock->addInstructionFront(std::move(phi));
       }
     }

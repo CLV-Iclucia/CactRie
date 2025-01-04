@@ -39,5 +39,6 @@ private:
   CRef<Type> m_type{};
   std::string m_name{};
 };
+void replaceUse(Ref<User> user, Ref<Value> value, Ref<Value> other);
 }
 #endif //CACTRIE_CHIISAI_LLVM_INCLUDE_CHIISAI_LLVM_VALUE_H

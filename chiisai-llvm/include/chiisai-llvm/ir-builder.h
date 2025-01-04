@@ -22,8 +22,6 @@ struct IRBuilder {
     auto binaryInst = std::make_unique<BinaryInst>(op, basicBlock, details);
     auto instRef = makeRef(*binaryInst);
     basicBlock.addInstructionBack(std::move(binaryInst));
-    addUse(instRef, instRef->lhs);
-    addUse(instRef, instRef->rhs);
     return instRef;
   }
 

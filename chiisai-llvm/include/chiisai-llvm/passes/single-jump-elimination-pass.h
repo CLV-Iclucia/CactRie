@@ -28,6 +28,7 @@ struct SingleJumpEliminationPass {
 
         bool canBeEliminated = false;
         Ref<BasicBlock> jumpDest{};
+
         if (auto onlyInst = makeRef(bb->instructions.front());
             isa<BrInst>(onlyInst)) {
           if (auto brInst = cast<BrInst>(onlyInst); !brInst->isConditional()) {
@@ -35,39 +36,36 @@ struct SingleJumpEliminationPass {
             canBeEliminated = true;
           }
         }
+
         if (!canBeEliminated)
           continue;
-        if (jumpDest == bb) {
-          logger->info("SingleJumpEliminationPass: "
-                       "basic block {} can be eliminated because it's isolated",
-                       bb->name());
-          toBeRemoved.emplace_back(bb);
-          continue;
-        }
+        assert(jumpDest != bb);
         logger->info("SingleJumpEliminationPass: "
                      "basic block {} can be eliminated",
                      bb->name());
-        bb->replaceAllUsesWith(jumpDest);
-
         for (auto pred : bb->predecessors) {
-          std::ranges::transform(
-              pred->successors.begin(), pred->successors.end(),
-              pred->successors.begin(), [&](Ref<BasicBlock> block) {
-                if (block == bb)
-                  return jumpDest;
-                return bb;
-              });
+          for (auto &block : pred->successors) {
+            if (block == bb) {
+              block = jumpDest;
+              break;
+            }
+          }
         }
 
         if (auto succ = bb->successors.front()) {
-          std::ranges::transform(
-              succ->predecessors.begin(), succ->predecessors.end(),
-              succ->predecessors.begin(), [&](Ref<BasicBlock> block) {
-                if (block == bb)
-                  return jumpDest;
-                return bb;
-              });
+          for (auto pred : succ->predecessors) {
+            if (pred != bb)
+              continue;
+            for (auto bbPred : bb->predecessors) {
+              if (std::ranges::find(succ->predecessors,
+                            bbPred) != succ->predecessors.end())
+                continue;
+              succ->predecessors.emplace_back(bbPred);
+            }
+          }
         }
+
+        bb->replaceAllUsesWith(jumpDest);
 
         toBeRemoved.emplace_back(bb);
         logger->info("SingleJumpEliminationPass: "

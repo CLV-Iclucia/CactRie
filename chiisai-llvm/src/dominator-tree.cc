@@ -20,17 +20,23 @@ void DominatorTreeImpl::buildFromGraph(const SparseGraph &graph, size_t entry) {
   std::queue<uint32_t> workList{};
   mystl::bit_vector inQueue(graph.numNodes(), false);
   std::vector<mystl::bit_vector> dom(graph.numNodes());
-  for (auto &bitset : dom)
-    bitset = mystl::bit_vector(graph.numNodes(), false);
+  for (auto i : std::views::iota(0u, graph.numNodes()))
+    if (i == entry) {
+      dom[i] = mystl::bit_vector(graph.numNodes(), false);
+      dom[i].place(i);
+    } else
+      dom[i] = mystl::bit_vector(graph.numNodes(), true);
   workList.push(entry);
   inQueue.place(entry);
   dom[entry].place(entry);
+
   auto inState = [&](uint32_t node) -> mystl::bit_vector {
     mystl::bit_vector result(graph.numNodes(), true);
     for (auto pred : graph.predecessors(node))
       result &= dom[pred];
     return result;
   };
+
   while (!workList.empty()) {
     auto current = workList.front();
     workList.pop();
@@ -49,7 +55,7 @@ void DominatorTreeImpl::buildFromGraph(const SparseGraph &graph, size_t entry) {
   }
 
   root = entry;
-  father.resize(graph.numNodes(), -1);
+  father.resize(graph.numNodes());
   for (auto u : std::views::iota(0u, graph.numNodes())) {
     if (u == entry)
       continue;

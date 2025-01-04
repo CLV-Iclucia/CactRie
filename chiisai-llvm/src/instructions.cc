@@ -10,8 +10,8 @@
 namespace llvm {
 
 void BinaryInst::accept(Executor &executor) {
-  const auto &lhsReg = executor.reg(lhs);
-  const auto &rhsReg = executor.reg(rhs);
+  const auto &lhsReg = executor.reg(lhs());
+  const auto &rhsReg = executor.reg(rhs());
   if (!lhsReg.canOperateWith(rhsReg))
     throw std::runtime_error("Binary instruction operands must have the same "
                              "type and cannot be an address or a boolean");
@@ -304,9 +304,6 @@ void PhiInst::accept(Executor &executor) {
       return;
     }
   }
-}
-void PhiInst::removeBranch(const std::string &blockName) {
-
 }
 
 std::string PhiInst::toString() const {

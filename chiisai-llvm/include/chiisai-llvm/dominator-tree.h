@@ -18,6 +18,7 @@ struct SparseGraph {
   SparseGraph() = default;
   explicit SparseGraph(std::vector<std::vector<uint32_t>> adj)
       : succ(std::move(adj)) {
+    prev.resize(succ.size());
     for (size_t i = 0; i < this->succ.size(); ++i)
       for (auto succ : this->succ[i])
         prev[succ].push_back(i);
@@ -31,6 +32,7 @@ struct SparseGraph {
       maxNode = std::max(
           {maxNode, static_cast<size_t>(from), static_cast<size_t>(to)});
     succ.resize(maxNode + 1);
+    prev.resize(maxNode + 1);
     for (const auto &[from, to] : adjMat) {
       succ[from].emplace_back(to);
       prev[to].emplace_back(from);
