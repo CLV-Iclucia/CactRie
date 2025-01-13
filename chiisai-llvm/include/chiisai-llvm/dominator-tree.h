@@ -65,6 +65,7 @@ struct DominatorTreeImpl {
   [[nodiscard]] uint32_t dominanceLevel(size_t node) const {
     return depth.at(node);
   }
+  uint32_t fatherOf(uint32_t node) const { return father[node]; }
 
 private:
   std::vector<uint32_t> father{};
@@ -85,6 +86,9 @@ struct DominatorTree {
                            result.begin(),
                            [this](uint32_t idx) { return indexToBlock[idx]; });
     return result;
+  }
+  CRef<BasicBlock> fatherOf(CRef<BasicBlock> node) const {
+    return indexToBlock.at(domTree.fatherOf(blockToIndex.at(node)));
   }
   uint32_t dominanceLevel(CRef<BasicBlock> node) const {
     return domTree.dominanceLevel(blockToIndex.at(node));

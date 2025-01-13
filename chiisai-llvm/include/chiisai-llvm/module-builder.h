@@ -103,6 +103,8 @@ struct ModuleBuilder final : LLVMParserVisitor {
     if (ctx->terminatorInstruction())
       visitTerminatorInstruction(ctx->terminatorInstruction());
 
+    if (ctx->callInstruction())
+      visitCallInstruction(ctx->callInstruction());
     return {};
   }
 

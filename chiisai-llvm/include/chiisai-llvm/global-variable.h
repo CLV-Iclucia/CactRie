@@ -19,6 +19,10 @@ struct GlobalVariable final : Constant {
   explicit GlobalVariable(const GlobalVariableDetails &details) : Constant(details.name, details.initializer->type()) {
 
   }
+
+  GlobalVariable(const std::string& name, CRef<Type> type) : Constant(name, type) {
+
+  }
   [[nodiscard]] bool isConstant() const {
     return constVal.has_value();
   }

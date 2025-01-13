@@ -172,8 +172,11 @@ std::string CallInst::toString() const {
   std::string args{};
   for (const auto &arg : realArgs())
     args += arg->type()->toString() + " " + arg->name() + ", ";
-  if (!args.empty())
+  if (!args.empty()) {
+    assert(args.ends_with(", "));
     args.pop_back();
+    args.pop_back();
+  }
   return std::format("call {} {}({})", type()->toString(), function()->name(),
                      args);
 }
@@ -309,7 +312,7 @@ void PhiInst::accept(Executor &executor) {
 std::string PhiInst::toString() const {
   std::string phiVals{};
   for (auto i = 0; i < incomingValues.size(); ++i) {
-    phiVals += std::format("[{}, %{}], ", incomingBlocks[i]->name(),
+    phiVals += std::format("[{}, {}], ", incomingBlocks[i]->name(),
                            incomingValues[i]->name());
   }
   return std::format("{} = phi {} {}", name(), type()->toString(), phiVals);

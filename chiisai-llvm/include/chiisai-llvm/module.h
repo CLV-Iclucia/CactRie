@@ -31,6 +31,8 @@ struct Module final : Executable {
   bool hasGlobalVar(const std::string& name) const {
     return m_globalVariableMap.contains(name);
   }
+  std::unordered_map<CRef<Function>, std::vector<CRef<Function>>> callGraph() const;
+  std::unordered_map<CRef<Function>, std::vector<CRef<Function>>> reverseCallGraph() const;
   Module& addFunction(std::unique_ptr<Function>&& function);
   Module& addGlobalVariable(std::unique_ptr<GlobalVariable>&& globalVariable);
   void accept(Executor &executor) override;

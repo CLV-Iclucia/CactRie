@@ -60,13 +60,14 @@ module: (globalDeclaration | functionDeclaration | functionDefinition)*;
 
 initializer
 locals[
+    CRef<Type> typeRef,
     CRef<Constant> constant,
 ]: scalarType IntegerLiteral | scalarType HexLiteral | constantArray;
 
 constantArray
 locals[
     CRef<ConstantArray> constArray,
-]: arrayType LeftBracket initializer (Comma initializer)* RightBracket;
+]: arrayType LeftBracket (initializer (Comma initializer)*)? RightBracket;
 
 globalDeclaration : globalIdentifier Equals (Global | ConstantStr) initializer (Comma Align IntegerLiteral)?;
 
@@ -159,7 +160,7 @@ allocaInstruction
     ;
 
 binaryOperation
-    : Add | Sub | Mul | Div | Srem
+    : Add | Sub | Mul | Div | Srem | FAdd | FSub | FMul | FDiv
     ;
 
 comparisonPredicate

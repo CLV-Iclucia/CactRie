@@ -25,6 +25,9 @@ void Value::replaceAllUsesWith(Ref<Value> other) {
                      return value;
                    });
   }
+
+  for (auto &callback : replacementCallbacks)
+    callback(other);
   users.clear();
 }
 void replaceUse(Ref<User> user, Ref<Value> value, Ref<Value> other) {

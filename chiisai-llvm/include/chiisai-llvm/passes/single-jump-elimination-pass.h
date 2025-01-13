@@ -63,6 +63,7 @@ struct SingleJumpEliminationPass {
               succ->predecessors.emplace_back(bbPred);
             }
           }
+          succ->predecessors.remove(bb);
         }
 
         bb->replaceAllUsesWith(jumpDest);

@@ -10,6 +10,7 @@ namespace llvm {
 struct User : Value {
   explicit User(const std::string &name, CRef<Type> type) : Value(name, type) {}
   std::list<Ref<Value>> usedValues{};
+  ~User() override = default;
 private:
   friend struct Module;
 

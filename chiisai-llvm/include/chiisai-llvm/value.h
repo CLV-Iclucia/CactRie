@@ -38,6 +38,7 @@ private:
   friend void addUse(Ref<User> user, Ref<Value> value);
   CRef<Type> m_type{};
   std::string m_name{};
+  std::vector<std::function<void(Ref<Value>)>> replacementCallbacks{};
 };
 void replaceUse(Ref<User> user, Ref<Value> value, Ref<Value> other);
 }

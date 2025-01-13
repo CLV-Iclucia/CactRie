@@ -4,14 +4,14 @@
 
 #ifndef CONST_PROP_PASS_H
 #define CONST_PROP_PASS_H
-#include <chiisai-llvm/data-flow-analysis.h>
 namespace llvm {
 
 struct ConstantPropagationPass {
-  void runOnFunction(Function&) {
+  void runOnFunction(Function &function);
 
-  }
+private:
+
 };
 
-}
-#endif //CONST_PROP_PASS_H
+} // namespace llvm
+#endif // CONST_PROP_PASS_H

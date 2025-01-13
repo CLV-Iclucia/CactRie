@@ -69,7 +69,7 @@ struct Instruction : User {
   [[nodiscard]] bool isTerminator() const { return opCode < TerminatorIDEnd; }
 
   [[nodiscard]] bool isBinary() const {
-    return opCode >= BinaryIDEnd && opCode < LogicalIDEnd;
+    return opCode >= TerminatorIDEnd && opCode < BinaryIDEnd;
   }
 
   [[nodiscard]] bool isIntBinary() const {

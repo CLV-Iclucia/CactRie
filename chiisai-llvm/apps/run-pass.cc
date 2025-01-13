@@ -1,12 +1,16 @@
 //
 // Created by creeper on 1/1/25.
 //
+#include "chiisai-llvm/passes/loop-analysis.h"
+
 #include <chiisai-llvm/passes/dot-cfg-pass.h>
 #include <chiisai-llvm/passes/mem2reg-pass.h>
 
 #include <chiisai-llvm/module-builder.h>
 #include <chiisai-llvm/module.h>
 #include <chiisai-llvm/passes/single-jump-elimination-pass.h>
+#include <chiisai-llvm/passes/useless-arith-elimination.h>
+
 #include <iostream>
 using namespace llvm;
 
@@ -26,7 +30,10 @@ int main(int argc, char **argv) {
   auto function = module->function(argv[2]);
   SingleJumpEliminationPass().runOnFunction(*function);
   PromoteMemToRegPass().runOnFunction(*function);
+  LoopAnalysis().runOnFunction(*function);
+  UselessArithEliminationPass(*llvmContext).runOnFunction(*function);
   DotCFGPass(argv[3]).runOnFunction(*function);
+
   std::cout << "CFG dot file for optimized function " << argv[2] << " saved to "
             << argv[3] << std::endl;
   auto savePNGPath =

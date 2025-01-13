@@ -1,13 +1,13 @@
 //
 // Created by creeper on 12/17/24.
 //
+#include <queue>
+#include <unordered_set>
 #include <chiisai-llvm/basic-block.h>
 #include <chiisai-llvm/dominator-tree.h>
 #include <chiisai-llvm/function.h>
 #include <chiisai-llvm/passes/mem2reg-pass.h>
 #include <mystl/bit_vector.h>
-#include <queue>
-#include <unordered_set>
 
 namespace llvm {
 bool PromoteMemToRegPass::isPromotable(CRef<AllocaInst> ai) {
@@ -31,6 +31,16 @@ void PromoteMemToRegPass::renameAllocaInBlock(
   logger.info("############### processing block {} ###############",
               block->name());
   for (auto inst : block->instructions) {
+    if (isa<PhiInst>(inst) && isInsertedPhiInstForBlock(cast<PhiInst>(inst), block)) {
+      auto phi = cast<PhiInst>(inst);
+      const auto& name = '%' + extractAllocaNameFromPhiInst(phi);
+      auto alloca = makeCRef(block->function().identifier(name));
+      assert(isa<AllocaInst>(alloca));
+      auto ai = cast<AllocaInst>(alloca);
+      mostRecentValue[ai] = phi;
+      logger.info("update most recent value for alloca inst {} to phi inst {}",
+                  ai->name(), phi->name());
+    }
     if (isa<StoreInst>(inst)) {
       auto si = cast<StoreInst>(inst);
       if (!isa<AllocaInst>(si->pointer()))
@@ -74,7 +84,9 @@ void PromoteMemToRegPass::fillPhiInst(
       continue;
     logger.info("fill phi inst {} for block {} from block {}", phi->toString(), succ->name(),
               current->name());
-    auto ai = toBePromote.at(extractAllocaNameFromPhiInst(phi));
+    auto ai = toBePromote.at('%' + extractAllocaNameFromPhiInst(phi));
+    if (!mostRecentValue.contains(ai) || mostRecentValue.at(ai) == nullptr)
+      continue;
     phi->addPhiValue(current, mostRecentValue.at(ai));
     logger.info("fill phi inst {} with most recent value {} for alloca inst {}",
                 phi->name(), mostRecentValue.at(ai)->name(), ai->name());
@@ -147,7 +159,7 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
         }
         auto phi = std::make_unique<PhiInst>(
             *dfBlock, PhiInstDetails{nameInsertedPhiInst(ai, dfBlock),
-                                     holderType, std::move(phiValues)});
+                                     holderType, {}});
         logger.info("insert phi inst {} to block {}", phi->name(),
                     dfBlock->name());
         dfBlock->addInstructionFront(std::move(phi));
@@ -174,6 +186,12 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
       visited.insert(succ);
     }
   }
+
+  for (auto ai : toBePromote | std::views::values) {
+    logger.info("remove alloca inst {} from entry block", ai->name());
+    entryBlock.removeInstruction(ai);
+  }
+
   logger.info("<<<<<<<< mem2reg on function {} finished >>>>>>>>",
               function.name());
 }

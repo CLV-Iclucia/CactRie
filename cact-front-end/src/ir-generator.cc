@@ -640,6 +640,7 @@ LLVMIRGenerator::EvaluationCodegenResult LLVMIRGenerator::arithmeticBinaryOpCode
   const auto &[leftEvalCode, leftRegName] = evaluationCodeGen(left);
   const auto &[rightEvalCode, rightRegName] = evaluationCodeGen(right);
   const auto &resultReg = assignReg();
+  assert(!rightRegName.starts_with("%x"));
   return {
       .code = leftEvalCode + rightEvalCode
           + std::format("{} = {} {} {}, {}\n",

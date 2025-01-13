@@ -37,7 +37,6 @@ void BasicBlock::moveInstAfter(CRef<Instruction> inst, CRef<Instruction> pre) {
 }
 
 void BasicBlock::removeInstruction(CRef<Instruction> inst) {
-  assert(!inst->isUsed());
   if (!inst->name().empty())
     m_identifierMap.erase(inst->name());
   auto pos = instPosMap.at(inst);

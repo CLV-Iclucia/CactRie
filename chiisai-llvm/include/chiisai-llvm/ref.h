@@ -41,6 +41,11 @@ auto cast(Ref<Base> base) {
   return mystl::dyn_cast_ref<Derived, Base>(base);
 }
 
+template<typename Derived, typename Base>
+auto tryCast(Ref<Base> base) {
+  return mystl::dyn_cast_ref<Derived, Base>(base);
+}
+
 template<typename Ptr>
 using NotNull = mystl::not_null<Ptr>;
 }

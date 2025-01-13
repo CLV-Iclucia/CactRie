@@ -29,15 +29,15 @@ private:
       const std::unordered_map<CRef<AllocaInst>, Ref<Value>> &mostRecentValue);
   static std::string nameInsertedPhiInst(CRef<AllocaInst> ai,
                                          CRef<BasicBlock> block) {
-    return "__reg_for_" + ai->name() + "_entering_" + block->name();
+    return "%__reg_for_" + ai->name().substr(1) + "_entering_" + block->name();
   }
   static bool isInsertedPhiInstForBlock(CRef<PhiInst> phi,
                                         CRef<BasicBlock> block) {
-    return phi->name().starts_with("__reg_for_") &&
+    return phi->name().starts_with("%__reg_for_") &&
            phi->name().ends_with("_entering_" + block->name());
   }
   static std::string extractAllocaNameFromPhiInst(CRef<PhiInst> phi) {
-    return phi->name().substr(10, phi->name().find("_entering_") - 10);
+    return phi->name().substr(11, phi->name().find("_entering_") - 11);
   }
   std::unique_ptr<std::ostream> logStream{};
   minilog::Logger logger{};

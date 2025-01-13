@@ -16,8 +16,8 @@ struct Instruction;
 struct Function;
 struct InstTransformer;
 struct BasicBlock final : Value {
-  explicit BasicBlock(const std::string &name, CRef<Type> type)
-      : Value(name, type) {
+  explicit BasicBlock(const std::string &name, CRef<Type> type, Ref<Function> function)
+      : Value(name, type), m_function(function) {
     assert(type->type == Type::TypeEnum::Label);
   }
 

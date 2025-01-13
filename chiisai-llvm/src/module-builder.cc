@@ -41,10 +41,14 @@ std::any ModuleBuilder::visitGlobalDeclaration(
   bool isConstant = ctx->ConstantStr() != nullptr;
   visitInitializer(ctx->initializer());
   auto initializer = ctx->initializer()->constant;
-  module->addGlobalVariable(std::make_unique<GlobalVariable>(
-      GlobalVariableDetails{.name = globalName,
-                            .initializer = initializer,
-                            .isConstant = isConstant}));
+  if (ctx->initializer()->constant)
+    module->addGlobalVariable(std::make_unique<GlobalVariable>(
+        GlobalVariableDetails{.name = globalName,
+                              .initializer = initializer,
+                              .isConstant = isConstant}));
+  else
+    module->addGlobalVariable(std::make_unique<GlobalVariable>(
+        globalName, ctx->initializer()->typeRef));
   return {};
 }
 
@@ -194,7 +198,7 @@ std::any ModuleBuilder::visitFunctionDefinition(
   for (auto bb : basicBlocks) {
     auto blockName = bb->NamedIdentifier()->getText();
     currentFunction->addBasicBlock(
-        std::make_unique<BasicBlock>(blockName, llvmContext->labelType()));
+        std::make_unique<BasicBlock>(blockName, llvmContext->labelType(), newFunc));
   }
   for (auto bb : basicBlocks)
     visitBasicBlock(bb);
@@ -434,6 +438,7 @@ std::any ModuleBuilder::visitInitializer(LLVMParser::InitializerContext *ctx) {
   if (ctx->IntegerLiteral()) {
     visitScalarType(ctx->scalarType());
     auto type = ctx->scalarType()->typeRef;
+    ctx->typeRef = type;
     if (!type->isInteger())
       throw std::runtime_error("Invalid type for integer literal");
     ctx->constant =
@@ -443,6 +448,7 @@ std::any ModuleBuilder::visitInitializer(LLVMParser::InitializerContext *ctx) {
   if (ctx->HexLiteral()) {
     visitScalarType(ctx->scalarType());
     auto type = ctx->scalarType()->typeRef;
+    ctx->typeRef = type;
     if (!type->isFloatingPoint())
       throw std::runtime_error("Invalid type for floating literal");
     ctx->constant = llvmContext->constant(type, ctx->HexLiteral()->getText());
@@ -451,6 +457,7 @@ std::any ModuleBuilder::visitInitializer(LLVMParser::InitializerContext *ctx) {
   if (ctx->constantArray()) {
     auto constArrayCtx = ctx->constantArray();
     visitConstantArray(constArrayCtx);
+    ctx->typeRef = constArrayCtx->arrayType()->typeRef;
     ctx->constant = constArrayCtx->constArray;
     return {};
   }
@@ -531,12 +538,32 @@ std::any ModuleBuilder::visitBranchInstruction(
 
 std::any
 ModuleBuilder::visitCallInstruction(LLVMParser::CallInstructionContext *ctx) {
-  const auto &funcName = ctx->globalIdentifier()->getText();
+  static int id{};
+  const auto &funcName = ctx->globalIdentifier()->getText().substr(1);
   if (!module->hasFunction(funcName))
     throw std::runtime_error("Function name not found in the module");
   auto func = module->function(funcName);
   auto realArgCtx = ctx->functionArguments();
+  if (!ctx->type())
+    throw std::runtime_error("Call instruction must have a return type");
+  visitType(ctx->type());
+
+  auto retType = func->returnType();
+  if (retType != Type::voidType(*llvmContext)) {
+    if (!ctx->Equals())
+      logger->warn("Warning: Return value is discarded");
+    if (ctx->type()->typeRef != retType)
+      throw std::runtime_error(
+          "Return type does not match the function return type");
+  } else
+    if (ctx->Equals())
+      throw std::runtime_error(
+          "Function with void return type cannot have a return value");
+  if (func->returnType() != ctx->type()->typeRef)
+    throw std::runtime_error(
+        "Return type does not match the function return type");
   visitFunctionArguments(realArgCtx);
+
   const auto &realArgTypes = realArgCtx->argTypes;
   const auto &realArgNames = realArgCtx->argNames;
   std::vector<Ref<Value>> args(realArgTypes.size());
@@ -547,9 +574,12 @@ ModuleBuilder::visitCallInstruction(LLVMParser::CallInstructionContext *ctx) {
           "Argument type does not match the function argument type");
     args[i] = arg;
   }
+  auto resultName = ctx->Equals() ? ctx->localIdentifier()->getText()
+                                  : "__call_void_ret_" + std::to_string(id++);
   auto callInst = IRBuilder(*currentBasicBlock)
                       .createCallInst({
-                          .name = ctx->localIdentifier()->getText(),
+                          .name = resultName,
+                          .type = func->returnType(),
                           .function = func,
                           .realArgs = std::move(args),
                       });

@@ -12,21 +12,7 @@ namespace llvm {
 
 struct FunctionABIInfo {
 
-  void runOnFunction(const Function &func) {
-    integerArgReg[makeCRef(func)] = {};
-    integerArgReg[makeCRef(func)] = {};
-    for (auto arg : func.args()) {
-      if (arg->type()->isInteger() || arg->type()->isConvertibleToPointer()) {
-        if (numIntArgRegUsed(func) < kMaximumIntegerArgumentRegisters)
-          integerArgReg[makeCRef(func)][numIntArgRegUsed(func)] = arg->name();
-      } else if (arg->type()->isFloatingPoint()) {
-        if (numFloatArgRegUsed(func) < kMaximumFloatArgumentRegisters)
-          floatArgReg[makeCRef(func)][numFloatArgRegUsed(func)] = arg->name();
-      } else
-        throw std::runtime_error("unsupported type of argument " + arg->name());
-    }
-
-  }
+  void runOnFunction(const Function &func);
 
   uint32_t numIntArgRegUsed(const Function &func) const {
     const auto &intArgRegs = integerArgReg.at(makeCRef(func));
@@ -63,6 +49,8 @@ struct FunctionABIInfo {
                     uint32_t> frameSize;
   std::unordered_map<CRef<Function>,
                       uint32_t> offset;
+  std::unordered_map<std::string, int32_t> localIdSizes;
+  uint32_t localSize{};
 };
 
 } // namespace llvm

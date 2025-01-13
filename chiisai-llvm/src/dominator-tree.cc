@@ -2,9 +2,11 @@
 // Created by creeper on 12/16/24.
 //
 
-#include <chiisai-llvm/data-flow-analysis.h>
 #include <chiisai-llvm/dominator-tree.h>
+#include <chiisai-llvm/function.h>
+#include <minilog/logger.h>
 #include <mystl/bit_vector.h>
+#include <queue>
 
 namespace llvm {
 
@@ -61,7 +63,7 @@ void DominatorTreeImpl::buildFromGraph(const SparseGraph &graph, size_t entry) {
       continue;
     for (auto v : dom[u]) {
       assert(dom[u][v]);
-      if (auto domSet = dom[u]; dom[v].is_subset_of(domSet.unset(u).unset(v))) {
+      if (auto domSet = dom[u]; domSet.unset(u).unset(v).is_subset_of(dom[v])) {
         father[u] = v;
         break;
       }
@@ -108,6 +110,8 @@ bool DominatorTreeImpl::dominates(size_t a, size_t b) const {
 }
 
 void DominatorTree::buildFromCFG(const Function &func) {
+  static auto logger =
+      createFileLogger("dominator-tree.log", minilog::LogLevel::debug);
   indexToBlock.resize(func.basicBlocks().size());
   auto idx = 0;
   for (auto bb : func.basicBlockRefs()) {
@@ -118,9 +122,19 @@ void DominatorTree::buildFromCFG(const Function &func) {
   auto entry = blockToIndex[makeCRef(func.basicBlock("entry"))];
   std::unordered_set<std::pair<uint32_t, uint32_t>> cfgAdjMat{};
   for (const auto &bb : func.basicBlocks())
-    for (auto succ : bb.successors) {
+    for (auto succ : bb.successors)
       cfgAdjMat.emplace(blockToIndex[makeCRef(bb)], blockToIndex[succ]);
-    }
   domTree.buildFromGraph(SparseGraph(cfgAdjMat), entry);
+  // log the dominator tree father
+  for (auto [bb, idx] : blockToIndex)
+    logger->info("block {} father: {}", bb->name(),
+                 indexToBlock[domTree.fatherOf(idx)]->name());
+  for (auto [bb, idx] : blockToIndex) {
+    std::stringstream ss{};
+    for (auto df : domTree.dominanceFrontier(idx))
+      ss << indexToBlock[df]->name() << " ";
+    logger->debug("block {} dominance frontier: {}", bb->name(), ss.str());
+  }
+  logger->outStream().flush();
 }
 } // namespace llvm
