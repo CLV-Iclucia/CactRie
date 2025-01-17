@@ -10,25 +10,25 @@
 #include <unordered_map>
 
 namespace llvm {
+
+bool isCalleeSavedReg(const std::string &pReg);
+bool isCallerSavedReg(const std::string &pReg);
+bool isFloatingPointReg(const std::string &pReg);
+
 // for simplicity, we just put each spilled register in a separate stack slot
 struct StackFrame {
   StackFrame(const RegAllocResult &regAllocInfo, const FunctionABIInfo &abiInfo,
-             bool useFloating)
-      : regAllocInfo(regAllocInfo), spilledOffset(regAllocInfo.spillSlots) {
-    auto stdCfg = RegisterConfig::standardConfig();
-    auto fpCfg = RegisterConfig::floatingPointConfig();
-    for (const auto &calleeSavedReg : stdCfg.calleeSavedRegs)
-      allocateCalleeRegSlot(calleeSavedReg, 4);
-    if (useFloating)
-      for (const auto &calleeSavedReg : fpCfg.calleeSavedRegs)
-        allocateCalleeRegSlot(calleeSavedReg, 8);
-    for (const auto &[fst, snd] : abiInfo.localIdSizes)
+             const std::set<std::string> &calleeRegsToSave,
+             uint32_t maxCallerContextSize, const Function& func)
+      : maxCallerContextSize(maxCallerContextSize), regAllocInfo(regAllocInfo),
+        spilledOffset(regAllocInfo.spillSlots) {
+    for (const auto &reg : calleeRegsToSave)
+      allocateCalleeRegSlot(reg, 8);
+    for (const auto &[fst, snd] : abiInfo.localIdSizes.at(func.name()))
       allocateLocal(fst, snd);
-    for (const auto &callerSavedReg : stdCfg.callerSavedRegs)
-      allocateCallerRegSlot(callerSavedReg, 4);
-    if (useFloating)
-      for (const auto &callerSavedReg : fpCfg.callerSavedRegs)
-        allocateCallerRegSlot(callerSavedReg, 8);
+    for (uint32_t i = 0; i < regAllocInfo.spillSlots; i++)
+      allocateSpilledSlot(i);
+    size += maxCallerContextSize;
     padToAlign();
     finalizeStackAllocation();
   }
@@ -36,19 +36,15 @@ struct StackFrame {
     return offsetOfCalleeSavedRegs.at(pReg);
   }
   uint32_t spilledRegOffset(const std::string &vReg) const {
-    // return spilledOffset.at(regAllocInfo.spillSlots(vReg));
+    return spilledOffset.at(regAllocInfo.spillSlotMap.at(vReg));
   }
-  std::string saveCallerContext() const;
-  std::string restoreCallerContext() const;
-  std::string saveCalleeContext(const std::set<std::string> &pRegs) const;
-  std::string restoreCalleeContext(const std::set<std::string> &pRegs) const;
   uint32_t size{};
+  uint32_t maxCallerContextSize{};
   const RegAllocResult &regAllocInfo;
   std::vector<int32_t> spilledOffset{};
   std::vector<RegisterConfig> regConfigs{};
   std::unordered_map<std::string, int32_t> offsetOfLocals{};
   std::unordered_map<std::string, int32_t> offsetOfCalleeSavedRegs{};
-  std::unordered_map<std::string, int32_t> offsetOfCallerSavedRegs{};
 
 private:
   mutable int32_t stackPointer{};
@@ -67,26 +63,19 @@ private:
     spilledOffset[index] = stackPointer;
     size += 8;
   }
-  void allocateCallerRegSlot(const std::string &name, int32_t slotSize) {
-    stackPointer -= slotSize;
-    offsetOfCallerSavedRegs[name] = stackPointer;
-    size += slotSize;
-  }
   void padToAlign() {
     if (size % 16 != 0)
       size = (size + 15) / 16 * 16;
   }
   void finalizeStackAllocation() {
-    // add all offsets with size
-    for (auto &val : offsetOfLocals | std::views::values)
-      val += size;
-    for (auto &val : offsetOfCalleeSavedRegs | std::views::values)
-      val += size;
-    for (auto &val : offsetOfCallerSavedRegs | std::views::values)
-      val += size;
     for (auto& offset : spilledOffset)
       offset += size;
+    for (auto &offset : offsetOfLocals | std::views::values)
+      offset += size;
+    for (auto &offset : offsetOfCalleeSavedRegs | std::views::values)
+      offset += size;
   }
+
 };
 } // namespace llvm
 #endif // STACK_FRAME_H

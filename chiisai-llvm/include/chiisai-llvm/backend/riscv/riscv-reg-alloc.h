@@ -21,6 +21,7 @@ struct RegisterConfig {
   uint32_t numCallerSavedRegs{};
   std::vector<std::string> calleeSavedRegs{};
   std::vector<std::string> callerSavedRegs{};
+  std::vector<std::string> argRegs{};
   std::function<bool(std::string_view pReg)> isCalleeSaved{};
   std::function<std::string(uint32_t i)> tmpReg{};
   static RegisterConfig standardConfig();

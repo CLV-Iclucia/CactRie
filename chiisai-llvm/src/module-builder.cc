@@ -39,6 +39,7 @@ std::any ModuleBuilder::visitGlobalDeclaration(
     throw std::runtime_error(
         "Global variable name already exists in the module");
   bool isConstant = ctx->ConstantStr() != nullptr;
+  ctx->initializer()->name = globalName;
   visitInitializer(ctx->initializer());
   auto initializer = ctx->initializer()->constant;
   if (ctx->initializer()->constant)
@@ -197,8 +198,8 @@ std::any ModuleBuilder::visitFunctionDefinition(
   currentFunction = newFunc;
   for (auto bb : basicBlocks) {
     auto blockName = bb->NamedIdentifier()->getText();
-    currentFunction->addBasicBlock(
-        std::make_unique<BasicBlock>(blockName, llvmContext->labelType(), newFunc));
+    currentFunction->addBasicBlock(std::make_unique<BasicBlock>(
+        blockName, llvmContext->labelType(), newFunc));
   }
   for (auto bb : basicBlocks)
     visitBasicBlock(bb);
@@ -456,6 +457,7 @@ std::any ModuleBuilder::visitInitializer(LLVMParser::InitializerContext *ctx) {
   }
   if (ctx->constantArray()) {
     auto constArrayCtx = ctx->constantArray();
+    constArrayCtx->name = ctx->name;
     visitConstantArray(constArrayCtx);
     ctx->typeRef = constArrayCtx->arrayType()->typeRef;
     ctx->constant = constArrayCtx->constArray;
@@ -470,12 +472,16 @@ ModuleBuilder::visitConstantArray(LLVMParser::ConstantArrayContext *ctx) {
   auto arrayTypeCtx = ctx->arrayType();
   visitArrayType(arrayTypeCtx);
   auto arrayType = arrayTypeCtx->typeRef;
+  std::vector<CRef<Constant>> constants{};
   for (auto init : ctx->initializer()) {
     visitInitializer(init);
     if (init->constant->type() != arrayType->elementType())
       throw std::runtime_error(
           "Initializer type does not match the array element type");
+    constants.emplace_back(init->constant);
   }
+  ctx->constArray = llvmContext->createConstantArray(
+      std::format("{}.init", ctx->name), arrayType, std::move(constants));
   return {};
 }
 
@@ -555,10 +561,9 @@ ModuleBuilder::visitCallInstruction(LLVMParser::CallInstructionContext *ctx) {
     if (ctx->type()->typeRef != retType)
       throw std::runtime_error(
           "Return type does not match the function return type");
-  } else
-    if (ctx->Equals())
-      throw std::runtime_error(
-          "Function with void return type cannot have a return value");
+  } else if (ctx->Equals())
+    throw std::runtime_error(
+        "Function with void return type cannot have a return value");
   if (func->returnType() != ctx->type()->typeRef)
     throw std::runtime_error(
         "Return type does not match the function return type");

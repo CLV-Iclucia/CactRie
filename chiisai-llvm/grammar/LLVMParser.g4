@@ -60,13 +60,15 @@ module: (globalDeclaration | functionDeclaration | functionDefinition)*;
 
 initializer
 locals[
+    std::string name,
     CRef<Type> typeRef,
     CRef<Constant> constant,
 ]: scalarType IntegerLiteral | scalarType HexLiteral | constantArray;
 
 constantArray
 locals[
-    CRef<ConstantArray> constArray,
+    std::string name,
+    CRef<Constant> constArray,
 ]: arrayType LeftBracket (initializer (Comma initializer)*)? RightBracket;
 
 globalDeclaration : globalIdentifier Equals (Global | ConstantStr) initializer (Comma Align IntegerLiteral)?;

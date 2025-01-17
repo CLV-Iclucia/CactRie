@@ -184,6 +184,9 @@ struct PhiInst final : Instruction {
   std::vector<Ref<Value>> incomingBlocks{};
   void accept(Executor &executor) override;
   void addPhiValue(Ref<Value> bb, Ref<Value> value) {
+    if (!type())
+      m_type = value->type();
+    else assert(type() == value->type());
     addUse(makeRef(*this), bb);
     incomingBlocks.emplace_back(bb);
     addUse(makeRef(*this), value);

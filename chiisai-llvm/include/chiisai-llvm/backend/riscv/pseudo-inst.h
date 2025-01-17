@@ -4,36 +4,35 @@
 
 #ifndef PSEUDO_INST_H
 #define PSEUDO_INST_H
+
 #include <chiisai-llvm/backend/riscv/utils.h>
 #include <chiisai-llvm/instruction.h>
 #include <cstdint>
+#include <map>
+#include <sstream>
 #include <string>
 #include <variant>
 
 namespace llvm {
 // Pseudo instructions are instructions that use infinite number of registers
 // and use riscv instruction structure to represent them
-// 'mov' instruction, which is not directly supported by riscv, is also a pseudo
-// instruction after register allocation, pseudo instructions become real
-// instructions
 
-enum class InstModifier : uint8_t {
-  None,
-  Byte,
-  Half,
-  Word,
-  Double,
-  Float,
-};
+enum class RiscvPredicate : uint8_t { FEQ, LT, FLT, FLE };
 
-enum class RiscvPredicate : uint8_t {
-  EQ,
-  NE,
-  GT,
-  GE,
-  LT,
-  LE,
-};
+inline std::string toString(RiscvPredicate pred) {
+  switch (pred) {
+  case RiscvPredicate::LT:
+    return "<";
+  case RiscvPredicate::FEQ:
+    return "==";
+  case RiscvPredicate::FLT:
+    return "<";
+  case RiscvPredicate::FLE:
+    return "<=";
+  default:
+    throw std::runtime_error("unsupported riscv predicate");
+  }
+}
 
 enum class RiscvBinaryOps : uint8_t {
   Add,
@@ -46,15 +45,40 @@ enum class RiscvBinaryOps : uint8_t {
   Xor,
   Shl,
   Shr,
-  Sar,
 };
+
+inline std::string toString(RiscvBinaryOps op) {
+  switch (op) {
+  case RiscvBinaryOps::Add:
+    return "+";
+  case RiscvBinaryOps::Sub:
+    return "-";
+  case RiscvBinaryOps::Mul:
+    return "*";
+  case RiscvBinaryOps::Div:
+    return "/";
+  case RiscvBinaryOps::Rem:
+    return "%";
+  case RiscvBinaryOps::And:
+    return "&";
+  case RiscvBinaryOps::Or:
+    return "|";
+  case RiscvBinaryOps::Xor:
+    return "^";
+  case RiscvBinaryOps::Shl:
+    return "<<";
+  case RiscvBinaryOps::Shr:
+    return ">>";
+  default:
+    throw std::runtime_error("unsupported riscv binary operation");
+  }
+}
 
 struct RiscvPseudoBinary {
   std::string result{};
   std::string lhs{};
   std::string rhs{};
-  Instruction::BinaryOps op{};
-  InstModifier modifier{};
+  RiscvBinaryOps op{};
 };
 
 struct RiscvPseudoCmp {
@@ -62,27 +86,23 @@ struct RiscvPseudoCmp {
   std::string rhs{};
   std::string dest{};
   RiscvPredicate predicate;
-  InstModifier modifier{};
 };
 
 struct RiscvPseudoLoad {
   std::string base{};
   uint32_t offset{};
   std::string dest{};
-  InstModifier modifier{};
 };
 
 struct RiscvPseudoStore {
   std::string base{};
   uint32_t offset{};
   std::string value{};
-  InstModifier modifier{};
 };
 
 struct RiscvPseudoMove {
   std::string dest{};
   std::string src{};
-  InstModifier modifier{};
 };
 
 struct RiscvPseudoJump {
@@ -105,10 +125,21 @@ struct RiscvLoadGlobal {
   std::string global{};
 };
 
+struct RiscvPseudoAlloca {
+  std::string result{};
+};
+
+struct RiscvPseudoEqz {
+  std::string dest{};
+  std::string src{};
+  bool isEqz{};
+};
+
 using RiscvPseudoInstruction =
     std::variant<RiscvPseudoBinary, RiscvPseudoCmp, RiscvPseudoLoad,
                  RiscvPseudoStore, RiscvPseudoMove, RiscvPseudoCall,
-                 RiscvPseudoRet, RiscvPseudoJump, RiscvLoadGlobal, std::string>;
+                 RiscvPseudoRet, RiscvPseudoJump, RiscvPseudoAlloca,
+                 RiscvLoadGlobal, RiscvPseudoEqz>;
 
 inline bool isMove(const RiscvPseudoInstruction &inst) {
   return std::holds_alternative<RiscvPseudoMove>(inst);
@@ -142,12 +173,16 @@ inline bool isRet(const RiscvPseudoInstruction &inst) {
   return std::holds_alternative<RiscvPseudoRet>(inst);
 }
 
-inline bool isLabel(const RiscvPseudoInstruction &inst) {
-  return std::holds_alternative<std::string>(inst);
-}
-
 inline bool isLoadGlobal(const RiscvPseudoInstruction &inst) {
   return std::holds_alternative<RiscvLoadGlobal>(inst);
+}
+
+inline bool isAlloca(const RiscvPseudoInstruction &inst) {
+  return std::holds_alternative<RiscvPseudoAlloca>(inst);
+}
+
+inline bool isEqz(const RiscvPseudoInstruction &inst) {
+  return std::holds_alternative<RiscvPseudoEqz>(inst);
 }
 
 template <typename... Fs> struct Overload : Fs... {
@@ -206,54 +241,68 @@ void forUsedRegs(const RiscvPseudoInstruction &inst, Func &&func) {
                  [&](const RiscvPseudoRet &ret) {
                    if (ret.value.empty())
                      return;
+                   if (isConstant(ret.value))
+                     return;
                    func(ret.value);
                  },
+                 [&](const RiscvPseudoEqz &eqz) {
+                   if (isConstant(eqz.src))
+                     return;
+                   func(eqz.src);
+                 },
                  [&](const RiscvLoadGlobal &loadGlobal) {},
-                 [&](const std::string &str) {},
+                 [&](const RiscvPseudoAlloca &alloca) {},
              },
              inst);
 }
 
 template <typename Func>
 void forDefinedRegs(const RiscvPseudoInstruction &inst, Func &&func) {
-  std::visit(Overload{
-                 [&](const RiscvPseudoBinary &bin) {
-                   if (isConstant(bin.result))
-                     return;
-                   func(bin.result);
-                 },
-                 [&](const RiscvPseudoCmp &cmp) {
-                   if (isConstant(cmp.dest))
-                     return;
-                   func(cmp.dest);
-                 },
-                 [&](const RiscvPseudoLoad &load) {
-                   if (isConstant(load.dest))
-                     return;
-                   func(load.dest);
-                 },
-                 [&](const RiscvPseudoStore &store) {},
-                 [&](const RiscvPseudoMove &move) {
-                   if (isConstant(move.dest))
-                     return;
-                   func(move.dest);
-                 },
-                 [&](const RiscvPseudoCall &call) {
-                   if (call.result.empty())
-                     return;
-                   if (isConstant(call.result))
-                     return;
-                   func(call.result);
-                 },
-                 [&](const RiscvPseudoJump &jump) {},
-                 [&](const RiscvPseudoRet &ret) {},
-                 [&](const RiscvLoadGlobal &loadGlobal) {
-                   if (isConstant(loadGlobal.dest))
-                     return;
-                   func(loadGlobal.dest);
-                 },
-                 [&](const std::string &str) {},
-             },
+  std::visit(Overload{[&](const RiscvPseudoBinary &bin) {
+                        if (isConstant(bin.result))
+                          return;
+                        func(bin.result);
+                      },
+                      [&](const RiscvPseudoCmp &cmp) {
+                        if (isConstant(cmp.dest))
+                          return;
+                        func(cmp.dest);
+                      },
+                      [&](const RiscvPseudoLoad &load) {
+                        if (isConstant(load.dest))
+                          return;
+                        func(load.dest);
+                      },
+                      [&](const RiscvPseudoStore &store) {},
+                      [&](const RiscvPseudoMove &move) {
+                        if (isConstant(move.dest))
+                          return;
+                        func(move.dest);
+                      },
+                      [&](const RiscvPseudoCall &call) {
+                        if (call.result.empty())
+                          return;
+                        if (isConstant(call.result))
+                          return;
+                        func(call.result);
+                      },
+                      [&](const RiscvPseudoJump &jump) {},
+                      [&](const RiscvPseudoRet &ret) {},
+                      [&](const RiscvLoadGlobal &loadGlobal) {
+                        if (isConstant(loadGlobal.dest))
+                          return;
+                        func(loadGlobal.dest);
+                      },
+                      [&](const RiscvPseudoAlloca &alloca) {
+                        if (isConstant(alloca.result))
+                          return;
+                        func(alloca.result);
+                      },
+                      [&](const RiscvPseudoEqz &eqz) {
+                        if (isConstant(eqz.dest))
+                          return;
+                        func(eqz.dest);
+                      }},
              inst);
 }
 
@@ -263,22 +312,86 @@ void forRegs(const RiscvPseudoInstruction &inst, Func &&func) {
   forDefinedRegs(inst, func);
 }
 
-inline InstModifier getModifier(const RiscvPseudoInstruction &inst) {
+inline std::string toString(const RiscvPseudoInstruction &pseudoInst) {
   return std::visit(
       Overload{
-          [](const RiscvPseudoBinary &bin) { return bin.modifier; },
-          [](const RiscvPseudoCmp &cmp) { return cmp.modifier; },
-          [](const RiscvPseudoLoad &load) { return load.modifier; },
-          [](const RiscvPseudoStore &store) { return store.modifier; },
-          [](const RiscvPseudoMove &move) { return move.modifier; },
-          [](const RiscvPseudoCall &call) { return InstModifier::None; },
-          [](const RiscvPseudoRet &ret) { return InstModifier::None; },
-          [](const std::string &str) { return InstModifier::None; },
-          [](const RiscvPseudoJump &jump) { return InstModifier::None; },
-          [](const RiscvLoadGlobal &loadGlobal) { return InstModifier::None; },
+          [](const RiscvPseudoBinary &bin) {
+            return std::format("{} = {} {} {}", bin.result, bin.lhs,
+                               toString(bin.op), bin.rhs);
+          },
+          [](const RiscvPseudoCmp &cmp) {
+            return std::format("{} = {} {} {}", cmp.dest, cmp.lhs,
+                               toString(cmp.predicate), cmp.rhs);
+          },
+          [](const RiscvPseudoLoad &load) {
+            return std::format("{} = load {}({})", load.dest, load.offset,
+                               load.base);
+          },
+          [](const RiscvPseudoStore &store) {
+            return std::format("store {} {}({})", store.value, store.offset,
+                               store.base);
+          },
+          [](const RiscvPseudoMove &move) {
+            return std::format("{} = {}", move.dest, move.src);
+          },
+          [](const RiscvPseudoJump &jump) {
+            if (jump.cond.empty())
+              return "jump " + jump.trueLabel;
+            return std::format("if ({}) jump {}", jump.cond, jump.trueLabel);
+          },
+          [](const RiscvPseudoCall &call) {
+            std::stringstream ss;
+            if (!call.result.empty())
+              ss << call.result << " = ";
+            ss << call.func << "(";
+            for (int i = 0; i < call.args.size(); i++) {
+              ss << call.args[i];
+              if (i != call.args.size() - 1)
+                ss << ", ";
+            }
+            ss << ")";
+            return ss.str();
+          },
+          [](const RiscvPseudoRet &ret) {
+            return ret.value.empty() ? "ret" : "ret " + ret.value;
+          },
+          [](const RiscvLoadGlobal &loadGlobal) {
+            return loadGlobal.dest + " = la " + loadGlobal.global;
+          },
+          [](const RiscvPseudoAlloca &alloca) {
+            return alloca.result + " = alloca";
+          },
+          [](const RiscvPseudoEqz &eqz) {
+            if (eqz.isEqz)
+              return std::format("{} = {} == 0", eqz.dest, eqz.src);
+            return std::format("{} = {} != 0", eqz.dest, eqz.src);
+          },
       },
-      inst);
+      pseudoInst);
 }
 
+struct PseudoInstructionSequence {
+  std::vector<RiscvPseudoInstruction> insts{};
+  std::map<int32_t, std::string> labels{};
+};
+
+inline std::string toString(const PseudoInstructionSequence &seq) {
+  std::stringstream ss;
+  for (int i = 0; i < seq.insts.size(); i++) {
+    if (seq.labels.contains(i))
+      ss << "." << seq.labels.at(i) << ":\n";
+    ss << i << " " << toString(seq.insts[i]) << "\n";
+  }
+  return ss.str();
+}
+inline std::string toIndexedString(const PseudoInstructionSequence &seq) {
+  std::stringstream ss;
+  for (int i = 0; i < seq.insts.size(); i++) {
+    if (seq.labels.contains(i))
+      ss << "." << seq.labels.at(i) << ":\n";
+    ss << i << " " << toString(seq.insts[i]) << "\n";
+  }
+  return ss.str();
+}
 } // namespace llvm
 #endif // PSEUDO_INST_H

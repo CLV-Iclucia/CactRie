@@ -101,6 +101,7 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
   auto &entryBlock = function.basicBlock("entry");
   std::unordered_map<CRef<AllocaInst>, Ref<Value>> mostRecentValue{};
   std::unordered_map<std::string, Ref<AllocaInst>> toBePromote{};
+  std::vector<CRef<AllocaInst>> unused{};
   for (auto inst : entryBlock.instructions) {
     if (!isa<AllocaInst>(inst))
       continue;
@@ -111,7 +112,7 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
                 ai->name());
     if (!ai->isUsed()) {
       logger.info("alloca inst {} has no users, remove it", ai->name());
-      entryBlock.removeInstruction(ai);
+      unused.emplace_back(ai);
       continue;
     }
 
@@ -168,7 +169,8 @@ void PromoteMemToRegPass::runOnFunction(Function &function) {
     mostRecentValue.insert({ai, {}});
     toBePromote.insert({ai->name(), ai});
   }
-
+  for (auto unusedAlloca : unused)
+    entryBlock.removeInstruction(unusedAlloca);
   logger.info("------------------renaming phase start------------------");
   std::queue<Ref<BasicBlock>> workList{};
   std::unordered_set<CRef<BasicBlock>> visited{};

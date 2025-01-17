@@ -177,8 +177,11 @@ std::string CallInst::toString() const {
     args.pop_back();
     args.pop_back();
   }
-  return std::format("call {} {}({})", type()->toString(), function()->name(),
-                     args);
+  if (type()->isVoid())
+    return std::format("call {} {}({})", type()->toString(), function()->name(),
+                       args);
+  return std::format("{} = call {} {}({})", name(), type()->toString(),
+                     function()->name(), args);
 }
 
 void CmpInst::accept(Executor &executor) {
@@ -193,19 +196,19 @@ void CmpInst::accept(Executor &executor) {
            [](Result::Integer lhs, Result::Integer rhs) {
              return std::visit(std::not_equal_to(), lhs, rhs);
            }},
-          {Predicate::UGT,
+          {Predicate::OGT,
            [](Result::Integer lhs, Result::Integer rhs) {
              return std::visit(std::greater(), lhs, rhs);
            }},
-          {Predicate::UGE,
+          {Predicate::OGE,
            [](Result::Integer lhs, Result::Integer rhs) {
              return std::visit(std::greater_equal(), lhs, rhs);
            }},
-          {Predicate::ULT,
+          {Predicate::OLT,
            [](Result::Integer lhs, Result::Integer rhs) {
              return std::visit(std::less(), lhs, rhs);
            }},
-          {Predicate::ULE,
+          {Predicate::OLE,
            [](Result::Integer lhs, Result::Integer rhs) {
              return std::visit(std::less_equal(), lhs, rhs);
            }},
@@ -238,19 +241,19 @@ void CmpInst::accept(Executor &executor) {
            [](Result::Floating lhs, Result::Floating rhs) {
              return std::visit(std::not_equal_to(), lhs, rhs);
            }},
-          {Predicate::UGT,
+          {Predicate::OGT,
            [](Result::Floating lhs, Result::Floating rhs) {
              return std::visit(std::greater(), lhs, rhs);
            }},
-          {Predicate::UGE,
+          {Predicate::OGE,
            [](Result::Floating lhs, Result::Floating rhs) {
              return std::visit(std::greater_equal(), lhs, rhs);
            }},
-          {Predicate::ULT,
+          {Predicate::OLT,
            [](Result::Floating lhs, Result::Floating rhs) {
              return std::visit(std::less(), lhs, rhs);
            }},
-          {Predicate::ULE,
+          {Predicate::OLE,
            [](Result::Floating lhs, Result::Floating rhs) {
              return std::visit(std::less_equal(), lhs, rhs);
            }},

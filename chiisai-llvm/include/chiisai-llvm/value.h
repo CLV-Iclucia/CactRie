@@ -33,7 +33,7 @@ struct Value : RAII, Executable {
     return reinterpret_cast<uint64_t>(this);
   }
   ~Value() override = default;
-private:
+protected:
   friend struct Module;
   friend void addUse(Ref<User> user, Ref<Value> value);
   CRef<Type> m_type{};

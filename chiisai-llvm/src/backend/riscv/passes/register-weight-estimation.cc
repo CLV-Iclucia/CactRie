@@ -7,7 +7,7 @@
 
 namespace llvm {
 
-constexpr double kLoopWeightEstimation = 4000.0;
+constexpr double kLoopWeightEstimation = 2000.0;
 
 void RegisterWeightEstimationPass::runOnLoop(const Loop &loop) {
   occurInLoop[loop.header]++;
@@ -21,8 +21,9 @@ void RegisterWeightEstimationPass::runOnFunction(const Function &func) {
     runOnLoop(loop);
   for (auto bb : func.basicBlockRefs()) {
     for (const auto &inst : pseudoInsts.at(bb)) {
+      int occurrence = occurInLoop.contains(bb) ? occurInLoop.at(bb) : 0;
       forRegs(inst, [&](const std::string &reg) {
-        regWeight[reg] += std::pow(kLoopWeightEstimation, occurInLoop.at(bb));
+        regWeight[reg] += std::pow(kLoopWeightEstimation, occurrence);
       });
     }
   }

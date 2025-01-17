@@ -9,67 +9,46 @@
 #include <format>
 namespace llvm {
 static std::unordered_map<std::string, uint8_t> instMap{
-      {"add", Instruction::Add},
-      {"fadd", Instruction::FAdd},
-      {"sub", Instruction::Sub},
-      {"fsub", Instruction::FSub},
-      {"mul", Instruction::Mul},
-      {"fmul", Instruction::FMul},
-      {"sdiv", Instruction::SDiv},
-      {"fdiv", Instruction::FDiv},
-      {"srem", Instruction::SRem},
-      {"xor", Instruction::Xor},
-      {"shl", Instruction::Shl},
-      {"lshr", Instruction::LShr},
-      {"ashr", Instruction::AShr},
-      {"and", Instruction::And},
-      {"or", Instruction::Or},
-      {"alloca", Instruction::Alloca},
-      {"load", Instruction::Load},
-      {"store", Instruction::Store},
-      {"ret", Instruction::Ret},
-      {"br", Instruction::Br},
-      {"call", Instruction::Call},
-  };
+    {"add", Instruction::Add},   {"fadd", Instruction::FAdd},
+    {"sub", Instruction::Sub},   {"fsub", Instruction::FSub},
+    {"mul", Instruction::Mul},   {"fmul", Instruction::FMul},
+    {"sdiv", Instruction::SDiv}, {"fdiv", Instruction::FDiv},
+    {"srem", Instruction::SRem}, {"xor", Instruction::Xor},
+    {"shl", Instruction::Shl},   {"lshr", Instruction::LShr},
+    {"ashr", Instruction::AShr}, {"and", Instruction::And},
+    {"or", Instruction::Or},     {"alloca", Instruction::Alloca},
+    {"load", Instruction::Load}, {"store", Instruction::Store},
+    {"ret", Instruction::Ret},   {"br", Instruction::Br},
+    {"call", Instruction::Call},
+};
 
 static std::unordered_map<uint8_t, std::string> opCodeMap{
-      {Instruction::Add, "add"},
-      {Instruction::FAdd, "fadd"},
-      {Instruction::Sub, "sub"},
-      {Instruction::FSub, "fsub"},
-      {Instruction::Mul, "mul"},
-      {Instruction::FMul, "fmul"},
-      {Instruction::SDiv, "sdiv"},
-      {Instruction::FDiv, "fdiv"},
-      {Instruction::SRem, "srem"},
-      {Instruction::Xor, "xor"},
-      {Instruction::Shl, "shl"},
-      {Instruction::LShr, "lshr"},
-      {Instruction::AShr, "ashr"},
-      {Instruction::And, "and"},
-      {Instruction::Or, "or"},
-      {Instruction::Alloca, "alloca"},
-      {Instruction::Load, "load"},
-      {Instruction::Store, "store"},
-      {Instruction::Ret, "ret"},
-      {Instruction::Br, "br"},
-      {Instruction::Call, "call"},
-  };
-uint8_t stoinst(const std::string &str) {
-  return instMap.at(str);
-}
-std::string inst2String(uint8_t opCode) {
-  return opCodeMap.at(opCode);
-}
+    {Instruction::Add, "add"},   {Instruction::FAdd, "fadd"},
+    {Instruction::Sub, "sub"},   {Instruction::FSub, "fsub"},
+    {Instruction::Mul, "mul"},   {Instruction::FMul, "fmul"},
+    {Instruction::SDiv, "sdiv"}, {Instruction::FDiv, "fdiv"},
+    {Instruction::SRem, "srem"}, {Instruction::Xor, "xor"},
+    {Instruction::Shl, "shl"},   {Instruction::LShr, "lshr"},
+    {Instruction::AShr, "ashr"}, {Instruction::And, "and"},
+    {Instruction::Or, "or"},     {Instruction::Alloca, "alloca"},
+    {Instruction::Load, "load"}, {Instruction::Store, "store"},
+    {Instruction::Ret, "ret"},   {Instruction::Br, "br"},
+    {Instruction::Call, "call"},
+};
+uint8_t stoinst(const std::string &str) { return instMap.at(str); }
+std::string inst2String(uint8_t opCode) { return opCodeMap.at(opCode); }
 
-LLVMContext::LLVMContext() : typeSystem(std::make_unique<TypeSystem>()), constantPool(std::make_unique<ConstantPool>()) {}
+LLVMContext::LLVMContext()
+    : typeSystem(std::make_unique<TypeSystem>()),
+      constantPool(std::make_unique<ConstantPool>()) {}
 LLVMContext::~LLVMContext() = default;
 
 CRef<Type> LLVMContext::stobt(const std::string &str) const {
   return typeSystem->stobt(str);
 }
 
-CRef<ArrayType> LLVMContext::arrayType(CRef<Type> elementType, size_t size) const {
+CRef<ArrayType> LLVMContext::arrayType(CRef<Type> elementType,
+                                       size_t size) const {
   return typeSystem->arrayType(elementType, size);
 }
 
@@ -77,7 +56,8 @@ CRef<PointerType> LLVMContext::pointerType(CRef<Type> elementType) const {
   return typeSystem->pointerType(elementType);
 }
 
-CRef<FunctionType> LLVMContext::functionType(const std::vector<CRef<Type>> &containedTypes) const {
+CRef<FunctionType>
+LLVMContext::functionType(const std::vector<CRef<Type>> &containedTypes) const {
   return typeSystem->functionType(containedTypes);
 }
 
@@ -105,11 +85,20 @@ CRef<IntegerType> LLVMContext::longType() const {
   return makeCRef(typeSystem->longInstance);
 }
 
-Ref<Constant> LLVMContext::constant(CRef<Type> type, const std::string &str) const {
+Ref<Constant> LLVMContext::constant(CRef<Type> type,
+                                    const std::string &str) const {
   return constantPool->constant(type, str);
 }
+Ref<Constant>
+LLVMContext::createConstantArray(const std::string &name,
+                                 CRef<ArrayType> arrayType,
+                                 std::vector<CRef<Constant>> &&elements) const {
+  return constantPool->createConstantArray(name, arrayType,
+                                           std::move(elements));
+}
 
-CRef<PointerType> LLVMContext::castFromArrayType(CRef<ArrayType> arrayType) const {
+CRef<PointerType>
+LLVMContext::castFromArrayType(CRef<ArrayType> arrayType) const {
   return typeSystem->pointerType(arrayType->elementType());
 }
 
@@ -139,4 +128,4 @@ CRef<Type> LLVMContext::labelType() const {
   return makeCRef(typeSystem->labelInstance);
 }
 
-}  // namespace llvm
+} // namespace llvm

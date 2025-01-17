@@ -37,6 +37,10 @@ struct Type : RAII {
   static CRef<Type> doubleType(const LLVMContext& ctx);
   static CRef<Type> labelType(const LLVMContext& ctx);
 
+  [[nodiscard]] bool isVoid() const {
+    return type == TypeEnum::Void;
+  }
+
   [[nodiscard]] bool isComputable() const {
     return type == TypeEnum::Integer || type == TypeEnum::Float || type == TypeEnum::Double;
   }
